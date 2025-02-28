@@ -1,7 +1,11 @@
+body{
+  margin: 0px;
+}
 .app-container {
-background-image: url('./backgroundpic.jpg');
-background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
-background-attachment: fixed;
+  background-image: url('/src/backgroundpic.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  height: 100vh;
 }
