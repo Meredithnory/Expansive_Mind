@@ -1,6 +1,7 @@
-import './App.css';
-import './Layout';
+import './Styles/App.css';
 import { Navigate, Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom';
+import Layout from './Layout';
+import Home from './Components/Home';
 
 function App() {
   const router = createBrowserRouter(
@@ -12,9 +13,9 @@ function App() {
     )
   );
   return (
-    <>
+    <div className='app-container'>
       <RouterProvider router={router} />
-    </>
+    </div>
   );
 }
 

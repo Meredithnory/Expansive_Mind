@@ -1,4 +1,4 @@
-body {
+.app-container {
 background-image: url('./backgroundpic.jpg');
 background-size: cover;
 background-position: center;
