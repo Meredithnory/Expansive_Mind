@@ -1,6 +1,17 @@
+
+/* HTML  */
+
 body{
   margin: 0px;
+  font-family: "Inter", sans-serif;
 }
+a{
+  text-decoration: none;
+  padding: 20px;
+  color: black;
+}
+/* Component: App.jsx */
+
 .app-container {
   background-image: url('/src/backgroundpic.jpg');
   background-size: cover;
@@ -8,4 +19,100 @@ body{
   background-repeat: no-repeat;
   background-attachment: fixed;
   height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+/* Component: TopNavBar.jsx */
+
+.top-nav-bar{
+display: flex;
+flex-direction: row;
+justify-content: space-between;
+padding: 18px 22px 0px 22px;
+align-items: center;
+height: 48px;
+}
+.top-nav-title{
+  font-size: 32px;
+}
+/* Component: Menu.jsx  */
+
+.top-nav-menu{
+  display:flex;
+  gap: 20px;
+  cursor: pointer;
+  height: 66px;
+}
+.closed-menu{
+      display: flex;
+      align-items: center;
+  }
+.top-nav-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  font-size: 35px;
+  font-weight: 200;
+}
+.hamburger-icon{
+  height: 48px;
+  width: 68px;
+}
+  .open-menu{
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    height: 100%;
+    right: 0px;
+    background-color: #eefdff42;
+    width: 22%;
+    top: 0px;
+    align-items: center;
+    font-size: 22px;
+  }
+  .active{
+    text-decoration:underline;
+    color: black;
+    width: fit-content; 
+  } 
+  .close {
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.48);
+    width: 223.97px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+}
+
+/* Component: Home.jsx */
+
+.home-content{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10%;
+  height: 100%;
+  justify-content: center;
+}
+
+.welcome-to-text{
+  font-size: 24px;
+}
+.expansive-mind-text{
+  font-size: 68px;
+  margin-left: 66px;
+}
+.button-content{
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10%;
+}
+.home-button{
+  font-family: "Inter", sans-serif;
+  font-size: 20px;
+  background-color:#ffffff00;
+  padding: 6px 30px;
+  cursor: pointer;
 }
