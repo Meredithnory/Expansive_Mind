@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+//Icons
 import HamburgerIcon from '../assets/hamburger.svg?react';
+import MapIcon from '../assets/mapicon.svg?react';
+import SignUpIcon from '../assets/signupicon.svg?react';
+import LoginIcon from '../assets/loginicon.svg?react';
+import DoubleArrowIcon from '../assets/doublearrowicon.svg?react';
 
 const Menu = () => {
   const [openMenu, setOpenMenu] = useState(false);
@@ -22,10 +27,22 @@ const Menu = () => {
       )}
       {openMenu && (
         <div className='open-menu'>
-          <div onClick={handleClick} className='close'>Close</div>
-          <NavLink to='/' className={(navData) => navData.isActive ? 'active' : ''}>Home</NavLink>
-          <NavLink to='/login' className={(navData) => navData.isActive ? 'active' : ''}>Log-in</NavLink>
-          <NavLink to='/signup' className={(navData) => navData.isActive ? 'active' : ''}>Sign-up</NavLink>
+          <div onClick={handleClick} className='close'>
+            <DoubleArrowIcon className='menu-icon' />
+            Close
+          </div>
+          <NavLink to='/' className={(navData) => navData.isActive ? 'active' : ''}>
+            <MapIcon className='menu-icon' />
+            <span className='menu-text'>Home</span>
+          </NavLink>
+          <NavLink to='/login' className={(navData) => navData.isActive ? 'active' : ''}>
+            <SignUpIcon className='menu-icon' />
+            <span className='menu-text'>Log-in</span>
+          </NavLink>
+          <NavLink to='/signup' className={(navData) => navData.isActive ? 'active' : ''}>
+            <LoginIcon className='menu-icon' />
+            <span className='menu-text'>Sign-up</span>
+          </NavLink>
         </div>
       )}
     </div>

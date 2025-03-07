@@ -5,6 +5,7 @@ import Home from './Components/Home';
 import TopNavBar from './Components/TopNavBar';
 import SignUp from './Components/SignUp';
 import Login from './Components/Login';
+import GetStarted from './Components/GetStarted';
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
         <Route path='*' element={<Navigate to='/' replace />} />
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<SignUp />} />
+        <Route path='/get-started' element={<GetStarted />} />
       </Routes>
     </div>
   );

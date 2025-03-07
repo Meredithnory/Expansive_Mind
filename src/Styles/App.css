@@ -1,13 +1,14 @@
 
 /* HTML  */
-
+*{
+  box-sizing: border-box;
+}
 body{
   margin: 0px;
   font-family: "Inter", sans-serif;
 }
 a{
   text-decoration: none;
-  padding: 20px;
   color: black;
 }
 /* Component: App.jsx */
@@ -67,25 +68,44 @@ height: 48px;
     background-color: #eefdff42;
     width: 22%;
     top: 0px;
-    align-items: center;
+    align-items: flex-start;
     font-size: 22px;
   }
+  .open-menu a {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  } 
+ .open-menu a svg {
+  position: absolute;
+    left: 42px;
+ }
   .active{
     text-decoration:underline;
     color: black;
     width: fit-content; 
+    display: flex;
   } 
   .close {
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.48);
-    width: 223.97px;
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     font-size: 28px;
 }
-
+.close svg{
+  position: absolute;
+  left: 42px;
+}
+.menu-icon{
+  display: flex;
+  height: 30px;
+  width: 30px;
+}
 /* Component: Home.jsx */
 
 .home-content{
@@ -115,4 +135,58 @@ height: 48px;
   background-color:#ffffff00;
   padding: 6px 30px;
   cursor: pointer;
+}
+
+/* Component: GetStarted.jsx */
+.white-border-box{
+  background-color: #FAFAFA;
+  display: flex;
+      width: 88%;
+      height: 88%;
+      align-items: center;
+      justify-content: center;
+      margin: auto;
+      flex-direction: column;
+}
+.research-topic-text{
+  font-size: 30px;
+}
+.get-started-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    gap: 50px;
+}
+.search-container input {
+  width: 598px;
+  height: 38px;
+  padding-left: 20px;
+  font-size: 20px;
+  border-radius: 9px;
+  color: black;
+  border: 2px solid black;
+  position: relative;
+}
+.search-container{
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  right: 0;
+  height: 32px;
+  width: 53px;
+  padding-top: 5px;
+}
+.vertical-line{
+  position: absolute;
+  width: 40px;
+  height: 50px;
+  right: 0;
+  width: 110px;
+  height: 50px;
+  padding-bottom: 10px;
+
 }
