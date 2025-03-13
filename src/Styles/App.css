@@ -2,10 +2,10 @@
 /* HTML  */
 *{
   box-sizing: border-box;
+  font-family: "Inter", sans-serif;
 }
 body{
   margin: 0px;
-  font-family: "Inter", sans-serif;
 }
 a{
   text-decoration: none;
@@ -65,7 +65,7 @@ height: 48px;
     position: absolute;
     height: 100%;
     right: 0px;
-    background-color: #eefdff42;
+    background-color: #dbfbfff7;
     width: 22%;
     top: 0px;
     align-items: flex-start;
@@ -139,7 +139,7 @@ height: 48px;
 
 /* Component: GetStarted.jsx */
 .white-border-box{
-  background-color: #FAFAFA;
+  background-color: rgba(255, 255, 255, 0.76);
   display: flex;
       width: 88%;
       height: 88%;
@@ -156,37 +156,209 @@ height: 48px;
     flex-direction: column;
     align-items: center;
     width: 100%;
-    height: 100%;
     justify-content: center;
     gap: 50px;
 }
 .search-container input {
-  width: 598px;
+  width: 100%;
   height: 38px;
   padding-left: 20px;
   font-size: 20px;
   border-radius: 9px;
   color: black;
   border: 2px solid black;
-  position: relative;
 }
 .search-container{
+  width: 100%;
+  max-width: 500px;
   position: relative;
 }
-.search-icon {
-  position: absolute;
-  right: 0;
-  height: 32px;
-  width: 53px;
-  padding-top: 5px;
+.top-positioned {
+ justify-content: flex-start;
+ padding-top: 24px;
+ gap: 28px;
 }
-.vertical-line{
+.paper-results-area {
+  display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 42px 60px 0px 30px;
+}
+.search-vline-icon-area{
+  display: flex;
   position: absolute;
-  width: 40px;
-  height: 50px;
-  right: 0;
-  width: 110px;
-  height: 50px;
-  padding-bottom: 10px;
+  right:10px;
+  top: 0px;
+  height: 100%;
+}
+.search-vline-icon-area svg {
+  height: auto;
+  width: auto;
+}
+.vertical-line svg {
+  height: 60px;
+}
+.search-area{
+  display: flex;
+}
+.search-icon {
+  padding: 6px 0;
+}
 
+.paper-result {
+  display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+}
+.filter-by{
+  display: flex;
+      flex-direction: column;
+      max-width: 194px;
+      justify-content: flex-start;
+      padding-left: 40px;
+      gap: 20px;
+      font-size: 20px;
+      width: 100%;
+}
+.filter-by-text{
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.checkbox {
+width: 28px;
+height: 28px;
+background: #E7F8FF;
+border: 2px solid black;
+}
+.checkboxes-area div{
+  display: flex;
+  flex-direction: row;
+  width: fit-content;
+  margin-bottom: 20px;
+  justify-content: center;
+  align-items: center;
+}
+.one-checkbox-area{
+  gap: 10px;
+}
+.title-result{
+  font-size: 22px;
+  font-weight: 300;
+}
+.author-result{
+  font-size: 16px;
+  font-weight: 300;
+}
+.description-result{
+margin-top: 14px;
+font-size: 16px;
+font-weight: 300;
+}
+.blue-color-text{
+  color: #0AA5FF;
+}
+/* Component: ChatBot */
+.main-paper-area{
+  display: flex;
+  flex-direction: column;
+  padding-top: 40px;
+}
+.top-main-paper-area{
+  display: flex;
+  justify-content: space-between;
+}
+.back-to-search-area{
+  display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-left: 390px;
+    gap: 10px;
+    padding-bottom: 6px;
+}
+.back-to-search-area span {
+  font-size: 22px;
+  font-weight: 400;
+}
+.double-left-arrow-icon{
+  height: 30px;
+  cursor: pointer;
+}
+.tools-area{
+     display: flex;
+      gap: 20px;
+      padding-right: 49px;
+      justify-content: center;
+      align-items: center;
+}
+.tools-area span {
+  font-size: 20px;
+  font-weight: 600;
+}
+.highlight-icon{
+  height: 30px;
+  cursor: pointer;
+}
+.download-icon{
+  height: 30px;
+  cursor: pointer;
+}
+.chat-bot-and-paper-area{
+  display: flex;
+  flex-direction: row;
+  height: 88%;
+  justify-content: center;
+  gap: 20px;
+}
+.chat-bot-box-area{
+  display: flex;
+  flex-direction: column;
+  background-color: black;
+  width: 30%;
+
+}
+.paper-result-area{
+  background-color: white;
+  width: 60%;
+}
+.chat-bot-box-area{
+  display: flex;
+  align-items: center;
+  align-items: center;
+  justify-content: center;
+}
+.chat-bot-box-grey{
+  background-color: #1F1E1E;
+  border-radius: 16px 16px 16px 16px;
+  z-index: 1;
+  position: relative;
+  height: 100%;
+  width: 96%;
+}
+.chat-area{
+  background: rgb(0, 0, 0);
+  z-index: 2;
+  position: relative;
+  height: 83px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
+.chat{
+  display: flex;
+  justify-content: right;
+  background-color: rgb(255, 255, 255);
+height: 100%;
+width: 100%;
+}
+.chat-enter{
+  background-color: black;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.double-up-arrow-icon {
+  cursor: pointer;
 }

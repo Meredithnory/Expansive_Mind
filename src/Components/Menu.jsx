@@ -11,9 +11,7 @@ const Menu = () => {
   const [openMenu, setOpenMenu] = useState(false);
   function handleClick() {
     setOpenMenu(!openMenu);
-
   }
-  console.log(openMenu);
 
   return (
     <div className='top-nav-menu'>
@@ -31,15 +29,15 @@ const Menu = () => {
             <DoubleArrowIcon className='menu-icon' />
             Close
           </div>
-          <NavLink to='/' className={(navData) => navData.isActive ? 'active' : ''}>
+          <NavLink to='/' className={(navData) => navData.isActive ? 'active' : ''} onClick={handleClick}>
             <MapIcon className='menu-icon' />
             <span className='menu-text'>Home</span>
           </NavLink>
-          <NavLink to='/login' className={(navData) => navData.isActive ? 'active' : ''}>
+          <NavLink to='/login' className={(navData) => navData.isActive ? 'active' : ''} onClick={handleClick}>
             <SignUpIcon className='menu-icon' />
             <span className='menu-text'>Log-in</span>
           </NavLink>
-          <NavLink to='/signup' className={(navData) => navData.isActive ? 'active' : ''}>
+          <NavLink to='/signup' className={(navData) => navData.isActive ? 'active' : ''} onClick={handleClick}>
             <LoginIcon className='menu-icon' />
             <span className='menu-text'>Sign-up</span>
           </NavLink>

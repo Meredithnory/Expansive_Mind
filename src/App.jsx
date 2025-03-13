@@ -6,6 +6,7 @@ import TopNavBar from './Components/TopNavBar';
 import SignUp from './Components/SignUp';
 import Login from './Components/Login';
 import GetStarted from './Components/GetStarted';
+import ChatBot from './Components/ChatBot';
 
 function App() {
 
@@ -18,6 +19,7 @@ function App() {
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<SignUp />} />
         <Route path='/get-started' element={<GetStarted />} />
+        <Route path='/chat-bot' element={<ChatBot />} />
       </Routes>
     </div>
   );
