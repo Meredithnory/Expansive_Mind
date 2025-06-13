@@ -1,4 +1,4 @@
-export async function GET() {
+export async function GET(req) {
   // const res = await fetch('https://data.mongodb-api.com/...', {
   //   headers: {
   //     'Content-Type': 'application/json',
@@ -9,7 +9,7 @@ export async function GET() {
  
   // return Response.json({ data })
 
-  return Response.json({Hello: "there"})
+  return Response.json({message: 'test'})
 }
 
 export async function POST() {

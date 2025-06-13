@@ -1,0 +1,39 @@
+.searchbox {
+    display: flex;
+    background-color: white;
+    gap: 4px;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 600px;
+    gap: 10px;
+
+    .vertline {
+        background-color: black;
+        width: 6px;
+        border-radius: 99px;
+        margin: 4px 0px;
+    }
+    input {
+        border: none;
+        outline: none;
+        height: 100%;
+        font-size: 30px;
+        background-color: rgba(255, 255, 255, 0);
+        width: 100%;
+        padding: 6px;
+        font-family: inherit;
+    }
+    img {
+        padding: 6px;
+        cursor: pointer;
+    }
+    .button {
+        background: none;
+        color: inherit;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+    }
+}

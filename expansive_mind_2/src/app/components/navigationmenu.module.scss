@@ -1,0 +1,16 @@
+.menubar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 60px;
+    max-width: 38%;
+    width: 100%;
+    .link {
+        text-decoration: none;
+        font-size: 28px;
+        color: white;
+        display: flex;
+        align-items: center;
+        font: italic;
+    }
+}
