@@ -1,0 +1,45 @@
+$bg-color: #0d0d0d;
+
+//Messages Component
+.messages {
+    height: 100%;
+    background-color: $bg-color;
+}
+
+//Input Component
+.chatinput {
+    display: flex;
+    width: 100%;
+    background-color: white;
+    padding: 20px;
+    border-radius: 20px 20px 0px 0px;
+    align-items: center;
+    textarea {
+        width: 100%;
+        height: 40px;
+        font-size: 16px;
+        font-family: inherit;
+        background-color: transparent;
+        border: none;
+        outline: none;
+        resize: none;
+        overflow: hidden;
+        min-height: 50px;
+        max-height: 100px;
+    }
+    button {
+        height: fit-content;
+        background: black;
+        color: inherit;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 8px;
+    }
+}
+
+//Chatbox Component
+.chatpaperbox {
+    display: grid;
+    grid-template-rows: 1fr auto;
+}

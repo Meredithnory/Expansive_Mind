@@ -1,0 +1,24 @@
+.page {
+    height: 100vh;
+    .navbar {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .searchpage {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        padding: 0px 74px;
+        gap: 20px;
+
+        .searchbox {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .searchbar {
+            width: 600px;
+        }
+    }
+}

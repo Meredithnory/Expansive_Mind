@@ -1,0 +1,76 @@
+.page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+
+    .navbarbox {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    .toolsbox {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        margin-left: 26px;
+        margin-right: 38px;
+    }
+    .icon {
+        height: 26px;
+        width: 26px;
+    }
+    .text {
+        font-size: 20px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .searchbutton {
+        background: none;
+        color: inherit;
+        border: none;
+        border-radius: 30px;
+        height: 22px;
+        width: 240px;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+        display: flex;
+        padding: 18px 16px;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background-color: #121212;
+    }
+    .highlightbutton {
+        background: none;
+        color: inherit;
+        border: none;
+        border-radius: 30px;
+        height: 22px;
+        width: 162px;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+        display: flex;
+        padding: 18px 16px;
+        align-items: center;
+        justify-content: center;
+        background-color: #121212;
+        gap: 14px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .hightlight {
+        display: flex;
+        align-items: center;
+    }
+    .paperchatcontainer {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        height: 100%;
+        gap: 20px;
+        padding: 20px;
+        padding-top: 10px;
+    }
+}

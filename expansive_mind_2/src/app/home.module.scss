@@ -12,12 +12,7 @@
     flex-direction: column;
     justify-content: flex-end;
     align-items: flex-end;
-    h1 {
-        font-weight: 300;
-        font-size: 60px;
-        margin: 0px;
-        margin-bottom: 10px;
-    }
+
     button {
         color: rgb(255, 255, 255);
         width: 200px;
@@ -26,6 +21,12 @@
         border-color: white;
         font-size: 20px;
         cursor: pointer;
+    }
+    h1 {
+        font-weight: 300;
+        font-size: 60px;
+        margin: 0px;
+        margin-bottom: 10px;
     }
     .buttons {
         display: flex;

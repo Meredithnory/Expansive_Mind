@@ -5,6 +5,7 @@ import styles from "./get-started.module.scss";
 import SearchBar from "../components/SearchBar";
 import HamburgerIcon from "../components/HamburgerIcon";
 import { redirect } from "next/navigation";
+import Title from "../components/Title";
 
 export default function SearchPage() {
     const [searchValue, setSearchValue] = useState("");
@@ -18,7 +19,7 @@ export default function SearchPage() {
     return (
         <div className={styles.page}>
             <div className={styles.navbar}>
-                <h1>Expansive Mind</h1>
+                <Title />
                 <HamburgerIcon />
             </div>
             <div className={styles.box}>

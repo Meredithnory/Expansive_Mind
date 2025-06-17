@@ -1,0 +1,31 @@
+.paper {
+    margin: 32px 72px 20px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .title {
+        font-size: 24px;
+    }
+    .author {
+        font-size: 20px;
+    }
+    .publicationdate {
+        font-size: 16px;
+    }
+    .abstract {
+        font-size: 16px;
+    }
+    .text {
+        margin: 2px 2px;
+    }
+    .button {
+        background: none;
+        color: inherit;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+    }
+}

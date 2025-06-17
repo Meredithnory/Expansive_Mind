@@ -1,6 +1,7 @@
 "use client";
 import styles from "./home.module.scss";
 import Link from "next/link";
+import Title from "./components/Title";
 export default function Home() {
     return (
         <div className={styles.home}>

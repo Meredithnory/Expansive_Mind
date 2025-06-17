@@ -18,7 +18,7 @@ const HamburgerIcon = () => {
                     className={styles.icon}
                     width={1000}
                     height={760}
-                    src="hamburgericon.svg"
+                    src="/hamburgericon.svg"
                     alt="HambugerIcon"
                 />
             </button>
