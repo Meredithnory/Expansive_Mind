@@ -40,8 +40,10 @@ const page = () => {
     };
 
     useEffect(() => {
-        handleSubmit();
-    }, []);
+        if (search) {
+            handleSubmit();
+        }
+    }, [search]);
 
     return (
         <div className={styles.page}>
