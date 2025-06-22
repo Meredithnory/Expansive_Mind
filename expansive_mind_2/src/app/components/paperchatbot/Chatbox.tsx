@@ -22,7 +22,7 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
             {messages.map((msg: MessageInterface) => (
                 <div
                     key={msg.id}
-                    className={clsx(styles.message, {
+                    className={clsx({
                         [styles.userMessage]: msg.sender === "user",
                         [styles.aiMessage]: msg.sender === "ai",
                     })}

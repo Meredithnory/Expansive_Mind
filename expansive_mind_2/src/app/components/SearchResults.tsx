@@ -3,51 +3,57 @@ import styles from "../components/searchresults.module.scss";
 import clsx from "clsx";
 import Link from "next/link";
 
-const SearchResults = () => {
-    //Mock Data
-    const searchResults = [
-        {
-            isbn: "npwfjepofq",
-            title: " Introduction to stem cells.",
-            author: "Tian Z, Yu T, Liu J, Wang T, Higuchi A.",
-            publicationDate: "September 20, 2021",
-            abstract:
-                "This review discusses the history, definition, and classification of stem cells. Human pluripotent stem cells (hPSCs) mainly include embryonic stem cells (hESCs) and included pluripotent stem cells (hiPSCs). Embryonic stem...",
-        },
-        {
-            isbn: "npepofq",
-            title: " Introduction to stem cells.",
-            author: "Tian Z, Yu T, Liu J, Wang T, Higuchi A.",
-            publicationDate: "September 20, 2021",
-            abstract:
-                "This review discusses the history, definition, and classification of stem cells. Human pluripotent stem cells (hPSCs) mainly include embryonic stem cells (hESCs) and included pluripotent stem cells (hiPSCs). Embryonic stem...",
-        },
-        {
-            isbn: "npwfdsdfdsq",
-            title: " Introduction to stem cells.",
-            author: "Tian Z, Yu T, Liu J, Wang T, Higuchi A.",
-            publicationDate: "September 20, 2021",
-            abstract:
-                "This review discusses the history, definition, and classification of stem cells. Human pluripotent stem cells (hPSCs) mainly include embryonic stem cells (hESCs) and included pluripotent stem cells (hiPSCs). Embryonic stem...",
-        },
-    ];
+interface SearchResult {
+    pmid: string;
+    title: string;
+    authors: string[];
+    date: string;
+    abstract: string;
+}
+interface searchResultsProps {
+    searchResults: SearchResult[];
+    searchValue: string;
+}
+
+const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
     return (
-        <div className={styles.paper}>
+        <div className={styles.paperwrap}>
             {searchResults.map((paper) => (
-                <div className={styles.paper} key={paper.isbn}>
+                <div className={styles.paper} key={paper.pmid}>
+                    <div className={clsx(styles.publicationdate, styles.text)}>
+                        {paper.date}
+                    </div>
                     <Link
-                        href={`/paperchatbot/${paper.isbn}}`}
+                        href={`/paperchatbot/${paper.pmid}`}
                         style={{ textDecoration: "none", color: "inherit" }}
                     >
                         <div className={clsx(styles.title, styles.text)}>
-                            {paper.title}
+                            {searchValue &&
+                            paper.title
+                                ?.toLowerCase()
+                                .includes(searchValue.toLowerCase())
+                                ? paper.title
+                                      .split(
+                                          new RegExp(`(${searchValue})`, "gi")
+                                      )
+                                      .map((part, index) =>
+                                          part.toLowerCase() ===
+                                          searchValue.toLowerCase() ? (
+                                              <span
+                                                  key={index}
+                                                  className={styles.bluetext}
+                                              >
+                                                  {part}
+                                              </span>
+                                          ) : (
+                                              part
+                                          )
+                                      )
+                                : paper.title}
                         </div>
                     </Link>
                     <div className={clsx(styles.author, styles.text)}>
-                        {paper.author}
-                    </div>
-                    <div className={clsx(styles.publicationdate, styles.text)}>
-                        {paper.publicationDate}
+                        {paper.authors.join(", ")}
                     </div>
                     <div className={clsx(styles.abstract, styles.text)}>
                         {paper.abstract}

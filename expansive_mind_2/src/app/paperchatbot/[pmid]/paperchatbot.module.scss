@@ -1,7 +1,8 @@
 .page {
-    min-height: 100vh;
+    height: 100vh;
     display: grid;
     grid-template-rows: auto auto 1fr;
+    overflow: hidden;
 
     .navbarbox {
         display: flex;
@@ -72,5 +73,6 @@
         gap: 20px;
         padding: 20px;
         padding-top: 10px;
+        overflow: hidden;
     }
 }

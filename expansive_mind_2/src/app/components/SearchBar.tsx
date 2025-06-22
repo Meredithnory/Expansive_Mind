@@ -15,11 +15,20 @@ const SearchBar = ({
     handleSubmit,
     className,
 }: SearchProps) => {
+    const handleKeyPress = (
+        event: React.KeyboardEvent<HTMLInputElement>
+    ): void => {
+        if (event.key === "Enter") {
+            handleSubmit();
+        }
+    };
+
     return (
         <div className={clsx(styles.searchbox, className)}>
             <input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
+                onKeyDown={handleKeyPress}
             />
             <div className={styles.vertline} />
             <button onClick={handleSubmit} className={styles.button}>

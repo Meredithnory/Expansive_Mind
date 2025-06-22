@@ -2,8 +2,42 @@ $bg-color: #0d0d0d;
 
 //Messages Component
 .messages {
+    display: flex;
+    flex-direction: column;
+    border-color: white;
     height: 100%;
-    background-color: $bg-color;
+    overflow-y: auto;
+    gap: 10px;
+    padding: 12px 0;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+    p {
+        margin-right: 22px;
+        margin-left: 22px;
+    }
+    .userMessage {
+        color: white;
+        background-color: #1b1b1b;
+        display: flex;
+        flex-direction: column;
+        align-items: end;
+        border-radius: 20px;
+        width: fit-content;
+        font-family: inherit;
+        align-self: flex-end;
+    }
+    .aiMessage {
+        color: rgb(0, 0, 0);
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        border-radius: 10px;
+        width: fit-content;
+        font-family: inherit;
+    }
 }
 
 //Input Component
@@ -23,7 +57,7 @@ $bg-color: #0d0d0d;
         border: none;
         outline: none;
         resize: none;
-        overflow: hidden;
+        overflow: auto;
         min-height: 50px;
         max-height: 100px;
     }
@@ -42,7 +76,6 @@ $bg-color: #0d0d0d;
 .chatpaperbox {
     display: grid;
     grid-template-rows: 1fr auto;
-}
-.message {
-    color: white;
+    height: 100%;
+    overflow: hidden;
 }
