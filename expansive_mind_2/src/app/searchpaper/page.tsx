@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import SearchBar from "../components/SearchBar";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import HamburgerIcon from "../components/HamburgerIcon";
 import Title from "../components/Title";
 import styles from "./searchpaper.module.scss";
@@ -9,7 +9,7 @@ import SearchResults from "../components/SearchResults";
 import Loading from "../components/Loading";
 
 interface SearchResult {
-    pmid: string;
+    pmcid: string;
     title: string;
     authors: string[];
     date: string;
@@ -17,33 +17,46 @@ interface SearchResult {
 }
 
 const page = () => {
+    //Get query params in the URL from the get-started page FIRST
     const searchParams = useSearchParams();
-    const search = searchParams.get("q");
+    const qParam = searchParams.get("q");
+    //Router is accessing information of the router historys array but now we want to use router to change the history to the current params to where it started in the get-started page in case someone
+    const router = useRouter();
 
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-    const [searchValue, setSearchValue] = useState(search ?? "");
+    const [searchValue, setSearchValue] = useState(qParam ?? "");
     const [loading, setLoading] = useState(true);
+    //Last handle submit value shown for the showing results : " " that way it only changes when its submitted
     const [pastSearchValue, setPastSearchValue] = useState("");
 
-    const handleSubmit = async () => {
-        setLoading(true);
+    const handleSubmit = (): void => {
         const params = new URLSearchParams({
             q: searchValue,
         });
-        console.log(searchValue);
+        //Pushing the query search parameter in the URL 's history arr
+        const href = `${window.location.pathname}?${params}`;
+        router.push(href, { scroll: false });
+    };
+
+    const doSearch = async (query: string): Promise<void> => {
+        setLoading(true);
+        const params = new URLSearchParams({
+            q: query,
+        });
+        //Using the same params to send to the back-end
         const res = await fetch(`/api/search?${params}`);
         const data = await res.json();
-        console.log(data);
         setSearchResults(data.results);
-        setPastSearchValue(searchValue);
+        setPastSearchValue(query);
         setLoading(false);
     };
 
     useEffect(() => {
-        if (search) {
-            handleSubmit();
+        setSearchValue(qParam ?? "");
+        if (qParam) {
+            doSearch(qParam);
         }
-    }, [search]);
+    }, [qParam]);
 
     return (
         <div className={styles.page}>

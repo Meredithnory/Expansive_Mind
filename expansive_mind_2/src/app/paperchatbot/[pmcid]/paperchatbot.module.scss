@@ -68,11 +68,16 @@
     }
     .paperchatcontainer {
         display: grid;
-        grid-template-columns: 1fr 2fr;
+        grid-template-columns: 1fr 2.2fr;
         height: 100%;
         gap: 20px;
         padding: 20px;
         padding-top: 10px;
         overflow: hidden;
+    }
+    .loader {
+        display: flex;
+        justify-content: center;
+        width: 100%;
     }
 }

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         } else {
             paperResults = await getNIHPaperResults(idList);
         }
-
+        console.log(paperResults);
         return NextResponse.json({ results: paperResults });
     } catch (err: any) {
         console.error("message:", err);

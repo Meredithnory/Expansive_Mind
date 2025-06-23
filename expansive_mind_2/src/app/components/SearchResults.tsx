@@ -4,7 +4,7 @@ import clsx from "clsx";
 import Link from "next/link";
 
 interface SearchResult {
-    pmid: string;
+    pmcid: string;
     title: string;
     authors: string[];
     date: string;
@@ -16,15 +16,17 @@ interface searchResultsProps {
 }
 
 const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
+    const params = new URLSearchParams();
+    params.append("q", searchValue);
     return (
         <div className={styles.paperwrap}>
             {searchResults.map((paper) => (
-                <div className={styles.paper} key={paper.pmid}>
+                <div className={styles.paper} key={paper.pmcid}>
                     <div className={clsx(styles.publicationdate, styles.text)}>
                         {paper.date}
                     </div>
                     <Link
-                        href={`/paperchatbot/${paper.pmid}`}
+                        href={`/paperchatbot/${paper.pmcid}?${params}`}
                         style={{ textDecoration: "none", color: "inherit" }}
                     >
                         <div className={clsx(styles.title, styles.text)}>

@@ -3,12 +3,12 @@ import { getPaperDetails } from "./utils";
 
 export async function GET(request: NextRequest) {
     try {
-        const pmid = request.nextUrl.searchParams.get("pmid");
-        if (!pmid) {
-            throw Error("Invalid PMID.");
+        const pmcid = request.nextUrl.searchParams.get("pmcid");
+        if (!pmcid) {
+            throw Error("Invalid PMCID.");
         }
-        const paper = await getPaperDetails(pmid);
-        return NextResponse.json({ paper }); // return the paper
+        const paper = await getPaperDetails(pmcid);
+        return NextResponse.json({ paper }); // return the paper as the key paper
     } catch (err: any) {
         console.error("Error in API req handler", err.message);
         return NextResponse.json(

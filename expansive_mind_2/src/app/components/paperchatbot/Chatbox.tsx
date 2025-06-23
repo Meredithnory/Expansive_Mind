@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect, SetStateAction } from "react";
 import styles from "./chatbox.module.scss";
 import Image from "next/image";
 import clsx from "clsx";
+import { FormattedPaper } from "@/app/api/general-interfaces";
+import ReactMarkdown from "react-markdown";
 
 interface MessageInterface {
     id: number;
@@ -10,10 +12,6 @@ interface MessageInterface {
     message: string;
     timestamp: string;
 }
-const MESSAGES = [
-    { id: 1, sender: "ai", message: "Hello", timestamp: "" },
-    { id: 2, sender: "user", message: "Yo yo yo", timestamp: "" },
-];
 //It accepts a prop named messages that is type arr of objs with the interface properties
 //Interfaces are for defining the types of objects
 const Messages = ({ messages }: { messages: MessageInterface[] }) => {
@@ -22,12 +20,14 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
             {messages.map((msg: MessageInterface) => (
                 <div
                     key={msg.id}
-                    className={clsx({
+                    className={clsx(styles.message, {
                         [styles.userMessage]: msg.sender === "user",
                         [styles.aiMessage]: msg.sender === "ai",
                     })}
                 >
-                    <p>{msg.message}</p>
+                    <div>
+                        <ReactMarkdown>{msg.message}</ReactMarkdown>
+                    </div>
                 </div>
             ))}
         </div>
@@ -45,7 +45,11 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
         element.style.height = "5px";
         element.style.height = element.scrollHeight + "px";
     };
-
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+            handleSubmit();
+        }
+    };
     return (
         <div className={styles.chatinput}>
             <textarea
@@ -54,6 +58,8 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
                 placeholder="Type your message..."
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
             ></textarea>
             <button onClick={handleSubmit}>
                 <Image
@@ -67,12 +73,13 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
     );
 };
 
-const Chatbox = () => {
-    const [allMessages, setAllMessages] = useState(MESSAGES);
+const Chatbox = ({ wholePaper }: { wholePaper: FormattedPaper | null }) => {
+    const [allMessages, setAllMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState("");
 
     //handle the input of messages and outputing messages
     const handleSubmit = async () => {
+        setInputMessage("");
         //submitting the input to the messages array
         //first we need to take the input message and push it onto the arr of messages
         const senderMessage = {
@@ -85,7 +92,11 @@ const Chatbox = () => {
 
         const res = await fetch("/api/aichat", {
             method: "POST",
-            body: JSON.stringify({ userResponse: inputMessage }),
+            body: JSON.stringify({
+                userResponse: inputMessage,
+                wholePaper,
+                allMessages,
+            }),
         });
         const data = await res.json(); //Data being recieved from the POST request
         const aiResponse = data.aiResponse;
