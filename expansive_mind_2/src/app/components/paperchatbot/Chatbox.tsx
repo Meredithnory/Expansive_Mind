@@ -1,10 +1,18 @@
 "use client";
-import React, { useState, useRef, useEffect, SetStateAction } from "react";
+import React, {
+    useState,
+    useRef,
+    useEffect,
+    SetStateAction,
+    useCallback,
+} from "react";
 import styles from "./chatbox.module.scss";
 import Image from "next/image";
 import clsx from "clsx";
 import { FormattedPaper } from "@/app/api/general-interfaces";
 import ReactMarkdown from "react-markdown";
+
+//Interface
 
 interface MessageInterface {
     id: number;
@@ -12,11 +20,49 @@ interface MessageInterface {
     message: string;
     timestamp: string;
 }
+//Messaging component from AI chatbot
+const Message = ({
+    message,
+    onContentUpdate,
+}: {
+    message: string;
+    onContentUpdate: () => void;
+}) => {
+    const [content, setContent] = useState("");
+
+    useEffect(() => {
+        let count = 0;
+        setContent("");
+
+        const intervalId = setInterval(() => {
+            if (count < message.length) {
+                count++;
+                setContent(message.slice(0, count));
+                onContentUpdate();
+            } else {
+                clearInterval(intervalId);
+            }
+        }, 20);
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [message, onContentUpdate]);
+
+    return <ReactMarkdown>{content}</ReactMarkdown>;
+};
 //It accepts a prop named messages that is type arr of objs with the interface properties
-//Interfaces are for defining the types of objects
 const Messages = ({ messages }: { messages: MessageInterface[] }) => {
+    const messagesRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = useCallback(() => {
+        if (messagesRef.current) {
+            messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        }
+    }, []);
+
     return (
-        <div className={styles.messages}>
+        <div className={styles.messages} ref={messagesRef}>
             {messages.map((msg: MessageInterface) => (
                 <div
                     key={msg.id}
@@ -25,9 +71,14 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
                         [styles.aiMessage]: msg.sender === "ai",
                     })}
                 >
-                    <div>
-                        <ReactMarkdown>{msg.message}</ReactMarkdown>
-                    </div>
+                    {msg.sender === "ai" ? (
+                        <Message
+                            message={msg.message}
+                            onContentUpdate={scrollToBottom}
+                        />
+                    ) : (
+                        <div> {msg.message} </div>
+                    )}
                 </div>
             ))}
         </div>
@@ -74,7 +125,14 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
 };
 
 const Chatbox = ({ wholePaper }: { wholePaper: FormattedPaper | null }) => {
-    const [allMessages, setAllMessages] = useState([]);
+    const [allMessages, setAllMessages] = useState([
+        {
+            id: 1,
+            sender: "ai",
+            message:
+                "Hello! How are you today? When you've had the chance to look over the paper, is there a particular section or finding you're curious about? I'm here to help with any questions you might have!",
+        },
+    ]);
     const [inputMessage, setInputMessage] = useState("");
 
     //handle the input of messages and outputing messages

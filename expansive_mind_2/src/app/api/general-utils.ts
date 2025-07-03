@@ -114,6 +114,9 @@ export const extractArticleDetails = (
             }
         }
     } else {
+        if (!abstractSectionOrSections.p) {
+            return null;
+        }
         if (Array.isArray(abstractSectionOrSections.p)) {
             abstract = abstractSectionOrSections.p[0]._text;
         } else {

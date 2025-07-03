@@ -9,6 +9,7 @@ import Paperbox from "@/app/components/paperchatbot/Paperbox";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormattedPaper } from "@/app/api/general-interfaces";
 import Loading from "@/app/components/Loading";
+import clsx from "clsx";
 
 const page = ({ params }: { params: any }) => {
     const router = useRouter();
@@ -21,6 +22,8 @@ const page = ({ params }: { params: any }) => {
         null
     );
     const [loading, setLoading] = useState(true);
+    const [highlight, setHighlight] = useState(false);
+    const [highlightedText, setHighlightedText] = useState("");
 
     const fetchPaperInfo = async (paperPMCIDToFetch: string) => {
         setLoading(true);
@@ -42,6 +45,21 @@ const page = ({ params }: { params: any }) => {
     useEffect(() => {
         fetchPaperInfo(pmcid);
     }, [pmcid]);
+
+    //Handle highlight
+    const handleHighlight = () => {
+        setHighlight(!highlight);
+    };
+
+    const handleHighlightedText = () => {
+        const text = window.getSelection()?.toString();
+
+        if (!text) {
+            return;
+        } else {
+            setHighlightedText(text);
+        }
+    };
 
     return (
         <div className={styles.page}>
@@ -65,8 +83,13 @@ const page = ({ params }: { params: any }) => {
                         <div className={styles.text}>Back to Search</div>
                     </button>
                 </div>
-                <button className={styles.highlightbutton}>
-                    <div className={styles.highlight}>Chat-tool:</div>
+                <button
+                    className={clsx(styles.highlightbutton, {
+                        [styles.activeHighlighter]: highlight === true,
+                    })}
+                    onClick={handleHighlight}
+                >
+                    <div className={clsx(styles.highlight)}>Chat-tool:</div>
                     <Image
                         className={styles.icon}
                         width={1000}
@@ -82,8 +105,16 @@ const page = ({ params }: { params: any }) => {
                 </div>
             ) : (
                 <div className={styles.paperchatcontainer}>
-                    <Chatbox wholePaper={researchPaper} />
-                    <Paperbox paper={researchPaper} searchTerm={qParam} />
+                    <Chatbox
+                        wholePaper={researchPaper}
+                        highlightedText={highlightedText}
+                    />
+                    <Paperbox
+                        paper={researchPaper}
+                        searchTerm={qParam}
+                        highlight={highlight}
+                        handleHighlightedText={handleHighlightedText}
+                    />
                 </div>
             )}
         </div>

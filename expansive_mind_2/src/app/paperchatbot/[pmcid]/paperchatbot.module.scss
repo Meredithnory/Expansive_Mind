@@ -62,6 +62,10 @@
         font-size: 18px;
         font-weight: bold;
     }
+    .activeHighlighter {
+        background-color: #ff0084;
+        color: rgb(255, 255, 255);
+    }
     .hightlight {
         display: flex;
         align-items: center;

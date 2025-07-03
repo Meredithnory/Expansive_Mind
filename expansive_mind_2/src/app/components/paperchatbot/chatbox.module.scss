@@ -14,6 +14,7 @@ $bg-color: #0d0d0d;
     .message {
         padding: 15px 20px;
         border-radius: 8px;
+        height: fit-content;
 
         ul {
             padding-inline-start: 15px;
@@ -91,6 +92,9 @@ $bg-color: #0d0d0d;
             height: auto;
             width: auto;
         }
+    }
+    .hiddenCursor {
+        display: none;
     }
 }
 

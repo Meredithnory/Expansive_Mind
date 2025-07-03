@@ -50,6 +50,16 @@ $highlight-blue: #0ab1ff;
         }
     }
 
+    &.highlight {
+        cursor: url("/highlighticon.svg"), auto;
+        .section {
+            p::selection {
+                color: #ff72f8;
+                background-color: rgb(0, 0, 0);
+            }
+        }
+    }
+
     .subSectionWrap {
         display: flex;
         flex-direction: column;

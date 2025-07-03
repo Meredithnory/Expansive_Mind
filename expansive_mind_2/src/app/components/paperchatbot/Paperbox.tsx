@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import styles from "./paperbox.module.scss";
 import clsx from "clsx";
 import {
@@ -11,6 +10,8 @@ import Image from "next/image";
 interface PaperBoxProps {
     paper: FormattedPaper | null;
     searchTerm: string | null;
+    highlight: boolean;
+    handleHighlightedText: () => void;
 }
 
 const SubSection = ({ subSection }: { subSection: SubSectionInterface }) => {
@@ -61,13 +62,23 @@ const Section = ({ section }: { section: SectionInterface }) => {
     );
 };
 
-const Paperbox = ({ paper, searchTerm }: PaperBoxProps) => {
+const Paperbox = ({
+    paper,
+    searchTerm,
+    highlight,
+    handleHighlightedText,
+}: PaperBoxProps) => {
     if (!paper) {
         return null;
     }
 
     return (
-        <div className={styles.paperbox}>
+        <div
+            className={clsx(styles.paperbox, {
+                [styles.highlight]: highlight === true,
+            })}
+            onClickCapture={handleHighlightedText}
+        >
             <h1 className={clsx(styles.title, styles.text)}>
                 {searchTerm &&
                 paper.title?.toLowerCase().includes(searchTerm.toLowerCase())
