@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getPaperDetails } from "./utils";
+import { withAuth } from "../authMiddleware";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
     try {
         const pmcid = request.nextUrl.searchParams.get("pmcid");
         if (!pmcid) {
@@ -16,4 +17,4 @@ export async function GET(request: NextRequest) {
             { status: 500 }
         );
     }
-}
+});

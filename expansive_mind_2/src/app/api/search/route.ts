@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchNIHPaperIds, getNIHPaperResults } from "./utils";
+import { withAuth } from "../authMiddleware";
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest) => {
     try {
         //Extracting the params from the front-end with they key 'q'
         const searchValue = req.nextUrl.searchParams.get("q");
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
         } else {
             paperResults = await getNIHPaperResults(idList);
         }
-        console.log(paperResults);
+
         return NextResponse.json({ results: paperResults });
     } catch (err: any) {
         console.error("message:", err);
@@ -25,6 +26,4 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
-}
-
-export async function POST() {}
+});

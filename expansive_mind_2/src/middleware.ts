@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-const jwt = require("jsonwebtoken");
+import { jwtVerify } from "jose";
 
 //Middleware protecting pages
 export async function middleware(request: NextRequest) {
-    const token = request.cookies.get("jwt")?.value;
+    const token = request.cookies.get("auth_token")?.value;
     const { pathname } = request.nextUrl;
-
     // Define protected routes (pages, not API routes)
-    const protectedRoutes = ["/savedpapers"];
-    console.log("here");
+    const protectedRoutes = [
+        "/savedpapers",
+        "/get-started",
+        "/searchpaper",
+        "/paperchatbot",
+    ];
 
-    // Check if current path is protected
     const isProtectedRoute = protectedRoutes.some((route) =>
         pathname.startsWith(route)
     );
@@ -24,7 +26,15 @@ export async function middleware(request: NextRequest) {
     // If token exists, verify it
     if (token && isProtectedRoute) {
         try {
-            jwt.verify(token, process.env.JWT_SECRET!);
+            if (!process.env.JWT_SECRET) {
+                throw new Error("No JWT SECRET");
+            }
+            //Using the JWT_SECRET to decrypt the token
+            const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+            //Using the key to unlock to payload
+            //key is secret
+            //Lock is token
+            jwtVerify(token, secret);
             // Token is valid, allow access
             return NextResponse.next();
         } catch (error) {
@@ -32,7 +42,8 @@ export async function middleware(request: NextRequest) {
             const response = NextResponse.redirect(
                 new URL("/login", request.url)
             );
-            response.cookies.delete("jwt");
+            console.error(error);
+            response.cookies.delete("auth_token");
             return response;
         }
     }

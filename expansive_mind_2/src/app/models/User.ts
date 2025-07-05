@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const bcrypt = require("bcrypt");
 
-//MongoDB Schema Form Submission
+//MongoDB Schema Form User Submission
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,

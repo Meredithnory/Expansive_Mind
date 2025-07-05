@@ -18,7 +18,7 @@ const page = () => {
         const form = event.currentTarget;
         const formData = new FormData(event.currentTarget);
         try {
-            const response = await fetch("/api/submit", {
+            const response = await fetch("/api/signup", {
                 method: "POST",
                 body: formData,
             });

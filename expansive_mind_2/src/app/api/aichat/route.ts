@@ -1,9 +1,10 @@
 // app/api/aichat/route.ts
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { respondToMessage } from "../general-chat";
+import { withAuth } from "../authMiddleware";
 
 // This function handles POST requests to /api/aichat
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: NextRequest) => {
     const data = await request.json();
     const messageForAI = data.userResponse;
     const wholePaper = data.wholePaper;
@@ -17,4 +18,4 @@ export async function POST(request: Request) {
     const aiResponse = { id: 1, sender: "ai", message: message, timestamp: "" };
 
     return NextResponse.json({ aiResponse }, { status: 200 });
-}
+});

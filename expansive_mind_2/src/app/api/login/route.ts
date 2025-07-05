@@ -6,7 +6,7 @@ import connectDB from "../../db/connectDB";
 
 const maxAge = 24 * 60 * 60 * 1000; // 1 day in miliseconds
 
-//Defining a function to create token
+//Defining a function to create token - encrypting the token with the secret
 const createToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET!, {
         expiresIn: 24 * 60 * 60, //JWT in seconds
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-
         // Compare password with hashed password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
@@ -70,16 +69,14 @@ export async function POST(request: NextRequest) {
                 email: user.email,
             },
         });
-
         // Setting the HTTP-only cookie - must be stored in milisecconds
-        response.cookies.set("jwt", token, {
+        response.cookies.set("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: maxAge,
             path: "/",
         });
-
         return response;
     } catch (error) {
         console.error("Login error:", error);
