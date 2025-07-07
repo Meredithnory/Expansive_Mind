@@ -1,0 +1,65 @@
+$highlight-blue: #0ab1ff;
+
+.paperwrap {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+
+    .paper {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        border-bottom: 2px solid rgba(40, 40, 40, 0.633);
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+
+    .title {
+        font-size: 24px;
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-color: $highlight-blue;
+        }
+    }
+    .author {
+        font-size: 14px;
+        color: #6bb0ff;
+        font-style: italic;
+    }
+    .publicationdate {
+        color: #fff;
+        background-color: #1d1d1d;
+        width: fit-content;
+        align-self: flex-end;
+        padding: 5px 10px;
+        border-radius: 2px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .abstract {
+        font-size: 16px;
+        max-height: 100px;
+        color: #cfe5fc;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .text {
+        margin: 2px 2px;
+    }
+    .bluetext {
+        color: $highlight-blue;
+    }
+    .button {
+        background: none;
+        color: inherit;
+        border: none;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+    }
+}

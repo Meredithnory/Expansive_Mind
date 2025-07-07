@@ -1,0 +1,121 @@
+.navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    .loginBox {
+        padding-top: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 750px;
+        width: 750px;
+    }
+    .loginContainer {
+        background-color: #121212;
+        height: 100%;
+        width: 100%;
+    }
+    .loginText {
+        font-size: 60px;
+        margin-bottom: 20px;
+        margin-top: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .maincontent {
+        padding-top: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    .email,
+    .password {
+        display: flex;
+        flex-direction: column;
+        width: 378px;
+        font-style: italic;
+        font-size: 20px;
+        gap: 18px;
+    }
+
+    .links {
+        color: white;
+        display: flex;
+        gap: 180px;
+    }
+    input {
+        border: none;
+        border-bottom: 3px solid #ffffff;
+        background-color: transparent;
+        outline: none;
+        padding: 8px 0;
+        font-size: 20px;
+        color: #ffffff;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+        font-family: inherit;
+        padding-left: 44px;
+    }
+    input:focus {
+        border-bottom-color: #ff0084; /* Change color on focus */
+    }
+    .inputwrapper {
+        position: relative;
+        display: inline-block;
+    }
+    .icon {
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        transform: translateY(-50%);
+    }
+    input[type="text"] {
+        padding-left: 40px;
+    }
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: #ffffff;
+        transition: background-color 5000s ease-in-out 0s;
+        box-shadow: inset 0 0 20px 20px #23232329;
+    }
+    a {
+        color: white;
+    }
+    a:hover {
+        color: #ff0084;
+    }
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 333px;
+        height: 40px;
+        margin-top: 40px;
+        color: #ffffff;
+        background-color: #ff0084;
+        outline: none;
+        border: none;
+        font: inherit;
+        border-radius: 10px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    .error {
+        color: red;
+        z-index: 9999;
+        text-align: center;
+    }
+}

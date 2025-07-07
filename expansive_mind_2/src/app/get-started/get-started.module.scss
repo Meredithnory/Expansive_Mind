@@ -1,0 +1,27 @@
+.page {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    h1 {
+        font-weight: 400;
+        font-size: 38px;
+        margin-left: 20px;
+    }
+    .box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        padding-bottom: 106px;
+    }
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+    }
+    .title {
+        font-size: 36px;
+        font-weight: 200;
+        display: flex;
+    }
+}

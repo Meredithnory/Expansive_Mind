@@ -1,0 +1,118 @@
+.navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.signuparea {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 90vh;
+
+    .left {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .box {
+        margin: 40px;
+        background-color: #121212;
+        height: 676px;
+        width: 676px;
+    }
+    .signuptext {
+        font-size: 46px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding-top: 20px;
+    }
+    .continuetext {
+        font-size: 12px;
+        padding-top: 10px;
+    }
+    .form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 50px;
+    }
+    .email {
+        display: flex;
+        flex-direction: column;
+        width: 390px;
+        font-size: 16px;
+        gap: 6px;
+    }
+    .name {
+        display: flex;
+        flex-direction: row;
+        font-size: 16px;
+        gap: 30px;
+        padding: 30px 0;
+    }
+    .namebox {
+        display: flex;
+        flex-direction: column;
+        width: 180px;
+        gap: 6px;
+    }
+    .lastbox {
+        display: flex;
+        flex-direction: column;
+        width: 180px;
+        gap: 6px;
+    }
+    .password {
+        display: flex;
+        flex-direction: column;
+        font-size: 16px;
+        width: 390px;
+        gap: 6px;
+    }
+    input {
+        font-size: 20px;
+        font-family: inherit;
+        border: none;
+        border-radius: 6px;
+        padding: 9px;
+    }
+    input::placeholder {
+        color: #dedede;
+        padding-top: 20px;
+        padding-bottom: 20px;
+        font-size: 20px;
+    }
+    .submitbutton {
+        display: flex;
+        padding-top: 40px;
+    }
+    button {
+        width: 400px;
+        height: 50px;
+        background-color: black;
+        color: white;
+        font-family: inherit;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 400;
+        font-size: 20px;
+        border-radius: 8px;
+    }
+    .signtext {
+        padding: 40px;
+    }
+    .right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-right: 90px;
+    }
+    .toptext {
+        font-size: 22px;
+        position: absolute;
+        top: 260px;
+    }
+}
