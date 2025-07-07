@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from "react";
 import SearchBar from "../components/SearchBar";
 import { useSearchParams, useRouter } from "next/navigation";
-import HamburgerIcon from "../components/HamburgerIcon";
-import Title from "../components/Title";
 import styles from "./searchpaper.module.scss";
 import SearchResults from "../components/SearchResults";
 import Loading from "../components/Loading";
+import NavBar from "../components/NavBar";
 
 interface SearchResult {
     pmcid: string;
@@ -60,10 +59,7 @@ const page = () => {
 
     return (
         <div className={styles.page}>
-            <div className={styles.navbar}>
-                <Title />
-                <HamburgerIcon />
-            </div>
+            <NavBar />
             <div className={styles.searchbox}>
                 <SearchBar
                     searchValue={searchValue}

@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import SavedPaper, { Paper } from "../components/SavedPaper";
 
 const page = () => {
     const [message, setMessage] = useState("");
@@ -37,21 +38,12 @@ const page = () => {
             } else {
                 setMessage("Email already registered!");
             }
-            console.log("Response status:", response.status);
-            console.log("Full response data:", data);
         } catch (error) {
             console.error("Error:", error);
         }
     }
 
-    interface Pages {
-        title: string;
-        authors: string;
-        description: string;
-        id: number;
-    }
-
-    const pages: Pages[] = [
+    const pages: Paper[] = [
         {
             title: "Introduction to stem cells",
             authors: "Tian Z, Yu T, Liu J, Wang T, Higuchi A. ",
@@ -164,41 +156,11 @@ const page = () => {
                     <div className={styles.paperbox}></div>
                     <div className={styles.chatdeletebox}>
                         {pages.map((page) => (
-                            <div key={page.id} className={styles.entirepage}>
-                                <div className={styles.page}>
-                                    <div className={styles.title}>
-                                        {page.title}
-                                    </div>
-                                    <div className={styles.authors}>
-                                        {page.authors}
-                                    </div>
-                                    <div className={styles.description}>
-                                        {page.description}
-                                    </div>
-                                </div>
-                                <div className={styles.icons}>
-                                    <div className={styles.chaticon}>
-                                        <Image
-                                            className={styles.icon}
-                                            src="/chaticon.svg"
-                                            alt="Chaticon"
-                                            width={16}
-                                            height={16}
-                                        />
-                                        Chat
-                                    </div>
-                                    <div className={styles.trashicon}>
-                                        <Image
-                                            className={styles.icon}
-                                            src="/trashicon.svg"
-                                            alt="Trashicon"
-                                            width={16}
-                                            height={16}
-                                        />
-                                        Delete
-                                    </div>
-                                </div>
-                            </div>
+                            <SavedPaper
+                                key={page.id}
+                                page={page}
+                                isLink={false}
+                            />
                         ))}
                     </div>
                 </div>

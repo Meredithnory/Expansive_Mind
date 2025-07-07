@@ -1,6 +1,4 @@
 "use client";
-import HamburgerIcon from "@/app/components/HamburgerIcon";
-import Title from "@/app/components/Title";
 import React, { useEffect, useState } from "react";
 import styles from "./paperchatbot.module.scss";
 import Image from "next/image";
@@ -10,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormattedPaper } from "@/app/api/general-interfaces";
 import Loading from "@/app/components/Loading";
 import clsx from "clsx";
+import NavBar from "@/app/components/NavBar";
 
 const page = ({ params }: { params: any }) => {
     const router = useRouter();
@@ -24,6 +23,16 @@ const page = ({ params }: { params: any }) => {
     const [loading, setLoading] = useState(true);
     const [highlight, setHighlight] = useState(false);
     const [highlightedText, setHighlightedText] = useState("");
+    const [allMessages, setAllMessages] = useState([
+        {
+            id: 1,
+            sender: "ai",
+            message:
+                "Hello! How are you today? When you've had the chance to look over the paper, is there a particular section or finding you're curious about? I'm here to help with any questions you might have!",
+            timestamp: new Date(),
+            animate: true,
+        },
+    ]);
 
     const fetchPaperInfo = async (paperPMCIDToFetch: string) => {
         setLoading(true);
@@ -34,8 +43,11 @@ const page = ({ params }: { params: any }) => {
                 method: "GET",
             });
             const data = await res.json();
-            console.log(data);
             setResearchPaper(data.paper);
+            setAllMessages((prevMessages) => [
+                ...prevMessages,
+                ...data.messages,
+            ]);
         } catch (err: any) {
             console.error("Frontend fetch error:", err);
         }
@@ -63,10 +75,7 @@ const page = ({ params }: { params: any }) => {
 
     return (
         <div className={styles.page}>
-            <div className={styles.navbarbox}>
-                <Title />
-                <HamburgerIcon />
-            </div>
+            <NavBar />
             <div className={styles.toolsbox}>
                 <div className={styles.searcharea}>
                     <button
@@ -83,7 +92,7 @@ const page = ({ params }: { params: any }) => {
                         <div className={styles.text}>Back to Search</div>
                     </button>
                 </div>
-                <button
+                {/* <button
                     className={clsx(styles.highlightbutton, {
                         [styles.activeHighlighter]: highlight === true,
                     })}
@@ -97,7 +106,7 @@ const page = ({ params }: { params: any }) => {
                         src="/highlighticon.svg"
                         alt="highlighter icon"
                     />
-                </button>
+                </button> */}
             </div>
             {loading ? (
                 <div className={styles.loader}>
@@ -108,6 +117,8 @@ const page = ({ params }: { params: any }) => {
                     <Chatbox
                         wholePaper={researchPaper}
                         highlightedText={highlightedText}
+                        allMessages={allMessages}
+                        setAllMessages={setAllMessages}
                     />
                     <Paperbox
                         paper={researchPaper}

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         });
         // Setting the HTTP-only cookie - must be stored in milisecconds
         response.cookies.set("auth_token", token, {
-            httpOnly: true,
+            httpOnly: false,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: maxAge,

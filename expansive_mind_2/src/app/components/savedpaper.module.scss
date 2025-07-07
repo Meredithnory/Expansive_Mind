@@ -1,0 +1,80 @@
+.entirepage {
+    display: flex;
+    font-size: 10px;
+    margin-bottom: 30px;
+    background-color: #000;
+
+    a {
+        text-decoration: none;
+    }
+}
+.page {
+    background-color: #121212;
+    width: 100%;
+    padding: 20px;
+}
+.title {
+    color: #0aa5ff;
+    font-size: 18px;
+}
+.authors {
+    margin-bottom: 8px;
+    font-style: italic;
+    padding-top: 4px;
+    font-size: 12px;
+}
+.icons {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-left: 16px;
+}
+
+.chaticon {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    font-size: 16px;
+    text-decoration: none;
+    color: #fff;
+
+    &:hover {
+        color: #ff0084;
+    }
+
+    img {
+        height: 30px;
+        width: 30px;
+    }
+}
+.trashicon {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 9995;
+    bottom: 40px;
+}
+.errorMessage {
+    color: red;
+}
+.successMessage {
+    color: rgb(19, 196, 19);
+}
+.description {
+    max-height: 100px;
+    color: #cfe5fc;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 16px;
+}

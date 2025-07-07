@@ -18,35 +18,44 @@ interface MessageInterface {
     id: number;
     sender: string;
     message: string;
-    timestamp: string;
+    timestamp: Date;
+    animate?: boolean;
 }
 //Messaging component from AI chatbot
 const Message = ({
     message,
     onContentUpdate,
+    animate,
+    isLastMessage,
 }: {
     message: string;
+    animate: boolean;
+    isLastMessage: boolean;
     onContentUpdate: () => void;
 }) => {
     const [content, setContent] = useState("");
 
     useEffect(() => {
-        let count = 0;
-        setContent("");
+        if (animate && isLastMessage) {
+            let count = 0;
+            setContent("");
 
-        const intervalId = setInterval(() => {
-            if (count < message.length) {
-                count++;
-                setContent(message.slice(0, count));
-                onContentUpdate();
-            } else {
+            const intervalId = setInterval(() => {
+                if (count < message.length) {
+                    count++;
+                    setContent(message.slice(0, count));
+                    onContentUpdate();
+                } else {
+                    clearInterval(intervalId);
+                }
+            }, 20);
+
+            return () => {
                 clearInterval(intervalId);
-            }
-        }, 20);
-
-        return () => {
-            clearInterval(intervalId);
-        };
+            };
+        } else {
+            setContent(message);
+        }
     }, [message, onContentUpdate]);
 
     return <ReactMarkdown>{content}</ReactMarkdown>;
@@ -63,7 +72,7 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
 
     return (
         <div className={styles.messages} ref={messagesRef}>
-            {messages.map((msg: MessageInterface) => (
+            {messages.map((msg: MessageInterface, index) => (
                 <div
                     key={msg.id}
                     className={clsx(styles.message, {
@@ -74,6 +83,8 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
                     {msg.sender === "ai" ? (
                         <Message
                             message={msg.message}
+                            animate={msg.animate}
+                            isLastMessage={index === messages.length - 1}
                             onContentUpdate={scrollToBottom}
                         />
                     ) : (
@@ -84,12 +95,13 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
         </div>
     );
 };
+
 interface InputProps {
     input: string;
     setInput: React.Dispatch<SetStateAction<string>>;
     handleSubmit: () => void;
 }
-
+//Input component
 const Input = ({ input, setInput, handleSubmit }: InputProps) => {
     const handleInput = (evt: any) => {
         const element = evt.target;
@@ -123,31 +135,36 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
         </div>
     );
 };
+interface ChatboxProps {
+    wholePaper: FormattedPaper | null;
+    highlightedText: string;
+    allMessages: MessageInterface[];
+    setAllMessages: React.Dispatch<SetStateAction<MessageInterface[]>>;
+}
 
-const Chatbox = ({ wholePaper }: { wholePaper: FormattedPaper | null }) => {
-    const [allMessages, setAllMessages] = useState([
-        {
-            id: 1,
-            sender: "ai",
-            message:
-                "Hello! How are you today? When you've had the chance to look over the paper, is there a particular section or finding you're curious about? I'm here to help with any questions you might have!",
-        },
-    ]);
+const Chatbox = ({
+    wholePaper,
+    highlightedText,
+    allMessages,
+    setAllMessages,
+}: ChatboxProps) => {
     const [inputMessage, setInputMessage] = useState("");
 
     //handle the input of messages and outputing messages
     const handleSubmit = async () => {
-        setInputMessage("");
         //submitting the input to the messages array
         //first we need to take the input message and push it onto the arr of messages
         const senderMessage = {
-            id: 3,
+            id: allMessages.length,
             sender: "user",
             message: inputMessage,
-            timestamp: "",
+            timestamp: new Date(),
         };
+        //All the previous messages from allMessages spread into the arr with the sender Message
         setAllMessages((prevMessages) => [...prevMessages, senderMessage]);
-
+        //Clearing the input text area
+        setInputMessage("");
+        //Send to aichat backend for the ai to process the conversation
         const res = await fetch("/api/aichat", {
             method: "POST",
             body: JSON.stringify({
@@ -158,9 +175,8 @@ const Chatbox = ({ wholePaper }: { wholePaper: FormattedPaper | null }) => {
         });
         const data = await res.json(); //Data being recieved from the POST request
         const aiResponse = data.aiResponse;
+        aiResponse.animate = true;
         setAllMessages((prevMessages) => [...prevMessages, aiResponse]);
-
-        console.log(aiResponse);
     };
     return (
         <div className={styles.chatpaperbox}>

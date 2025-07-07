@@ -3,12 +3,6 @@
     display: grid;
     grid-template-rows: auto 1fr;
 
-    .navbar {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-    }
-
     .searchbox {
         display: flex;
         flex-direction: column;

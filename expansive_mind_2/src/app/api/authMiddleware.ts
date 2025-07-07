@@ -12,7 +12,7 @@ export const withAuth = (
         const token = req.cookies.get("auth_token")?.value;
 
         if (!token) {
-            console.log("NO TOKEN FOUND");
+            console.error("NO TOKEN FOUND");
             return NextResponse.json(
                 { message: "You do not have access. Please login." },
                 { status: 401 }
@@ -22,7 +22,7 @@ export const withAuth = (
         try {
             // Verify the token using jose's jwtVerify
             const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
-
+            //Payload will include the userID in an obj bc when creating the token we attatched the userID
             const decodedToken = payload;
 
             await connectDB(); // Connect to DB

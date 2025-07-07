@@ -3,9 +3,8 @@ import React from "react";
 import { useState } from "react";
 import styles from "./get-started.module.scss";
 import SearchBar from "../components/SearchBar";
-import HamburgerIcon from "../components/HamburgerIcon";
 import { redirect } from "next/navigation";
-import Title from "../components/Title";
+import NavBar from "../components/NavBar";
 
 export default function SearchPage() {
     const [searchValue, setSearchValue] = useState("");
@@ -18,10 +17,7 @@ export default function SearchPage() {
 
     return (
         <div className={styles.page}>
-            <div className={styles.navbar}>
-                <Title />
-                <HamburgerIcon />
-            </div>
+            <NavBar />
             <div className={styles.box}>
                 <div className={styles.title}>
                     What research topic would you like to expand your mind?
