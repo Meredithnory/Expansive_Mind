@@ -4,7 +4,7 @@ import {
     FormattedPaper,
     Section as SectionInterface,
     SubSection as SubSectionInterface,
-} from "@/app/api/general-interfaces";
+} from "../../api/general-interfaces";
 import Image from "next/image";
 
 interface PaperBoxProps {

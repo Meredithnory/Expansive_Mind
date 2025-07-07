@@ -2,13 +2,12 @@
 import React, { useEffect, useState } from "react";
 import styles from "./paperchatbot.module.scss";
 import Image from "next/image";
-import Chatbox from "@/app/components/paperchatbot/Chatbox";
-import Paperbox from "@/app/components/paperchatbot/Paperbox";
+import Chatbox from "../../components/paperchatbot/Chatbox";
+import Paperbox from "../../components/paperchatbot/Paperbox";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormattedPaper } from "@/app/api/general-interfaces";
-import Loading from "@/app/components/Loading";
-import clsx from "clsx";
-import NavBar from "@/app/components/NavBar";
+import { FormattedPaper } from "../../api/general-interfaces";
+import Loading from "../../components/Loading";
+import NavBar from "../../components/NavBar";
 
 const page = ({ params }: { params: any }) => {
     const router = useRouter();

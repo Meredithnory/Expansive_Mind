@@ -2,8 +2,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { respondToMessage } from "../general-chat";
 import { withAuth } from "../authMiddleware";
-import SavedPaper from "@/app/models/SavedPaper";
-import Message from "@/app/models/Message";
+import SavedPaper from "../../models/SavedPaper";
+import Message from "../../models/Message";
 
 // This function handles POST requests to /api/aichat
 export const POST = withAuth(async (request: NextRequest) => {

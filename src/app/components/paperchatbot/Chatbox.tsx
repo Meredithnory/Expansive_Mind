@@ -9,7 +9,7 @@ import React, {
 import styles from "./chatbox.module.scss";
 import Image from "next/image";
 import clsx from "clsx";
-import { FormattedPaper } from "@/app/api/general-interfaces";
+import { FormattedPaper } from "../../api/general-interfaces";
 import ReactMarkdown from "react-markdown";
 
 //Interface

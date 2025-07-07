@@ -1,8 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getPaperDetails } from "./utils";
 import { withAuth } from "../authMiddleware";
-import SavedPaper from "@/app/models/SavedPaper";
-import Message from "@/app/models/Message";
+import SavedPaper from "../../models/SavedPaper";
+import Message from "../../models/Message";
 import mongoose from "mongoose";
 
 export const GET = withAuth(async (request: NextRequest) => {
