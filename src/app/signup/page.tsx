@@ -120,7 +120,7 @@ const page = () => {
                             <div className={styles.password}>
                                 Password:
                                 <input
-                                    type="text"
+                                    type="password"
                                     name="password"
                                     placeholder="Password"
                                     minLength={6}

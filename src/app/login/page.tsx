@@ -107,7 +107,7 @@ const page = () => {
                             </div>
                             <div className={styles.links}>
                                 <Link href="/signup">Sign-up</Link>
-                                <Link href="/login">Forgot password?</Link>
+                                {/* <Link href="/login">Forgot password?</Link> */}
                             </div>
                             <button
                                 type="submit"
