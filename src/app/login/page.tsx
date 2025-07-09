@@ -32,7 +32,7 @@ const page = () => {
 
             if (response.ok && data.success) {
                 // Login successful - redirect to protected route
-                router.push("/savedpapers");
+                router.push("/get-started");
             } else {
                 //Login failed
                 setError(data.message || "Login failed");
