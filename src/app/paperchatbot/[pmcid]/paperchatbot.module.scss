@@ -15,6 +15,7 @@
         justify-content: space-between;
         margin-left: 26px;
         margin-right: 38px;
+        margin-top: 10px;
     }
     .icon {
         height: 26px;
@@ -30,7 +31,6 @@
         background: none;
         color: inherit;
         border: none;
-        border-radius: 30px;
         height: 22px;
         width: 240px;
         font: inherit;
@@ -41,7 +41,10 @@
         align-items: center;
         justify-content: center;
         gap: 20px;
-        background-color: #121212;
+    }
+    .searchbutton:hover {
+        background-color: #ff0084;
+        border-radius: 30px;
     }
     .highlightbutton {
         background: none;

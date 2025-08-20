@@ -27,6 +27,12 @@ export default function SearchPage() {
                     setSearchValue={setSearchValue}
                     handleSubmit={handleSearch}
                 />
+                <div className={styles.dbblock}>
+                    <span className={styles.text}>Database</span>
+                    <div className={styles.databases}>
+                        NIH PubMed Central (PMC)
+                    </div>
+                </div>
             </div>
         </div>
     );

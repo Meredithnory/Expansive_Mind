@@ -82,10 +82,23 @@ const page = () => {
                         <div className={styles.showingResults}>
                             Showing results for "{pastSearchValue}" :
                         </div>
+
                         <SearchResults
                             searchResults={searchResults}
                             searchValue={pastSearchValue}
                         />
+                        <div className={styles.datasource}>
+                            <small>
+                                Data Source: Search results are retrieved from{" "}
+                                <a
+                                    href="https://www.ncbi.nlm.nih.gov/pmc/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    NIH PubMed Central (PMC)
+                                </a>
+                            </small>
+                        </div>
                         <div className={styles.pagination}>
                             <button
                                 className={styles.prevbutton}

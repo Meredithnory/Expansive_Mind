@@ -25,3 +25,24 @@
     font-weight: 200;
     display: flex;
 }
+.dbblock {
+    white-space: pre;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.databases {
+    color: white;
+    background-color: #ff0084;
+    width: fit-content;
+    padding: 10px;
+    border-radius: 20px;
+}
+.databases:hover {
+    background-color: #ff0084c7;
+}
+.text {
+    font-weight: 400;
+    font-size: large;
+    font-style: italic;
+}

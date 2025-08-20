@@ -56,7 +56,7 @@ const page = () => {
             <NavBar />
             <div className={styles.pagecontent}>
                 <div className={styles.titletext}>
-                    <h2>Saved Papers</h2>
+                    <h2>My Papers</h2>
                 </div>
                 {loading ? (
                     <div className={styles.loader}>

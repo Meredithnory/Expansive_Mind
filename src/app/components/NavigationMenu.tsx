@@ -10,13 +10,13 @@ interface NavMenuProps {
 const NavigationMenu = ({ isLoggedIn, handleLogout }: NavMenuProps) => {
     return (
         <div className={styles.menubar}>
-            <Link href="/get-started" className={styles.link}>
-                <div>Search</div>
-            </Link>
             {isLoggedIn ? (
                 <>
+                    <Link href="/get-started" className={styles.link}>
+                        <div>Search</div>
+                    </Link>
                     <Link href="/savedpapers" className={styles.link}>
-                        <div>Saved Papers</div>
+                        <div>My Papers</div>
                     </Link>
                     <div className={styles.link} onClick={handleLogout}>
                         Logout

@@ -49,6 +49,7 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                               </span>
                                           ) : (
                                               <span
+                                                  key={index}
                                                   dangerouslySetInnerHTML={{
                                                       __html: titleWord,
                                                   }}
