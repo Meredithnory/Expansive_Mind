@@ -28,6 +28,29 @@ const page = () => {
     useEffect(() => {
         setNoPaper(Array.isArray(allPapers) && allPapers.length === 0);
     }, [allPapers]);
+    //delete paper function in the parent
+    async function deletePaper(id: string) {
+        setAllPapers((prev) => prev.filter((paper: any) => paper._id !== id));
+
+        try {
+            const res = await fetch("/api/delete-paper", {
+                method: "DELETE",
+                body: JSON.stringify({ id }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchAllPapers();
+            }
+            if (!data.success) {
+                console.error("Failed to delete paper:", data.error);
+                fetchAllPapers();
+            }
+        } catch (err) {
+            console.error("Error deleting paper:", err);
+            fetchAllPapers();
+        }
+    }
+
     return (
         <div className={styles.pagecontainer}>
             <NavBar />
@@ -55,6 +78,7 @@ const page = () => {
                                 key={page.id}
                                 page={page}
                                 isLink={true}
+                                deletePaper={deletePaper}
                             />
                         ))}
                     </div>

@@ -4,13 +4,14 @@ import styles from "./signuppage.module.scss";
 import HamburgerIcon from "../components/HamburgerIcon";
 import Title from "../components/Title";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import SavedPaper, { Paper } from "../components/SavedPaper";
+import Loading from "../components/Loading";
 
 const page = () => {
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+
     const router = useRouter();
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -30,10 +31,14 @@ const page = () => {
                 form.reset();
                 //Set message to Succesfull
                 setMessage("Sign up succesful! Redirecting to login...");
+                //Immediately set loading to true
+                setLoading(true);
                 //Add delay
                 setTimeout(() => {
                     //Redirect to login page
                     router.push("/login");
+                    //Stop loading
+                    setLoading(false);
                 }, 3500);
             } else {
                 setMessage("Email already registered!");
@@ -43,31 +48,6 @@ const page = () => {
         }
     }
 
-    const pages: Paper[] = [
-        {
-            title: "Introduction to stem cells",
-            authors: "Tian Z, Yu T, Liu J, Wang T, Higuchi A. ",
-            description:
-                "This review discusses the history, definition, and classification of stem cells. Human pluripotent stem cells (hPSCs) mainly include embryonic stem cells (hESCs) and included pluripotent stem cells (hiPSCs). Embryonic stem... ",
-            id: 1,
-        },
-        {
-            title: "Artificial Intelligence-Assisted Emergency Department Vertical Patient Flow Optimization",
-            authors:
-                "Nicole R. Hodgson, Soroush Saghafian, Wayne A. Martini, Arshya Feizi, Agni Orfanoudaki",
-            description:
-                "Recent advances in artificial intelligence (AI) and machine learning (ML) enable targeted optimization of emergency department (ED) operations. We examine how reworking an ED's vertical processing pathway (VPP) using AI- and ML-driven recommendations affected patient throughput...",
-            id: 2,
-        },
-        {
-            title: "Cost efficiency versus energy utilization in green ammonia production from intermittent renewable energy",
-            authors: "Collin Smith, Laura Torrente-Murciano ",
-            description:
-                "Electrification of the chemical industry with renewable energy is critical for achieving net zero goals and the long-term storage of renewable energy in chemical bonds, particularly carbon-free molecules such as ammonia...",
-            id: 3,
-        },
-    ];
-
     return (
         <>
             <div className={styles.navbar}>
@@ -75,12 +55,20 @@ const page = () => {
                 <HamburgerIcon />
             </div>
             <div className={styles.signuparea}>
-                <div className={styles.left}>
+                <div className={styles.center}>
                     <div className={styles.box}>
                         <div className={styles.signuptext}>
-                            Sign up
-                            <div className={styles.continuetext}>
-                                Sign up to continue
+                            Sign Up
+                            <div
+                                className={clsx(styles.continuetext, {
+                                    [styles.errorMessage]:
+                                        message.includes("already"),
+                                    [styles.successMessage]:
+                                        message.includes("succesful"),
+                                })}
+                            >
+                                {message ||
+                                    "Create your free account to get started."}
                             </div>
                         </div>
 
@@ -135,33 +123,12 @@ const page = () => {
                                 <Link href="/login">Sign in</Link>
                             </div>
                         </form>
-                        {message && (
-                            <div
-                                className={clsx(styles.message, {
-                                    [styles.errorMessage]:
-                                        message.includes("already"),
-                                    [styles.successMessage]:
-                                        message.includes("succesful"),
-                                })}
-                            >
-                                {message}
+
+                        {loading && (
+                            <div className={styles.loader}>
+                                <Loading />
                             </div>
                         )}
-                    </div>
-                </div>
-                <div className={styles.right}>
-                    <div className={styles.toptext}>
-                        All papers under one page.
-                    </div>
-                    <div className={styles.paperbox}></div>
-                    <div className={styles.chatdeletebox}>
-                        {pages.map((page) => (
-                            <SavedPaper
-                                key={page.id}
-                                page={page}
-                                isLink={false}
-                            />
-                        ))}
                     </div>
                 </div>
             </div>

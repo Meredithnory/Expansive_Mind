@@ -31,8 +31,9 @@ const SubSection = ({ subSection }: { subSection: SubSectionInterface }) => {
                             <Image
                                 src={subSection.graphicSrc}
                                 alt={subSection.title}
-                                layout="fill"
-                                objectFit="contain"
+                                fill
+                                style={{ objectFit: "contain" }}
+                                sizes="(max-width: 768px) 100vw, 800px"
                             />
                             {subSection.graphicContent && (
                                 <p>{subSection.graphicContent}</p>

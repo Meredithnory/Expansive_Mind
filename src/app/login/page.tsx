@@ -6,6 +6,7 @@ import Title from "../components/Title";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Loading from "../components/Loading";
 
 const page = () => {
     const [email, setEmail] = useState("");
@@ -120,6 +121,11 @@ const page = () => {
                                 {loading ? "Logging in..." : "Login"}
                             </button>
                         </form>
+                        {loading && (
+                            <div className={styles.loader}>
+                                <Loading />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

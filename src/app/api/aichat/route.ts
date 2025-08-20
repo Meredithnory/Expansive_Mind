@@ -13,6 +13,14 @@ export const POST = withAuth(async (request: NextRequest) => {
     const allMessages = data.allMessages;
     const userID = request.user._id;
 
+    ////////////////////////////////////////////////
+    //If paper does not exist then return an error
+    if (!wholePaper || !wholePaper.pmcid) {
+        return NextResponse.json(
+            { error: "wholePaper with pmcid is required" },
+            { status: 500 }
+        );
+    }
     /////////////////////////////////////////////////
     //Find paper to make only one saved paper per user
     let foundOrCreatedPaper = await SavedPaper.findOne({

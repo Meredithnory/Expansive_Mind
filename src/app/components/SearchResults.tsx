@@ -38,28 +38,37 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                       .split(
                                           new RegExp(`(${searchValue})`, "gi")
                                       )
-                                      .map((part, index) =>
-                                          part.toLowerCase() ===
+                                      .map((titleWord, index) =>
+                                          titleWord.toLowerCase() ===
                                           searchValue.toLowerCase() ? (
                                               <span
                                                   key={index}
                                                   className={styles.bluetext}
                                               >
-                                                  {part}
+                                                  {titleWord}
                                               </span>
                                           ) : (
-                                              part
+                                              <span
+                                                  dangerouslySetInnerHTML={{
+                                                      __html: titleWord,
+                                                  }}
+                                              />
                                           )
                                       )
                                 : paper.title}
                         </div>
                     </Link>
                     <div className={clsx(styles.author, styles.text)}>
-                        {paper.authors.join(", ")}
+                        {Array.isArray(paper.authors)
+                            ? paper.authors.join(", ")
+                            : "No authors listed."}
                     </div>
-                    <div className={clsx(styles.abstract, styles.text)}>
-                        {paper.abstract}
-                    </div>
+                    <span
+                        className={clsx(styles.abstract, styles.text)}
+                        dangerouslySetInnerHTML={{
+                            __html: paper.abstract,
+                        }}
+                    />
                 </div>
             ))}
         </div>

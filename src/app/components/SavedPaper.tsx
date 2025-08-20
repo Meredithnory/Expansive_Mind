@@ -9,52 +9,65 @@ export interface Paper {
     description: string;
     id: string;
 }
-const SavedPaper = ({ page, isLink }: { page: Paper; isLink: boolean }) => {
+const SavedPaper = ({
+    page,
+    isLink,
+    deletePaper,
+}: {
+    page: Paper;
+    isLink: boolean;
+    deletePaper: (id: string) => void;
+}) => {
+    //we have all papers but now we need to delete the papers find the key and delete
+    function handleDelete() {
+        deletePaper(page.id);
+    }
     return (
-        <div key={page.id} className={styles.entirepage}>
-            <div className={styles.page}>
-                <div className={styles.title}>{page.title}</div>
-                <div className={styles.authors}>{page.authors}</div>
-                <div className={styles.description}>{page.description}</div>
-            </div>
-            <div className={styles.icons}>
-                {isLink ? (
+        <>
+            <div key={page.id} className={styles.entirepage}>
+                <div className={styles.page}>
                     <Link href={`/paperchatbot/${page.id}`}>
-                        <div className={styles.chaticon}>
-                            <Image
-                                className={styles.icon}
-                                src="/chaticon.svg"
-                                alt="Chaticon"
-                                width={100}
-                                height={100}
-                            />
-                            Chat
-                        </div>
+                        <div className={styles.title}>{page.title}</div>
                     </Link>
-                ) : (
-                    <div className={styles.chaticon}>
-                        <Image
-                            className={styles.icon}
-                            src="/chaticon.svg"
-                            alt="Chaticon"
-                            width={100}
-                            height={100}
-                        />
-                        Chat
-                    </div>
-                )}
-                {/* <div className={styles.trashicon}>
-                    <Image
-                        className={styles.icon}
-                        src="/trashicon.svg"
-                        alt="Trashicon"
-                        width={16}
-                        height={16}
-                    />
-                    Delete
-                </div> */}
+                    <div className={styles.authors}>{page.authors}</div>
+                    <div className={styles.description}>{page.description}</div>
+                </div>
+                <div className={styles.icons}>
+                    {isLink && (
+                        <>
+                            <Link href={`/paperchatbot/${page.id}`}>
+                                <div className={styles.chaticon}>
+                                    <Image
+                                        className={styles.icon}
+                                        src="/chaticon.svg"
+                                        alt="Chaticon"
+                                        width={100}
+                                        height={100}
+                                    />
+                                    Chat
+                                </div>
+                            </Link>
+
+                            <button
+                                onClick={handleDelete}
+                                className={styles.deletebutton}
+                            >
+                                <div className={styles.trashicon}>
+                                    <Image
+                                        className={styles.icon}
+                                        src="/trashicon.svg"
+                                        alt="Trashicon"
+                                        width={30}
+                                        height={30}
+                                    />
+                                    Delete
+                                </div>
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

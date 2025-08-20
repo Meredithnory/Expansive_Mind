@@ -24,7 +24,7 @@ const page = ({ params }: { params: any }) => {
     const [highlightedText, setHighlightedText] = useState("");
     const [allMessages, setAllMessages] = useState([
         {
-            id: 1,
+            id: Date.now(),
             sender: "ai",
             message:
                 "Hello! How are you today? When you've had the chance to look over the paper, is there a particular section or finding you're curious about? I'm here to help with any questions you might have!",

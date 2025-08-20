@@ -6,6 +6,7 @@ import styles from "./searchpaper.module.scss";
 import SearchResults from "../components/SearchResults";
 import Loading from "../components/Loading";
 import NavBar from "../components/NavBar";
+import Image from "next/image";
 
 interface SearchResult {
     pmcid: string;
@@ -25,6 +26,9 @@ const page = () => {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searchValue, setSearchValue] = useState(qParam ?? "");
     const [loading, setLoading] = useState(true);
+    //Tracking which page we're on and how many pages exist
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     //Last handle submit value shown for the showing results : " " that way it only changes when its submitted
     const [pastSearchValue, setPastSearchValue] = useState("");
 
@@ -37,23 +41,27 @@ const page = () => {
         router.push(href, { scroll: false });
     };
 
-    const doSearch = async (query: string): Promise<void> => {
+    const doSearch = async (query: string, page: number = 0): Promise<void> => {
         setLoading(true);
         const params = new URLSearchParams({
             q: query,
+            page: String(page),
         });
         //Using the same params to send to the back-end
         const res = await fetch(`/api/search?${params}`);
         const data = await res.json();
+        //If page = 0, replace results; otherwise append
         setSearchResults(data.results);
         setPastSearchValue(query);
+        setTotalPages(data.totalPages); // store total pages from backend
+        setCurrentPage(page); //store current page
         setLoading(false);
     };
 
     useEffect(() => {
         setSearchValue(qParam ?? "");
         if (qParam) {
-            doSearch(qParam);
+            doSearch(qParam, 0);
         }
     }, [qParam]);
 
@@ -78,6 +86,44 @@ const page = () => {
                             searchResults={searchResults}
                             searchValue={pastSearchValue}
                         />
+                        <div className={styles.pagination}>
+                            <button
+                                className={styles.prevbutton}
+                                disabled={currentPage === 0 || loading}
+                                onClick={() =>
+                                    doSearch(searchValue, currentPage - 1)
+                                }
+                            >
+                                <Image
+                                    className={styles.icon}
+                                    width={1000}
+                                    height={760}
+                                    src="/previcon.svg"
+                                    alt="prevArrow"
+                                />
+                            </button>
+
+                            <div className={styles.currentpage}>
+                                Page {currentPage + 1} of {totalPages}
+                            </div>
+                            <button
+                                disabled={
+                                    currentPage >= totalPages - 1 || loading
+                                }
+                                onClick={() =>
+                                    doSearch(searchValue, currentPage + 1)
+                                }
+                                className={styles.nextbutton}
+                            >
+                                <Image
+                                    className={styles.icon}
+                                    width={1000}
+                                    height={760}
+                                    src="/nexticon.svg"
+                                    alt="nextArrow"
+                                />
+                            </button>
+                        </div>
                     </>
                 )}
             </div>

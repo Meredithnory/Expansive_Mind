@@ -18,4 +18,27 @@
         font-size: 18px;
         align-self: flex-start;
     }
+
+    .pagination {
+        display: flex;
+        flex-direction: row;
+    }
+
+    .currentpage {
+        display: flex;
+        padding-top: 6px;
+    }
+    .icon {
+        width: 84px;
+        height: 33px;
+    }
+    .prevbutton,
+    .nextbutton {
+        background: none;
+        border: none;
+        outline: none;
+        background-color: transparent;
+        cursor: pointer;
+        padding-bottom: 16px;
+    }
 }

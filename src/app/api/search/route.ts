@@ -6,19 +6,30 @@ export const GET = withAuth(async (req: NextRequest) => {
     try {
         //Extracting the params from the front-end with they key 'q'
         const searchValue = req.nextUrl.searchParams.get("q");
+        //Retrieve page from front-end
+        const page = parseInt(req.nextUrl.searchParams.get("page") || "0", 10);
+
         if (!searchValue) {
             throw Error("Invalid search value.");
         }
 
-        const idList = await searchNIHPaperIds(searchValue);
+        const { ids, totalCount, totalPages } = await searchNIHPaperIds(
+            searchValue,
+            page
+        );
         let paperResults: any;
-        if (idList.length === 0) {
+        if (ids.length === 0) {
             paperResults = [];
         } else {
-            paperResults = await getNIHPaperResults(idList);
+            paperResults = await getNIHPaperResults(ids);
         }
 
-        return NextResponse.json({ results: paperResults });
+        return NextResponse.json({
+            results: paperResults,
+            totalCount,
+            totalPages,
+            page,
+        });
     } catch (err: any) {
         console.error("message:", err);
         return NextResponse.json(

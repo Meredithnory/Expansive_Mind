@@ -61,7 +61,13 @@ const Message = ({
     return <ReactMarkdown>{content}</ReactMarkdown>;
 };
 //It accepts a prop named messages that is type arr of objs with the interface properties
-const Messages = ({ messages }: { messages: MessageInterface[] }) => {
+const Messages = ({
+    messages,
+    loading,
+}: {
+    messages: MessageInterface[];
+    loading: boolean;
+}) => {
     const messagesRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = useCallback(() => {
@@ -69,6 +75,12 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
             messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
         }
     }, []);
+
+    useEffect(() => {
+        setTimeout(() => {
+            scrollToBottom();
+        }, 200);
+    }, [loading, messages]);
 
     return (
         <div className={styles.messages} ref={messagesRef}>
@@ -92,6 +104,15 @@ const Messages = ({ messages }: { messages: MessageInterface[] }) => {
                     )}
                 </div>
             ))}
+            {loading && (
+                <div className={clsx(styles.message, styles.aiMessage)}>
+                    <div className="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -108,7 +129,7 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
         element.style.height = "5px";
         element.style.height = element.scrollHeight + "px";
     };
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: any) => {
         if (e.key === "Enter") {
             handleSubmit();
         }
@@ -149,6 +170,7 @@ const Chatbox = ({
     setAllMessages,
 }: ChatboxProps) => {
     const [inputMessage, setInputMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     //handle the input of messages and outputing messages
     const handleSubmit = async () => {
@@ -164,6 +186,8 @@ const Chatbox = ({
         setAllMessages((prevMessages) => [...prevMessages, senderMessage]);
         //Clearing the input text area
         setInputMessage("");
+        //Show typing indicator
+        setLoading(true);
         //Send to aichat backend for the ai to process the conversation
         const res = await fetch("/api/aichat", {
             method: "POST",
@@ -176,11 +200,13 @@ const Chatbox = ({
         const data = await res.json(); //Data being recieved from the POST request
         const aiResponse = data.aiResponse;
         aiResponse.animate = true;
+        //Hide typing indicator
+        setLoading(false);
         setAllMessages((prevMessages) => [...prevMessages, aiResponse]);
     };
     return (
         <div className={styles.chatpaperbox}>
-            <Messages messages={allMessages} />
+            <Messages messages={allMessages} loading={loading} />
             <Input
                 input={inputMessage}
                 setInput={setInputMessage}
