@@ -1,7 +1,5 @@
 "use client";
 import React, { useEffect } from "react";
-import styles from "./hamburgericon.module.scss";
-import Image from "next/image";
 import { useState } from "react";
 import NavigationMenu from "./NavigationMenu";
 import { useCookies } from "next-client-cookies";

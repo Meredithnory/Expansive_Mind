@@ -37,6 +37,9 @@
     width: fit-content;
     padding: 10px;
     border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    outline: none;
 }
 .databases:hover {
     background-color: #ff0084c7;
@@ -45,4 +48,26 @@
     font-weight: 400;
     font-size: large;
     font-style: italic;
+}
+.comingSoon1 {
+    color: white;
+    background-color: #dc1c1c;
+    width: fit-content;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    opacity: 0.6;
+}
+.comingSoon2 {
+    color: white;
+    background-color: #1ee19a;
+    width: fit-content;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    opacity: 0.6;
 }

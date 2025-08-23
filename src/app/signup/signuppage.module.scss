@@ -1,7 +1,12 @@
 .navbar {
-    display: flex;
+    background-color: #0d0e0e;
     flex-direction: row;
     justify-content: space-between;
+    display: flex;
+    border-radius: 114px;
+    padding: 0px 26px;
+    margin: 0px 66px;
+    white-space: pre;
 }
 .signuparea {
     width: 100%;

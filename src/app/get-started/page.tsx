@@ -28,10 +28,16 @@ export default function SearchPage() {
                     handleSubmit={handleSearch}
                 />
                 <div className={styles.dbblock}>
-                    <span className={styles.text}>Database</span>
-                    <div className={styles.databases}>
+                    <span className={styles.text}>Databases</span>
+                    <button className={styles.databases}>
                         NIH PubMed Central (PMC)
-                    </div>
+                    </button>
+                    <button className={styles.comingSoon1}>
+                        🚧 Coming Soon
+                    </button>
+                    <button className={styles.comingSoon2}>
+                        🚧 Coming Soon
+                    </button>
                 </div>
             </div>
         </div>

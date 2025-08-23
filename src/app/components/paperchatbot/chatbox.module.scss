@@ -60,6 +60,10 @@ $bg-color: #0d0d0d;
 }
 
 //Input Component
+.chatinput button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 .chatinput {
     display: flex;
     width: 100%;
@@ -67,7 +71,6 @@ $bg-color: #0d0d0d;
     padding: 10px 20px;
     border-radius: 20px 20px 0px 0px;
     align-items: center;
-
     textarea {
         width: 100%;
         font-size: 18px;

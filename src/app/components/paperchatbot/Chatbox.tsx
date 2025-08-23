@@ -145,7 +145,7 @@ const Input = ({ input, setInput, handleSubmit }: InputProps) => {
                 onKeyDown={handleKeyDown}
                 rows={1}
             ></textarea>
-            <button onClick={handleSubmit}>
+            <button onClick={handleSubmit} disabled={!input.trim()}>
                 <Image
                     src="/uparrowicon.svg"
                     alt="up arrow submit button"
@@ -174,6 +174,8 @@ const Chatbox = ({
 
     //handle the input of messages and outputing messages
     const handleSubmit = async () => {
+        //Don't submit if empty or just spaces
+        if (!inputMessage.trim()) return;
         //submitting the input to the messages array
         //first we need to take the input message and push it onto the arr of messages
         const senderMessage = {
