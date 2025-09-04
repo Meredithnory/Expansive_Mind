@@ -23,7 +23,7 @@ export const searchNIHPaperIds = async (
     const params = new URLSearchParams();
     params.append("db", "pmc");
     params.append("api_key", NIH_API_KEY);
-    params.append("term", `"${searchValue}"[Title]`);
+    params.append("term", `"${searchValue}"[Title/Abstract]`);
     params.append("retmax", RETMAX.toString());
     params.append("retstart", retstart.toString());
     params.append("usehistory", "y");

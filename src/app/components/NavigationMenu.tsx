@@ -18,12 +18,18 @@ const NavigationMenu = ({ isLoggedIn, handleLogout }: NavMenuProps) => {
                     <Link href="/savedpapers" className={styles.link}>
                         <div>My Papers</div>
                     </Link>
+                    <Link href="/about" className={styles.link}>
+                        <div>About</div>
+                    </Link>
                     <div className={styles.link} onClick={handleLogout}>
                         Logout
                     </div>
                 </>
             ) : (
                 <>
+                    <Link href="/about" className={styles.link}>
+                        <div>About</div>
+                    </Link>
                     <Link href="/login" className={styles.link}>
                         <div>Login</div>
                     </Link>

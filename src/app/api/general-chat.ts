@@ -64,7 +64,7 @@ export async function respondToMessage(
     ];
 
     const completion = await openai.chat.completions.create({
-        model: "openai/gpt-4o-mini",
+        model: "openai/chatgpt-4o-latest",
         messages,
     });
 
