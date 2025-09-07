@@ -4,7 +4,7 @@ import "./globals.scss";
 import { CookiesProvider } from "next-client-cookies/server";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
-
+import Image from "next/image";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -20,6 +20,15 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${inter.className} antialiased`}>
+                <div className="mobile-only-message">
+                    <Image
+                        src="/brainlogo.svg"
+                        alt="brain logo"
+                        width={60}
+                        height={60}
+                    />
+                    Mobile view is not ready yet. Please use on desktop :)
+                </div>
                 <CookiesProvider>
                     <NavBar />
                     <div className="main-content">{children}</div>

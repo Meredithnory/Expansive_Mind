@@ -4,7 +4,11 @@
 *::-webkit-scrollbar {
     display: none;
 }
-
+html {
+    @media (max-width: 600px) {
+        overflow: hidden;
+    }
+}
 body {
     background-color: black;
     color: white;
@@ -17,6 +21,30 @@ body {
     padding-top: 20px;
     display: grid;
     grid-template-rows: auto 1fr auto;
+
+    @media (max-width: 600px) {
+        overflow: hidden;
+    }
+}
+.mobile-only-message {
+    display: none;
+
+    @media (max-width: 600px) {
+        background-color: rgb(0, 0, 0);
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        position: absolute;
+        z-index: 99999;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 0;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        flex-direction: column;
+    }
 }
 
 .main-content {
