@@ -77,28 +77,26 @@ const page = ({ params }: { params: any }) => {
             setHighlightedText(text);
         }
     };
-
+    if (loading) {
+        return (
+            <div className="full-height-loading">
+                <Loading />
+            </div>
+        );
+    }
     return (
         <div className={styles.page}>
-            {loading ? (
-                <div className={styles.loader}>
-                    <Loading />
+            <div className={styles.toolsbox}>
+                <div className={styles.searcharea}>
+                    <button
+                        className={styles.searchbutton}
+                        onClick={() => router.back()}
+                    >
+                        <LeftArrowSVG />
+                        <div className={styles.text}>Back to Search</div>
+                    </button>
                 </div>
-            ) : (
-                <>
-                    <div className={styles.toolsbox}>
-                        <div className={styles.searcharea}>
-                            <button
-                                className={styles.searchbutton}
-                                onClick={() => router.back()}
-                            >
-                                <LeftArrowSVG />
-                                <div className={styles.text}>
-                                    Back to Search
-                                </div>
-                            </button>
-                        </div>
-                        {/* <button
+                {/* <button
                     className={clsx(styles.highlightbutton, {
                         [styles.activeHighlighter]: highlight === true,
                     })}
@@ -113,23 +111,21 @@ const page = ({ params }: { params: any }) => {
                         alt="highlighter icon"
                     />
                 </button> */}
-                    </div>
-                    <div className={styles.paperchatcontainer}>
-                        <Chatbox
-                            wholePaper={researchPaper}
-                            highlightedText={highlightedText}
-                            allMessages={allMessages}
-                            setAllMessages={setAllMessages}
-                        />
-                        <Paperbox
-                            paper={researchPaper}
-                            searchTerm={qParam}
-                            highlight={highlight}
-                            handleHighlightedText={handleHighlightedText}
-                        />
-                    </div>
-                </>
-            )}
+            </div>
+            <div className={styles.paperchatcontainer}>
+                <Chatbox
+                    wholePaper={researchPaper}
+                    highlightedText={highlightedText}
+                    allMessages={allMessages}
+                    setAllMessages={setAllMessages}
+                />
+                <Paperbox
+                    paper={researchPaper}
+                    searchTerm={qParam}
+                    highlight={highlight}
+                    handleHighlightedText={handleHighlightedText}
+                />
+            </div>
         </div>
     );
 };

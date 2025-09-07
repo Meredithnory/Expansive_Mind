@@ -51,17 +51,20 @@ const page = () => {
         }
     }
 
+    if (loading) {
+        return (
+            <div className="full-height-loading">
+                <Loading />
+            </div>
+        );
+    }
     return (
         <div className={styles.pagecontainer}>
             <div className={styles.pagecontent}>
                 <div className={styles.titletext}>
                     <h2>My Papers</h2>
                 </div>
-                {loading ? (
-                    <div className={styles.loader}>
-                        <Loading />
-                    </div>
-                ) : noPaper ? (
+                {noPaper ? (
                     <div className={styles.text}>
                         <h2>Oops! No papers here!</h2>
                         <div>

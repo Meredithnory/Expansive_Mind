@@ -1,6 +1,9 @@
 * {
     box-sizing: border-box;
 }
+*::-webkit-scrollbar {
+    display: none;
+}
 
 body {
     background-color: black;
@@ -25,11 +28,18 @@ body {
     overflow: hidden;
 }
 
+.full-height-loading {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .loader {
     height: 100%;
     width: 300px;
-    margin-bottom: 184px;
 }
+
 .typing-dots {
     display: flex;
     gap: 4px;

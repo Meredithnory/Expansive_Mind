@@ -65,6 +65,14 @@ const page = () => {
         }
     }, [qParam]);
 
+    if (loading) {
+        return (
+            <div className="full-height-loading">
+                <Loading />
+            </div>
+        );
+    }
+
     return (
         <div className={styles.page}>
             <div className={styles.searchbox}>
@@ -74,70 +82,58 @@ const page = () => {
                     handleSubmit={handleSubmit}
                     className={styles.searchbar}
                 />
-                {loading ? (
-                    <Loading />
-                ) : (
-                    <>
-                        <div className={styles.showingResults}>
-                            Showing results for "{pastSearchValue}" :
-                        </div>
+                <div className={styles.showingResults}>
+                    Showing results for "{pastSearchValue}" :
+                </div>
 
-                        <SearchResults
-                            searchResults={searchResults}
-                            searchValue={pastSearchValue}
+                <SearchResults
+                    searchResults={searchResults}
+                    searchValue={pastSearchValue}
+                />
+                <div className={styles.datasource}>
+                    <small>
+                        Data Source: Search results are retrieved from{" "}
+                        <a
+                            href="https://www.ncbi.nlm.nih.gov/pmc/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            NIH PubMed Central (PMC)
+                        </a>
+                    </small>
+                </div>
+                <div className={styles.pagination}>
+                    <button
+                        className={styles.prevbutton}
+                        disabled={currentPage === 0 || loading}
+                        onClick={() => doSearch(searchValue, currentPage - 1)}
+                    >
+                        <Image
+                            className={styles.icon}
+                            width={1000}
+                            height={760}
+                            src="/previcon.svg"
+                            alt="prevArrow"
                         />
-                        <div className={styles.datasource}>
-                            <small>
-                                Data Source: Search results are retrieved from{" "}
-                                <a
-                                    href="https://www.ncbi.nlm.nih.gov/pmc/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    NIH PubMed Central (PMC)
-                                </a>
-                            </small>
-                        </div>
-                        <div className={styles.pagination}>
-                            <button
-                                className={styles.prevbutton}
-                                disabled={currentPage === 0 || loading}
-                                onClick={() =>
-                                    doSearch(searchValue, currentPage - 1)
-                                }
-                            >
-                                <Image
-                                    className={styles.icon}
-                                    width={1000}
-                                    height={760}
-                                    src="/previcon.svg"
-                                    alt="prevArrow"
-                                />
-                            </button>
+                    </button>
 
-                            <div className={styles.currentpage}>
-                                Page {currentPage + 1} of {totalPages}
-                            </div>
-                            <button
-                                disabled={
-                                    currentPage >= totalPages - 1 || loading
-                                }
-                                onClick={() =>
-                                    doSearch(searchValue, currentPage + 1)
-                                }
-                                className={styles.nextbutton}
-                            >
-                                <Image
-                                    className={styles.icon}
-                                    width={1000}
-                                    height={760}
-                                    src="/nexticon.svg"
-                                    alt="nextArrow"
-                                />
-                            </button>
-                        </div>
-                    </>
-                )}
+                    <div className={styles.currentpage}>
+                        Page {currentPage + 1} of {totalPages}
+                    </div>
+                    <button
+                        disabled={currentPage >= totalPages - 1 || loading}
+                        onClick={() => doSearch(searchValue, currentPage + 1)}
+                        className={styles.nextbutton}
+                    >
+                        <Image
+                            className={styles.icon}
+                            width={1000}
+                            height={760}
+                            src="/nexticon.svg"
+                            alt="nextArrow"
+                        />
+                    </button>
+                </div>
             </div>
         </div>
     );
