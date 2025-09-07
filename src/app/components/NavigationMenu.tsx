@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./navigationmenu.module.scss";
+import styles from "./styles/navigationmenu.module.scss";
 import Link from "next/link";
 
 interface NavMenuProps {

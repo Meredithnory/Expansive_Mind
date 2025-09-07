@@ -1,4 +1,4 @@
-$bg-color: #0d0d0d;
+@import "../../variables";
 
 //Messages Component
 .messages {
@@ -8,7 +8,6 @@ $bg-color: #0d0d0d;
     height: 100%;
     overflow-y: auto;
     gap: 10px;
-    padding: 12px 0;
     font-size: 16px;
     scroll-behavior: smooth;
 
@@ -108,4 +107,5 @@ $bg-color: #0d0d0d;
     grid-template-rows: 1fr auto;
     height: 100%;
     overflow: hidden;
+    gap: 12px;
 }

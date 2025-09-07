@@ -1,8 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import HamburgerIcon from "../components/HamburgerIcon";
 import styles from "./login.module.scss";
-import Title from "../components/Title";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -47,10 +45,6 @@ const page = () => {
 
     return (
         <>
-            <div className={styles.navbar}>
-                <Title />
-                <HamburgerIcon />
-            </div>
             <div className={styles.page}>
                 <div className={styles.loginBox}>
                     <div className={styles.loginContainer}>

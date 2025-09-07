@@ -16,29 +16,22 @@ export default function SearchPage() {
     };
 
     return (
-        <div className={styles.page}>
-            <NavBar />
-            <div className={styles.box}>
-                <div className={styles.title}>
-                    What research topic would you like to expand your mind?
-                </div>
-                <SearchBar
-                    searchValue={searchValue}
-                    setSearchValue={setSearchValue}
-                    handleSubmit={handleSearch}
-                />
-                <div className={styles.dbblock}>
-                    <span className={styles.text}>Databases</span>
-                    <button className={styles.databases}>
-                        NIH PubMed Central (PMC)
-                    </button>
-                    <button className={styles.comingSoon1}>
-                        🚧 Coming Soon
-                    </button>
-                    <button className={styles.comingSoon2}>
-                        🚧 Coming Soon
-                    </button>
-                </div>
+        <div className={styles.box}>
+            <div className={styles.title}>
+                What research topic would you like to expand your mind?
+            </div>
+            <SearchBar
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                handleSubmit={handleSearch}
+            />
+            <div className={styles.dbblock}>
+                <span className={styles.text}>Databases</span>
+                <button className={styles.databases}>
+                    NIH PubMed Central (PMC)
+                </button>
+                <button className={styles.comingSoon1}>🚧 Coming Soon</button>
+                <button className={styles.comingSoon2}>🚧 Coming Soon</button>
             </div>
         </div>
     );

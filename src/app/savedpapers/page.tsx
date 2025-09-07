@@ -53,7 +53,6 @@ const page = () => {
 
     return (
         <div className={styles.pagecontainer}>
-            <NavBar />
             <div className={styles.pagecontent}>
                 <div className={styles.titletext}>
                     <h2>My Papers</h2>

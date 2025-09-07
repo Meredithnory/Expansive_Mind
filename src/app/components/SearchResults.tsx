@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../components/searchresults.module.scss";
+import styles from "./styles/searchresults.module.scss";
 import clsx from "clsx";
 import Link from "next/link";
 

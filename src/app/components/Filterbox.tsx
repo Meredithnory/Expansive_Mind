@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
-import styles from "./filterbox.module.scss";
+import styles from "./styles/filterbox.module.scss";
 import clsx from "clsx";
 const Filterbox = () => {
     const [downArrow, setDownArrow] = useState(false);

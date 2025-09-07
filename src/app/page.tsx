@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCookies } from "next-client-cookies";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Home() {
     const cookies = useCookies();
@@ -11,20 +12,29 @@ export default function Home() {
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+    const token = cookies.get("auth_token");
+
     useEffect(() => {
-        const token = cookies.get("auth_token");
         setIsLoggedIn(!!token);
-    }, []);
+    }, [token]);
 
     const handleLogout = () => {
         cookies.remove("auth_token");
-        window.location.reload();
+        router.push("/");
     };
 
     return (
         <div className={styles.home}>
             <div className={styles.box}>
-                <h1>Expansive Mind</h1>
+                <div className={styles.title}>
+                    <h1>Expansive Mind</h1>
+                    <Image
+                        src="/brainlogo.svg"
+                        alt="icon logo"
+                        width={70}
+                        height={70}
+                    />
+                </div>
                 <div className={styles.buttons}>
                     <Link href="/get-started">
                         <button>Get Started</button>

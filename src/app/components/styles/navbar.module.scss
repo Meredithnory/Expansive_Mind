@@ -1,15 +1,19 @@
+@import "../../variables";
+
 .navbar {
-    background-color: #0d0e0e;
     flex-direction: row;
     justify-content: space-between;
     display: flex;
-    border-radius: 114px;
-    padding: 0px 26px;
-    margin: 0px 66px;
+    padding: 4px 0px;
     white-space: pre;
+    margin-bottom: 10px;
+
     h1,
     a {
         text-decoration: none;
         color: #fff;
+        font-size: 26px;
+        font-weight: 400;
+        margin: 0;
     }
 }

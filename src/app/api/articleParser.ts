@@ -12,11 +12,14 @@ export interface ArticleSummary {
 
 const parser = new XMLParser({
     ignoreAttributes: false,
-    attributeNamePrefix: "",
+    attributeNamePrefix: "@",
     trimValues: true,
     preserveOrder: false,
     removeNSPrefix: true,
-    parseTagValue: false,
+    parseTagValue: true,
+    parseTrueNumberOnly: false,
+    arrayMode: false,
+    alwaysCreateTextNode: false,
 });
 
 /**
@@ -78,7 +81,7 @@ function mapJatsArticle(article: any): ArticleSummary {
             get(article, ["article-title"])
     );
 
-    const authors = extractJatsAuthors(meta);
+    const authors = extractJatsAuthors(meta, article);
 
     const abstractNode =
         get(meta, ["abstract"]) ??
@@ -104,46 +107,99 @@ function mapJatsArticle(article: any): ArticleSummary {
     };
 }
 
-function extractJatsAuthors(meta: any): string[] {
-    // JATS: article-meta > contrib-group > contrib[contrib-type="author"]
-    // Each contrib may have <name><surname>, <given-names> OR <string-name>
+function extractJatsAuthors(meta: any, article?: any): string[] {
     const names: string[] = [];
-    const contribGroup =
-        get(meta, ["contrib-group"]) ??
-        (Array.isArray(meta?.["contrib-group"])
-            ? meta["contrib-group"][0]
-            : null);
 
-    if (!contribGroup) return names;
+    // Try multiple locations for contrib-group
+    const contribGroups = [
+        meta?.["contrib-group"],
+        get(meta, ["contrib-group"]),
+        article?.front?.["article-meta"]?.["contrib-group"],
+        get(article, ["front", "article-meta", "contrib-group"]),
+    ].filter(Boolean);
 
-    const contribs = ensureArray(contribGroup.contrib ?? []);
-    for (const c of contribs) {
-        const ctype = c?.["contrib-type"] ?? c?.contribType;
-        if (ctype && ctype !== "author") continue;
+    let allContribs: any[] = [];
 
-        const name = c?.name ?? get(c, ["name"]);
-        if (name) {
-            const given = extractText(
-                name["given-names"] ?? name["givenNames"]
-            );
-            const sur = extractText(name["surname"]);
-            const full = joinName(given, sur);
-            if (full) names.push(full);
-            continue;
+    for (const contribGroup of contribGroups) {
+        if (contribGroup) {
+            const groups = ensureArray(contribGroup);
+            for (const group of groups) {
+                const contribs = ensureArray(group?.contrib ?? group);
+                allContribs.push(...contribs);
+            }
         }
-
-        const stringName = extractText(c?.["string-name"] ?? c?.stringName);
-        if (stringName) {
-            names.push(stringName);
-            continue;
-        }
-
-        // Sometimes <collab> for group author
-        const collab = extractText(c?.collab);
-        if (collab) names.push(collab);
     }
 
-    return names;
+    // If no contrib found yet, try direct search in the whole structure
+    if (allContribs.length === 0) {
+        const foundContribs = findNodesByTag(meta, "contrib");
+        allContribs.push(...foundContribs);
+    }
+
+    for (const c of allContribs) {
+        // Skip non-author contributors
+        const ctype =
+            c?.["@contrib-type"] ?? c?.["contrib-type"] ?? c?.contribType;
+        if (ctype && ctype !== "author") continue;
+
+        // Try to extract name information
+        const nameInfo = extractAuthorName(c);
+        if (nameInfo) {
+            names.push(nameInfo);
+        }
+    }
+
+    return [...new Set(names)]; // Remove duplicates
+}
+
+function extractAuthorName(contrib: any): string | null {
+    // Method 1: Standard JATS name structure
+    const name = contrib?.name ?? get(contrib, ["name"]);
+    if (name) {
+        const given =
+            extractText(name["given-names"] ?? name["givenNames"]) ||
+            extractText(name["given-name"]) ||
+            extractText(name["forename"]);
+        const surname = extractText(name["surname"] ?? name["family-name"]);
+
+        const fullName = joinName(given, surname);
+        if (fullName) return fullName;
+    }
+
+    // Method 2: String name
+    const stringName = extractText(
+        contrib?.["string-name"] ?? contrib?.stringName
+    );
+    if (stringName) return stringName;
+
+    // Method 3: Collective/group name
+    const collab = extractText(contrib?.collab ?? contrib?.CollectiveName);
+    if (collab) return collab;
+
+    // Method 4: Try to find name-like structures anywhere in contrib
+    const nameNodes = findNodesByTag(contrib, "name");
+    for (const nameNode of nameNodes) {
+        const given =
+            extractText(nameNode["given-names"] ?? nameNode["givenNames"]) ||
+            extractText(nameNode["given-name"]) ||
+            extractText(nameNode["forename"]);
+        const surname = extractText(
+            nameNode["surname"] ?? nameNode["family-name"]
+        );
+
+        const fullName = joinName(given, surname);
+        if (fullName) return fullName;
+    }
+
+    // Method 5: Look for surname/given-names directly in contrib
+    const directGiven = extractText(
+        contrib["given-names"] ?? contrib["givenNames"]
+    );
+    const directSurname = extractText(contrib["surname"]);
+    const directName = joinName(directGiven, directSurname);
+    if (directName) return directName;
+
+    return null;
 }
 
 function selectBestJatsDate(meta: any): {
@@ -156,7 +212,12 @@ function selectBestJatsDate(meta: any): {
     if (pubDates.length === 0) return null;
 
     const score = (d: any) => {
-        const t = (d?.["pub-type"] ?? d?.pubType ?? "").toLowerCase();
+        const t = (
+            d?.["@pub-type"] ??
+            d?.["pub-type"] ??
+            d?.pubType ??
+            ""
+        ).toLowerCase();
         if (t === "epub") return 3;
         if (t === "ppub") return 2;
         return 1;
@@ -179,7 +240,12 @@ function selectBestJatsDate(meta: any): {
 function findArticleId(meta: any, type: string): string | null {
     const ids = ensureArray(meta?.["article-id"] ?? []);
     for (const id of ids) {
-        const t = (id?.["pub-id-type"] ?? id?.pubIdType ?? "").toLowerCase();
+        const t = (
+            id?.["@pub-id-type"] ??
+            id?.["pub-id-type"] ??
+            id?.pubIdType ??
+            ""
+        ).toLowerCase();
         const val = extractText(id);
         if (!val) continue;
         if (t === type.toLowerCase()) return val;
@@ -312,7 +378,13 @@ function pickBestByType(arr: any[], ...types: string[]): any {
     for (const t of tset) {
         const found = arr.find(
             (x) =>
-                (x?.["PubStatus"] ?? x?.["DateType"] ?? x?.["pub-type"] ?? "")
+                (
+                    x?.["PubStatus"] ??
+                    x?.["DateType"] ??
+                    x?.["@pub-type"] ??
+                    x?.["pub-type"] ??
+                    ""
+                )
                     .toString()
                     .toLowerCase() === t
         );
@@ -387,18 +459,19 @@ function extractText(x: any): string | null {
     if (typeof x === "boolean") return String(x);
     if (typeof x === "object") {
         // fast-xml-parser sometimes uses '#text' for node text
-        const t =
-            x["#text"] ??
-            x["_text"] ??
-            null ??
-            // try to flatten a bit
-            null;
+        const t = x["#text"] ?? x["_text"] ?? x.text ?? null;
         if (t != null) {
             return typeof t === "string" ? t.trim() || null : extractText(t);
         }
-        // If object, try concatenating string leaves
+        // If object has a direct string value, return it
+        const values = Object.values(x).filter((v) => typeof v === "string");
+        if (values.length === 1) {
+            return (values[0] as string).trim() || null;
+        }
+        // Try to concatenate string leaves
         const parts: string[] = [];
-        for (const v of Object.values(x)) {
+        for (const [k, v] of Object.entries(x)) {
+            if (k.startsWith("@")) continue; // Skip attributes
             const s = extractText(v);
             if (s) parts.push(s);
         }
@@ -585,9 +658,3 @@ function dedupeBy<T>(arr: T[], keyFn: (t: T) => string | null): T[] {
     }
     return out;
 }
-
-/* ------------------------------ Example ------------------------------ */
-// Usage:
-// const xml = await res.text();
-// const articles = parseArticlesFromXml(xml);
-// console.log(articles);

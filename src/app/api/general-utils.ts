@@ -7,6 +7,8 @@ import {
     FormattedArticle,
     AbstractParagraph,
 } from "./general-interfaces";
+import { writeFile } from "fs/promises";
+import { resolve } from "path";
 
 const MONTH_NAMES: Record<string, string> = {
     1: "Jan",
@@ -213,3 +215,16 @@ export const extractArticleDetails = (
         date: formattedDate,
     };
 };
+
+export async function saveXmlToRoot(xmlContent, fileName) {
+    try {
+        // Get the absolute path to the repo root (assuming script is run from repo)
+        const repoRoot = resolve(process.cwd(), ".");
+        const filePath = resolve(repoRoot, `${fileName}.xml`);
+
+        await writeFile(filePath, xmlContent, "utf8");
+        console.log(`✅ File saved at: ${filePath}`);
+    } catch (err) {
+        console.error("❌ Error saving XML file:", err);
+    }
+}

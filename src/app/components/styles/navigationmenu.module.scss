@@ -1,3 +1,5 @@
+@import "../../variables";
+
 .menubar {
     display: flex;
     flex-direction: row;
@@ -7,7 +9,7 @@
     width: fit-content;
     .link {
         text-decoration: none;
-        font-size: 28px;
+        font-size: 22px;
         color: white;
         display: flex;
         align-items: center;
@@ -16,7 +18,7 @@
     }
     a:hover,
     .link:hover {
-        color: #ff0084;
+        color: $main-pink;
         border-radius: 2px;
     }
 }

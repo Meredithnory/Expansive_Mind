@@ -5,12 +5,17 @@
     display: flex;
     border-radius: 114px;
     padding: 0px 26px;
-    margin: 0px 66px;
     white-space: pre;
 }
 .wholebox {
     display: flex;
     flex-direction: column;
+    gap: 20px;
+    height: fit-content;
+    margin: auto;
+    width: 100%;
+    overflow: auto;
+    justify-content: flex-start;
 
     .title {
         display: flex;
@@ -18,14 +23,13 @@
         align-items: center;
         justify-content: center;
         font-size: 32px;
-        margin-top: 40px;
-        margin-bottom: 60px;
     }
     .boxesarea {
         display: flex;
         flex-direction: row;
         justify-content: center;
         gap: 20px;
+        flex-wrap: wrap;
     }
     .box1 {
         display: flex;
@@ -44,12 +48,13 @@
     }
     .layout {
         color: #fff;
-        background: #000000;
+        background: #000;
+        border: 2px solid #86c4ffc7;
         border-radius: 8px;
         width: 342px;
-        box-shadow: 0 0 6px #ffffff73;
         padding: 14px;
-        border: solid 2px #afafaf94;
+        box-shadow: 0 0 6px #df0074;
+        height: 532px;
     }
     .circle {
         background-color: #de0074;
@@ -182,13 +187,14 @@
         border-radius: 8px;
         justify-content: center;
         align-items: center;
+        width: 80%;
         height: 20%;
         display: flex;
-        width: 80%;
+        align-self: flex-end;
     }
     .responsebox {
         margin-top: 20px;
-        background-color: #000000;
+        background-color: #0c0c0c;
         height: 50%;
         display: flex;
         flex-direction: column;
@@ -197,7 +203,6 @@
         border-radius: 8px;
         width: 80%;
         justify-content: center;
-        align-self: flex-end;
     }
     .inputbox {
         display: flex;

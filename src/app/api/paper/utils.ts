@@ -1,5 +1,9 @@
 import convert from "xml-js";
-import { extractAllText, extractArticleDetails } from "../general-utils";
+import {
+    extractAllText,
+    extractArticleDetails,
+    saveXmlToRoot,
+} from "../general-utils";
 import {
     FormattedArticle,
     FormattedPaper,
@@ -51,6 +55,11 @@ export const getPaperDetails = async (
     const res = await fetch(`${NIH_API_URL}?${params}`);
     //Get data from NIH url and added params - only XML is returned in PMC /efetch url no JSON, ,so we need to handle that
     const dataAsXML = await res.text();
+
+    // save to file as .xml for the papers raw xml content
+    // to feed to ai to imporve your parseArticleXML algorithm
+    saveXmlToRoot(dataAsXML, "test");
+
     const dataAsJSON = JSON.parse(
         convert.xml2json(dataAsXML, { compact: true })
     );

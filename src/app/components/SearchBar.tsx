@@ -1,5 +1,5 @@
 import React, { SetStateAction } from "react";
-import styles from "./searchbar.module.scss";
+import styles from "./styles/searchbar.module.scss";
 import clsx from "clsx";
 
 interface SearchProps {

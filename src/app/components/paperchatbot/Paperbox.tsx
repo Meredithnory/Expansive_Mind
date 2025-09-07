@@ -1,4 +1,4 @@
-import styles from "./paperbox.module.scss";
+import styles from "../styles/paperbox.module.scss";
 import clsx from "clsx";
 import {
     FormattedPaper,

@@ -67,7 +67,6 @@ const page = () => {
 
     return (
         <div className={styles.page}>
-            <NavBar />
             <div className={styles.searchbox}>
                 <SearchBar
                     searchValue={searchValue}

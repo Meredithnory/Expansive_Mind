@@ -1,7 +1,5 @@
 import React from "react";
 import styles from "./about.module.scss";
-import Title from "../components/Title";
-import HamburgerIcon from "../components/HamburgerIcon";
 import clsx from "clsx";
 import Image from "next/image";
 import PlaceholderLine from "../components/PlaceholderLine";
@@ -9,10 +7,6 @@ import PlaceholderLine from "../components/PlaceholderLine";
 const page = () => {
     return (
         <>
-            <div className={styles.navbar}>
-                <Title />
-                <HamburgerIcon />
-            </div>
             <div className={styles.wholebox}>
                 <div className={styles.title}>How Expansive Mind Works</div>
                 <div className={styles.boxesarea}>

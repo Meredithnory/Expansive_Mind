@@ -1,8 +1,11 @@
+@import "../../variables";
+
 .page {
-    height: 100vh;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     overflow: hidden;
+    width: 100%;
 
     .navbarbox {
         display: flex;
@@ -13,9 +16,6 @@
         display: flex;
         flex-direction: row;
         justify-content: space-between;
-        margin-left: 26px;
-        margin-right: 38px;
-        margin-top: 10px;
     }
     .icon {
         height: 26px;
@@ -31,20 +31,33 @@
         background: none;
         color: inherit;
         border: none;
-        height: 22px;
-        width: 240px;
         font: inherit;
         cursor: pointer;
         outline: inherit;
         display: flex;
-        padding: 18px 16px;
+        padding: 0;
         align-items: center;
         justify-content: center;
-        gap: 20px;
-    }
-    .searchbutton:hover {
-        background-color: #ff0084;
-        border-radius: 30px;
+        gap: 6px;
+        border-radius: 6px;
+        color: #fff;
+        font-size: 14px;
+
+        svg {
+            fill: #fff;
+            height: 26px;
+            width: 27px;
+            transform: scale(0.8);
+            overflow: hidden;
+        }
+
+        &:hover {
+            color: $main-pink;
+
+            svg {
+                fill: $main-pink;
+            }
+        }
     }
     .highlightbutton {
         background: none;
@@ -65,10 +78,6 @@
         font-size: 18px;
         font-weight: bold;
     }
-    .activeHighlighter {
-        background-color: #ff0084;
-        color: rgb(255, 255, 255);
-    }
     .hightlight {
         display: flex;
         align-items: center;
@@ -78,8 +87,6 @@
         grid-template-columns: 1fr 2.2fr;
         height: 100%;
         gap: 20px;
-        padding: 20px;
-        padding-top: 10px;
         overflow: hidden;
     }
     .loader {

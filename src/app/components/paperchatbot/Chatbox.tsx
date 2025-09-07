@@ -6,7 +6,7 @@ import React, {
     SetStateAction,
     useCallback,
 } from "react";
-import styles from "./chatbox.module.scss";
+import styles from "../styles/chatbox.module.scss";
 import Image from "next/image";
 import clsx from "clsx";
 import { FormattedPaper } from "../../api/general-interfaces";

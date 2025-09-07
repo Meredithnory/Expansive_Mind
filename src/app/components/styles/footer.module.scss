@@ -1,7 +1,4 @@
 .footer {
-    position: fixed;
-    bottom: 4px;
-    left: 0;
     width: 100%; // span full width
     color: #ffffff60;
     text-align: center;
@@ -10,4 +7,5 @@
     padding: auto;
     margin: 0;
     z-index: 1000; // stays above other elements
+    padding: 2px 0;
 }

@@ -1,8 +1,6 @@
 "use client";
 import React, { FormEvent, useState } from "react";
 import styles from "./signuppage.module.scss";
-import HamburgerIcon from "../components/HamburgerIcon";
-import Title from "../components/Title";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -50,10 +48,6 @@ const page = () => {
 
     return (
         <>
-            <div className={styles.navbar}>
-                <Title />
-                <HamburgerIcon />
-            </div>
             <div className={styles.signuparea}>
                 <div className={styles.center}>
                     <div className={styles.box}>

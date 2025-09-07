@@ -9,6 +9,12 @@ import { FormattedPaper } from "../../api/general-interfaces";
 import Loading from "../../components/Loading";
 import NavBar from "../../components/NavBar";
 
+const LeftArrowSVG = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="m0 13.453 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894L0 13.452Zm10.91 0 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894-11.987 12.7Z" />
+    </svg>
+);
+
 const page = ({ params }: { params: any }) => {
     const router = useRouter();
     const { pmcid }: { pmcid: string } = React.use(params);
@@ -74,24 +80,25 @@ const page = ({ params }: { params: any }) => {
 
     return (
         <div className={styles.page}>
-            <NavBar />
-            <div className={styles.toolsbox}>
-                <div className={styles.searcharea}>
-                    <button
-                        className={styles.searchbutton}
-                        onClick={() => router.back()}
-                    >
-                        <Image
-                            className={styles.icon}
-                            width={1000}
-                            height={760}
-                            src="/leftarrowicon.svg"
-                            alt="leftarrowicon.svg"
-                        />
-                        <div className={styles.text}>Back to Search</div>
-                    </button>
+            {loading ? (
+                <div className={styles.loader}>
+                    <Loading />
                 </div>
-                {/* <button
+            ) : (
+                <>
+                    <div className={styles.toolsbox}>
+                        <div className={styles.searcharea}>
+                            <button
+                                className={styles.searchbutton}
+                                onClick={() => router.back()}
+                            >
+                                <LeftArrowSVG />
+                                <div className={styles.text}>
+                                    Back to Search
+                                </div>
+                            </button>
+                        </div>
+                        {/* <button
                     className={clsx(styles.highlightbutton, {
                         [styles.activeHighlighter]: highlight === true,
                     })}
@@ -106,26 +113,22 @@ const page = ({ params }: { params: any }) => {
                         alt="highlighter icon"
                     />
                 </button> */}
-            </div>
-            {loading ? (
-                <div className={styles.loader}>
-                    <Loading />
-                </div>
-            ) : (
-                <div className={styles.paperchatcontainer}>
-                    <Chatbox
-                        wholePaper={researchPaper}
-                        highlightedText={highlightedText}
-                        allMessages={allMessages}
-                        setAllMessages={setAllMessages}
-                    />
-                    <Paperbox
-                        paper={researchPaper}
-                        searchTerm={qParam}
-                        highlight={highlight}
-                        handleHighlightedText={handleHighlightedText}
-                    />
-                </div>
+                    </div>
+                    <div className={styles.paperchatcontainer}>
+                        <Chatbox
+                            wholePaper={researchPaper}
+                            highlightedText={highlightedText}
+                            allMessages={allMessages}
+                            setAllMessages={setAllMessages}
+                        />
+                        <Paperbox
+                            paper={researchPaper}
+                            searchTerm={qParam}
+                            highlight={highlight}
+                            handleHighlightedText={handleHighlightedText}
+                        />
+                    </div>
+                </>
             )}
         </div>
     );

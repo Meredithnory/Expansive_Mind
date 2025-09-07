@@ -1,13 +1,3 @@
-.navbar {
-    background-color: #0d0e0e;
-    flex-direction: row;
-    justify-content: space-between;
-    display: flex;
-    border-radius: 114px;
-    padding: 0px 26px;
-    margin: 0px 66px;
-    white-space: pre;
-}
 .signuparea {
     width: 100%;
     height: 100%;
@@ -23,7 +13,6 @@
         height: 100%;
     }
     .box {
-        margin-top: 50px;
         background-color: #121212;
         width: 50%;
     }
@@ -112,6 +101,15 @@
     }
     .signtext {
         padding: 40px;
+
+        a,
+        a:visited {
+            color: #ff0084;
+
+            &:hover {
+                color: #fff;
+            }
+        }
     }
     .toptext {
         font-size: 22px;
