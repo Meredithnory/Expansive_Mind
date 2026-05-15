@@ -16,7 +16,7 @@ function formatPaper(paperSections: any) {
 export async function respondToMessage(
     message: string,
     wholePaper: FormattedPaper,
-    chatHistory: string[]
+    chatHistory: string[],
 ): Promise<string | null> {
     const systemPrompt = `
     You are NIH Research Paper Bot—a friendly.
@@ -46,7 +46,7 @@ export async function respondToMessage(
             ({
                 role: h.sender === "user" ? "user" : "assistant",
                 content: h.message,
-            } as ChatCompletionUserMessageParam)
+            }) as ChatCompletionUserMessageParam,
     );
 
     // 4) new user question
@@ -64,7 +64,7 @@ export async function respondToMessage(
     ];
 
     const completion = await openai.chat.completions.create({
-        model: "openai/chatgpt-4o-latest",
+        model: "openai/gpt-4.1-mini",
         messages,
     });
 
