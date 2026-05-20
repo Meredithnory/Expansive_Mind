@@ -1,4 +1,4 @@
-@import "../../variables";
+@use "../../variables" as *;
 
 //Messages Component
 .messages {
@@ -114,7 +114,7 @@
         transition: background-color 160ms ease;
 
         &:hover:not(:disabled) {
-            background-color: darken(#ff0084, 10%);
+            background-color: #cc0069;
         }
 
         img {

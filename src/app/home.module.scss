@@ -5,7 +5,7 @@
 
 //   }
 // }
-@import "variables";
+@use "variables" as *;
 
 .home {
     height: 100vh;
@@ -40,8 +40,8 @@
         box-shadow: 0 0 24px rgba(255, 0, 132, 0.3);
 
         &:hover {
-            background-color: darken(#ff0084, 8%);
-            border-color: darken(#ff0084, 8%);
+            background-color: #d6006f;
+            border-color: #d6006f;
         }
     }
 
