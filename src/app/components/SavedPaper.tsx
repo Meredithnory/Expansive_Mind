@@ -9,6 +9,9 @@ export interface Paper {
     description: string;
     id: string;
 }
+
+const SOURCE_LABEL = "NIH PubMed";
+
 const SavedPaper = ({
     page,
     isLink,
@@ -26,6 +29,12 @@ const SavedPaper = ({
         <>
             <div key={page.id} className={styles.entirepage}>
                 <div className={styles.page}>
+                    <div className={styles.sourceTag} aria-label={SOURCE_LABEL}>
+                        <span className={styles.sourceDot} />
+                        <span className={styles.sourceText}>
+                            {SOURCE_LABEL}
+                        </span>
+                    </div>
                     <Link href={`/paperchatbot/${page.id}`}>
                         <div className={styles.title}>{page.title}</div>
                     </Link>

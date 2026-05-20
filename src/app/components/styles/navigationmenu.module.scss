@@ -7,15 +7,16 @@
     gap: 60px;
     width: 100%;
     width: fit-content;
+
     .link {
         text-decoration: none;
         font-size: 22px;
         color: white;
         display: flex;
         align-items: center;
-        font: italic;
         cursor: pointer;
     }
+
     a:hover,
     .link:hover {
         color: $main-pink;

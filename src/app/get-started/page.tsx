@@ -3,15 +3,16 @@ import React from "react";
 import { useState } from "react";
 import styles from "./get-started.module.scss";
 import SearchBar from "../components/SearchBar";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import NavBar from "../components/NavBar";
 
 export default function SearchPage() {
     const [searchValue, setSearchValue] = useState("");
+    const router = useRouter();
 
     const handleSearch = () => {
         if (searchValue) {
-            redirect(`/searchpaper?q=${searchValue}`);
+            router.push(`/searchpaper?q=${encodeURIComponent(searchValue)}`);
         }
     };
 
@@ -27,11 +28,19 @@ export default function SearchPage() {
             />
             <div className={styles.dbblock}>
                 <span className={styles.text}>Databases</span>
-                <button className={styles.databases}>
+                <button
+                    className={`${styles.databaseCard} ${styles.databases}`}
+                >
                     NIH PubMed Central (PMC)
                 </button>
-                <button className={styles.comingSoon1}>🚧 Coming Soon</button>
-                <button className={styles.comingSoon2}>🚧 Coming Soon</button>
+                <button className={`${styles.databaseCard} ${styles.dbnature}`}>
+                    Nature (Springer Nature)
+                </button>
+                <button
+                    className={`${styles.databaseCard} ${styles.comingSoon2}`}
+                >
+                    🚧 Coming Soon
+                </button>
             </div>
         </div>
     );

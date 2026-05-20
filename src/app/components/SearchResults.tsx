@@ -22,8 +22,24 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
         <div className={styles.paperwrap}>
             {searchResults.map((paper) => (
                 <div className={styles.paper} key={paper.pmcid}>
-                    <div className={clsx(styles.publicationdate, styles.text)}>
-                        {paper.date}
+                    <div className={styles.paperMeta}>
+                        <div
+                            className={clsx(styles.sourceTag, styles.text)}
+                            aria-label="NIH PubMed"
+                        >
+                            <span className={styles.sourceDot} />
+                            <span className={styles.sourceText}>
+                                NIH PubMed
+                            </span>
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.publicationdate,
+                                styles.text,
+                            )}
+                        >
+                            {paper.date}
+                        </div>
                     </div>
                     <Link
                         href={`/paperchatbot/${paper.pmcid}?${params}`}
@@ -36,7 +52,7 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                 .includes(searchValue.toLowerCase())
                                 ? paper.title
                                       .split(
-                                          new RegExp(`(${searchValue})`, "gi")
+                                          new RegExp(`(${searchValue})`, "gi"),
                                       )
                                       .map((titleWord, index) =>
                                           titleWord.toLowerCase() ===
@@ -54,7 +70,7 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                                       __html: titleWord,
                                                   }}
                                               />
-                                          )
+                                          ),
                                       )
                                 : paper.title}
                         </div>

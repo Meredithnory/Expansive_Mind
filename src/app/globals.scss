@@ -56,6 +56,13 @@ body {
     overflow: hidden;
 }
 
+.page-transition-shell {
+    width: 100%;
+    height: 100%;
+    animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: center top;
+}
+
 .full-height-loading {
     height: 100%;
     display: flex;
@@ -100,5 +107,19 @@ body {
     40% {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+@keyframes page-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.992);
+        filter: blur(6px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
     }
 }

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./searchpaper.module.scss";
 import SearchResults from "../components/SearchResults";
 import Loading from "../components/Loading";
-import NavBar from "../components/NavBar";
 import Image from "next/image";
 
 interface SearchResult {
@@ -20,6 +19,7 @@ const page = () => {
     //Get query params in the URL from the get-started page FIRST
     const searchParams = useSearchParams();
     const qParam = searchParams.get("q");
+    const pageParam = searchParams.get("page");
     //Router is accessing information of the router historys array but now we want to use router to change the history to the current params to where it started in the get-started page in case someone
     const router = useRouter();
 
@@ -32,13 +32,19 @@ const page = () => {
     //Last handle submit value shown for the showing results : " " that way it only changes when its submitted
     const [pastSearchValue, setPastSearchValue] = useState("");
 
-    const handleSubmit = (): void => {
+    const activePage = Math.max(Number.parseInt(pageParam || "0", 10) || 0, 0);
+
+    const pushSearchParams = (query: string, page: number) => {
         const params = new URLSearchParams({
-            q: searchValue,
+            q: query,
+            page: String(page),
         });
-        //Pushing the query search parameter in the URL 's history arr
-        const href = `${window.location.pathname}?${params}`;
-        router.push(href, { scroll: false });
+
+        router.push(`${window.location.pathname}?${params}`, { scroll: false });
+    };
+
+    const handleSubmit = (): void => {
+        pushSearchParams(searchValue, 0);
     };
 
     const doSearch = async (query: string, page: number = 0): Promise<void> => {
@@ -61,9 +67,15 @@ const page = () => {
     useEffect(() => {
         setSearchValue(qParam ?? "");
         if (qParam) {
-            doSearch(qParam, 0);
+            doSearch(qParam, activePage);
+        } else {
+            setSearchResults([]);
+            setPastSearchValue("");
+            setTotalPages(0);
+            setCurrentPage(0);
+            setLoading(false);
         }
-    }, [qParam]);
+    }, [qParam, activePage]);
 
     if (loading) {
         return (
@@ -82,57 +94,72 @@ const page = () => {
                     handleSubmit={handleSubmit}
                     className={styles.searchbar}
                 />
-                <div className={styles.showingResults}>
-                    Showing results for "{pastSearchValue}" :
-                </div>
-
-                <SearchResults
-                    searchResults={searchResults}
-                    searchValue={pastSearchValue}
-                />
-                <div className={styles.datasource}>
-                    <small>
-                        Data Source: Search results are retrieved from{" "}
-                        <a
-                            href="https://www.ncbi.nlm.nih.gov/pmc/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            NIH PubMed Central (PMC)
-                        </a>
-                    </small>
-                </div>
-                <div className={styles.pagination}>
-                    <button
-                        className={styles.prevbutton}
-                        disabled={currentPage === 0 || loading}
-                        onClick={() => doSearch(searchValue, currentPage - 1)}
-                    >
-                        <Image
-                            className={styles.icon}
-                            width={1000}
-                            height={760}
-                            src="/previcon.svg"
-                            alt="prevArrow"
-                        />
-                    </button>
-
-                    <div className={styles.currentpage}>
-                        Page {currentPage + 1} of {totalPages}
+                <div
+                    key={`${qParam}-${activePage}`}
+                    className={styles.resultsContainer}
+                >
+                    <div className={styles.showingResults}>
+                        Showing results for "{pastSearchValue}" :
                     </div>
-                    <button
-                        disabled={currentPage >= totalPages - 1 || loading}
-                        onClick={() => doSearch(searchValue, currentPage + 1)}
-                        className={styles.nextbutton}
-                    >
-                        <Image
-                            className={styles.icon}
-                            width={1000}
-                            height={760}
-                            src="/nexticon.svg"
-                            alt="nextArrow"
-                        />
-                    </button>
+
+                    <SearchResults
+                        searchResults={searchResults}
+                        searchValue={pastSearchValue}
+                    />
+                    <div className={styles.datasource}>
+                        <small>
+                            Data Source: Search results are retrieved from{" "}
+                            <a
+                                href="https://www.ncbi.nlm.nih.gov/pmc/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                NIH PubMed Central (PMC)
+                            </a>
+                        </small>
+                    </div>
+                    <div className={styles.pagination}>
+                        <button
+                            className={styles.prevbutton}
+                            disabled={currentPage === 0 || loading}
+                            onClick={() =>
+                                pushSearchParams(
+                                    pastSearchValue,
+                                    currentPage - 1,
+                                )
+                            }
+                        >
+                            <Image
+                                className={styles.icon}
+                                width={1000}
+                                height={760}
+                                src="/previcon.svg"
+                                alt="prevArrow"
+                            />
+                        </button>
+
+                        <div className={styles.currentpage}>
+                            Page {currentPage + 1} of {totalPages}
+                        </div>
+                        <button
+                            disabled={currentPage >= totalPages - 1 || loading}
+                            onClick={() =>
+                                pushSearchParams(
+                                    pastSearchValue,
+                                    currentPage + 1,
+                                )
+                            }
+                            className={styles.nextbutton}
+                        >
+                            <Image
+                                className={styles.icon}
+                                width={1000}
+                                height={760}
+                                src="/nexticon.svg"
+                                alt="nextArrow"
+                            />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -16,7 +16,7 @@ const SearchBar = ({
     className,
 }: SearchProps) => {
     const handleKeyPress = (
-        event: React.KeyboardEvent<HTMLInputElement>
+        event: React.KeyboardEvent<HTMLInputElement>,
     ): void => {
         if (event.key === "Enter") {
             handleSubmit();
@@ -29,10 +29,12 @@ const SearchBar = ({
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
                 onKeyDown={handleKeyPress}
+                placeholder="Search papers"
+                aria-label="Search papers"
             />
             <div className={styles.vertline} />
             <button onClick={handleSubmit} className={styles.button}>
-                <img src="searchicon.svg" />
+                <img src="pinksearchicon.svg" alt="Search" />
             </button>
         </div>
     );

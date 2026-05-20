@@ -1,3 +1,5 @@
+@import "../variables";
+
 .navbar {
     background-color: #0d0e0e;
     flex-direction: row;
@@ -10,26 +12,33 @@
 .wholebox {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    height: fit-content;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    min-height: 100%;
     margin: auto;
     width: 100%;
+    max-width: 1180px;
     overflow: auto;
-    justify-content: flex-start;
+    padding: 8px 0 24px;
 
     .title {
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: center;
-        font-size: 32px;
+        font-size: 34px;
+        color: #d7ebff;
+        text-align: center;
     }
     .boxesarea {
-        display: flex;
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(240px, 1fr));
         justify-content: center;
+        align-items: start;
+        max-width: 980px;
         gap: 20px;
-        flex-wrap: wrap;
+        width: 100%;
     }
     .box1 {
         display: flex;
@@ -49,22 +58,33 @@
     .layout {
         color: #fff;
         background: #000;
-        border: 2px solid #86c4ffc7;
-        border-radius: 8px;
-        width: 342px;
-        padding: 14px;
-        box-shadow: 0 0 6px #df0074;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        width: 100%;
+        max-width: none;
+        padding: 22px 20px 20px;
         height: 532px;
+        transition: border-color 180ms ease;
+
+        &:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+
+            .boxtitle {
+                color: $main-pink;
+            }
+        }
     }
     .circle {
-        background-color: #de0074;
+        background-color: rgba(223, 0, 116, 0.14);
+        border: 1px solid rgba(255, 0, 132, 0.3);
         border-radius: 30px;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        width: 50px;
-        height: 50px;
-        font-size: 34px;
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+        color: $main-pink;
         display: flex;
     }
     .boxtitle {
@@ -72,35 +92,39 @@
         flex-direction: row;
         align-items: center;
         gap: 14px;
-        font-size: 30px;
+        font-size: 28px;
+        color: #d7ebff;
+        transition: color 160ms ease;
     }
     .text {
-        margin-bottom: 36px;
-        padding: 9px;
-        font-size: 24px;
-        margin-top: 20px;
+        margin-bottom: 28px;
+        padding: 8px 2px;
+        font-size: 20px;
+        line-height: 1.45;
+        margin-top: 12px;
+        color: #cfe5fc;
     }
     .searcharea {
-        color: #bebebe;
+        color: rgba(215, 235, 255, 0.45);
         background-color: #000000;
-        border-radius: 6px;
+        border-radius: 16px;
         place-items: center;
         width: 100%;
-        height: 50px;
-        padding-left: 10px;
-        font-size: 24px;
+        min-height: 56px;
+        padding-left: 16px;
+        font-size: 18px;
         display: flex;
-        border: solid 2px #df0074;
-        margin-bottom: 38px;
+        border: 1px solid rgba(255, 0, 132, 0.28);
+        margin-bottom: 26px;
     }
     .searchbox1 {
-        border: 10px solid #000000;
-        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
         flex-direction: column;
-        gap: 14px;
+        gap: 12px;
         width: 100%;
         height: 200px;
-        padding: 8px;
+        padding: 14px;
         display: flex;
         background-color: #0c0c0c;
     }
@@ -108,10 +132,10 @@
         color: #fff;
         align-items: center;
         gap: 10px;
-        font-size: 20px;
+        font-size: 18px;
         display: flex;
-        margin-left: 12px;
-        margin-top: 10px;
+        margin-left: 4px;
+        margin-top: 2px;
     }
     .firstline {
         border: 10px solid #303030;
@@ -131,23 +155,27 @@
     .searcharea2 {
         width: 100%;
         background-color: #0c0c0c;
-        border-radius: 20px;
+        border-radius: 16px;
         padding: 20px;
-        border: 10px solid #000000;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .text2 {
-        font-size: 24px;
-        padding: 10px;
-        margin-top: 20px;
+        font-size: 20px;
+        line-height: 1.45;
+        padding: 8px 2px;
+        margin-top: 12px;
         margin-bottom: 12px;
+        color: #cfe5fc;
     }
     .title2 {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 700;
         margin-bottom: 20px;
+        color: #d7ebff;
     }
     .subtitle {
         font-size: 16px;
+        color: rgba(215, 235, 255, 0.72);
     }
     .line {
         border: solid 8px #171717;
@@ -176,21 +204,24 @@
         background-color: #0c0c0c;
         width: 100%;
         height: 100%;
-        border-radius: 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         display: flex;
         flex-direction: column;
         padding: 14px;
         align-items: flex-start;
     }
     .questionbox {
-        background-color: #df0074;
-        border-radius: 8px;
+        background-color: rgba(223, 0, 116, 0.14);
+        border: 1px solid rgba(255, 0, 132, 0.3);
+        border-radius: 14px;
         justify-content: center;
         align-items: center;
         width: 80%;
         height: 20%;
         display: flex;
         align-self: flex-end;
+        color: #ff8fc7;
     }
     .responsebox {
         margin-top: 20px;
@@ -200,7 +231,7 @@
         flex-direction: column;
         gap: 8px;
         padding: 8px;
-        border-radius: 8px;
+        border-radius: 14px;
         width: 80%;
         justify-content: center;
     }
@@ -213,8 +244,8 @@
         justify-content: center;
     }
     .input {
-        border: 2px solid #df0074;
-        border-radius: 6px;
+        border: 1px solid rgba(255, 0, 132, 0.28);
+        border-radius: 14px;
         justify-content: flex-end;
         width: 100%;
         height: 60%;
@@ -228,5 +259,48 @@
         justify-content: center;
         margin-top: 20px;
         margin-left: 14px;
+        width: 33px;
+        height: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .wholebox {
+        padding: 0 0 24px;
+
+        .title {
+            font-size: 28px;
+        }
+
+        .layout {
+            width: 100%;
+            max-width: 420px;
+            height: auto;
+            min-height: 0;
+        }
+
+        .searchbox1,
+        .searcharea2,
+        .searchbox3,
+        .bottombox {
+            height: auto;
+        }
+    }
+}
+
+@media (max-width: 860px) {
+    .wholebox {
+        .boxesarea {
+            grid-template-columns: repeat(2, minmax(240px, 1fr));
+            max-width: 640px;
+        }
+    }
+}
+
+@media (max-width: 720px) {
+    .wholebox {
+        .boxesarea {
+            grid-template-columns: minmax(0, 420px);
+        }
     }
 }

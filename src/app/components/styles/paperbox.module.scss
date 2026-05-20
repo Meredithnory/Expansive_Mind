@@ -7,9 +7,12 @@
     overflow-y: auto;
     width: 100%;
     border-radius: 4px;
+    padding-right: 8px;
 
     p {
         margin: 0;
+        color: #d7ebff;
+        line-height: 1.7;
     }
 
     .paper {
@@ -19,20 +22,25 @@
     }
 
     .title {
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        color: #d7ebff;
         margin: 0px;
     }
     .authors {
         font-size: 14px;
         font-style: italic;
-        color: #6bb0ff;
+        color: rgba(215, 235, 255, 0.65);
     }
     .bluetext {
         color: $highlight-blue;
     }
     .pmcid {
-        font-size: 14px;
+        font-size: 13px;
+        color: rgba(215, 235, 255, 0.4);
+        letter-spacing: 0.02em;
     }
     .section {
         display: flex;
@@ -43,8 +51,10 @@
         }
         h4 {
             font-size: 20px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #6bb0ff;
+            font-weight: 600;
+            color: #d7ebff;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(10, 177, 255, 0.35);
             margin: 0;
         }
     }
@@ -74,7 +84,9 @@
         gap: 10px;
 
         h6 {
-            font-size: 18px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #d7ebff;
             margin: 0;
         }
 
@@ -86,9 +98,10 @@
         position: relative;
         width: 100%;
         aspect-ratio: 16/9;
-        background-color: rgba(35, 55, 66, 0.339);
-        color: rgb(255, 255, 255);
-        border: 2px solid rgb(255, 255, 255);
+        background-color: rgba(10, 177, 255, 0.04);
+        color: #d7ebff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
         padding: 20px;
         display: flex;
         flex-direction: column;
@@ -101,6 +114,7 @@
     }
 
     .graphicTitle {
-        font-weight: bold;
+        font-weight: 600;
+        color: rgba(215, 235, 255, 0.75);
     }
 }

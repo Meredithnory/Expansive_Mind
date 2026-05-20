@@ -1,38 +1,91 @@
+@import "../../variables";
+
 .entirepage {
     display: flex;
-    font-size: 10px;
+    align-items: stretch;
     margin-bottom: 30px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background-color: #000;
+    overflow: hidden;
+    transition: border-color 180ms ease;
 
     a {
         text-decoration: none;
     }
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.14);
+
+        .title {
+            color: #ff0084;
+        }
+    }
 }
 .page {
-    background-color: #121212;
     width: 100%;
-    padding: 20px;
+    padding: 24px 28px 26px;
+    background-color: #000;
+}
+.sourceTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 6px 10px;
+    margin-bottom: 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 10px 24px rgba(255, 0, 132, 0.12);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+.sourceDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: $main-pink;
+    box-shadow: 0 0 0 4px rgba(255, 0, 132, 0.15);
+    flex-shrink: 0;
+}
+.sourceText {
+    white-space: nowrap;
+    color: #fff;
 }
 .title {
-    color: #0aa5ff;
-    font-size: 18px;
+    color: #d7ebff;
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: color 160ms ease;
 }
 .title:hover {
     color: #ff0084;
 }
 .authors {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     font-style: italic;
-    padding-top: 4px;
-    font-size: 12px;
+    padding-top: 8px;
+    font-size: 13px;
+    color: rgba(215, 235, 255, 0.75);
 }
 .icons {
     display: flex;
-    gap: 8px;
-    font-size: 10px;
+    flex-direction: column;
+    gap: 14px;
     align-items: center;
     justify-content: center;
-    margin-left: 16px;
+    min-width: 118px;
+    padding: 20px 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #000;
 }
 
 .chaticon {
@@ -40,11 +93,25 @@
     flex-direction: column;
     gap: 4px;
     align-items: center;
-    font-size: 16px;
+    justify-content: center;
+    width: 100%;
+    min-height: 82px;
+    padding: 12px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #050505;
+    font-size: 14px;
+    font-weight: 600;
     text-decoration: none;
     color: #fff;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease;
 
     &:hover {
+        border-color: rgba(255, 0, 132, 0.28);
+        background-color: #0b0b0b;
         color: #ff0084;
     }
 
@@ -54,13 +121,28 @@
     }
 }
 .trashicon {
-    margin-left: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 16px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 82px;
+    padding: 12px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #050505;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease;
+
     &:hover {
+        border-color: rgba(255, 0, 132, 0.28);
+        background-color: #0b0b0b;
         color: #ff0084;
     }
 }
@@ -86,8 +168,10 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     font-size: 16px;
+    line-height: 1.55;
 }
 .deletebutton {
+    width: 100%;
     background: none;
     color: inherit;
     border: none;
@@ -95,4 +179,23 @@
     font: inherit;
     cursor: pointer;
     outline: inherit;
+}
+
+@media (max-width: 720px) {
+    .entirepage {
+        flex-direction: column;
+        border-radius: 18px;
+    }
+
+    .page {
+        padding: 22px 20px 20px;
+    }
+
+    .icons {
+        flex-direction: row;
+        min-width: 0;
+        padding: 16px 20px 20px;
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
 }
