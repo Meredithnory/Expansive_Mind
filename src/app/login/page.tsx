@@ -100,20 +100,23 @@ const page = () => {
                                     />
                                 </div>
                             </div>
-                            <div className={styles.links}>
-                                <Link href="/signup">Sign-up</Link>
-                                {/* <Link href="/login">Forgot password?</Link> */}
-                            </div>
                             <button
                                 type="submit"
+                                className={styles.loginButton}
                                 disabled={loading}
                                 style={{
                                     opacity: loading ? 0.6 : 1,
-                                    cursor: loading ? "not-allowed" : "pointer",
+                                    cursor: loading
+                                        ? "not-allowed"
+                                        : "pointer",
                                 }}
                             >
                                 {loading ? "Logging in..." : "Login"}
                             </button>
+                            <p className={styles.signupPrompt}>
+                                Don&apos;t have an account?{" "}
+                                <Link href="/signup">Sign up</Link>
+                            </p>
                         </form>
                         {loading && (
                             <div className={styles.loader}>

@@ -1,3 +1,5 @@
+@use "../variables" as *;
+
 .navbar {
     background-color: #0d0e0e;
     flex-direction: row;
@@ -63,20 +65,6 @@
         color: rgba(215, 235, 255, 0.82);
     }
 
-    .links {
-        color: white;
-        display: flex;
-        width: 100%;
-        max-width: 378px;
-        justify-content: flex-end;
-        a:visited {
-            color: #ff0084;
-
-            &:hover {
-                color: #fff;
-            }
-        }
-    }
     input {
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
@@ -130,32 +118,56 @@
         color: #ff0084;
     }
 
-    button {
+    .loginButton {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 100%;
         max-width: 378px;
         min-height: 52px;
-        margin-top: 40px;
+        margin-top: 20px;
         color: #ffffff;
-        background-color: #000;
+        background-color: $main-pink;
         outline: none;
-        border: 1px solid rgba(255, 0, 132, 0.36);
+        border: 1px solid $main-pink;
         font: inherit;
         border-radius: 16px;
         font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
+        box-shadow: 0 0 20px rgba(255, 0, 132, 0.28);
         transition:
             border-color 160ms ease,
             background-color 160ms ease,
-            color 160ms ease;
+            color 160ms ease,
+            box-shadow 160ms ease;
 
-        &:hover {
-            border-color: rgba(255, 0, 132, 0.55);
-            background-color: #0b0b0b;
-            color: #ff0084;
+        &:hover:not(:disabled) {
+            background-color: #d6006f;
+            border-color: #d6006f;
+            color: #ffffff;
+            box-shadow: 0 0 28px rgba(255, 0, 132, 0.38);
+        }
+    }
+
+    .signupPrompt {
+        width: 100%;
+        max-width: 378px;
+        margin: 16px 0 0;
+        text-align: center;
+        font-size: 0.95rem;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.55);
+
+        a,
+        a:visited {
+            color: $main-pink;
+            font-weight: 500;
+            text-decoration: none;
+
+            &:hover {
+                color: #ffffff;
+            }
         }
     }
     .error {
@@ -193,8 +205,8 @@
 
         .email,
         .password,
-        .links,
-        button {
+        .loginButton,
+        .signupPrompt {
             max-width: 100%;
         }
     }
