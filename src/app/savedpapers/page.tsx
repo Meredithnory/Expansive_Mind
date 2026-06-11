@@ -13,7 +13,6 @@ const page = () => {
     // Source of truth for all saved papers returned by the API.
     const [allPapers, setAllPapers] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(true);
-    const [noPaper, setNoPaper] = useState(false);
     // UI page index for client-side pagination.
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -30,10 +29,7 @@ const page = () => {
     useEffect(() => {
         fetchAllPapers();
     }, []);
-    // update noPaper whenever allPapers changes - preventing infinite render-state-loops
-    useEffect(() => {
-        setNoPaper(Array.isArray(allPapers) && allPapers.length === 0);
-    }, [allPapers]);
+    const hasNoPapers = allPapers.length === 0;
 
     // Keep at least one page so the pagination bar can always render.
     const totalPages = Math.max(
@@ -54,13 +50,26 @@ const page = () => {
     );
 
     // Optimistic delete: update UI first, then sync with backend and re-fetch for safety.
-    async function deletePaper(id: string) {
-        setAllPapers((prev) => prev.filter((paper) => paper.id !== id));
+    async function deletePaper(paper: Paper) {
+        setAllPapers((prev) =>
+            prev.filter(
+                (saved) =>
+                    !(
+                        saved.paperId === paper.paperId &&
+                        saved.idName === paper.idName &&
+                        saved.primarySource === paper.primarySource
+                    ),
+            ),
+        );
 
         try {
             const res = await fetch("/api/delete-paper", {
                 method: "DELETE",
-                body: JSON.stringify({ id }),
+                body: JSON.stringify({
+                    primarySource: paper.primarySource,
+                    paperId: paper.paperId,
+                    idName: paper.idName,
+                }),
             });
             const data = await res.json();
             if (data.success) {
@@ -89,21 +98,23 @@ const page = () => {
                 <div className={styles.titletext}>
                     <h2>My Papers</h2>
                 </div>
-                {noPaper ? (
-                    <div className={styles.text}>
-                        <h2>Oops! No papers here!</h2>
-                        <div>
-                            Head to the{" "}
-                            <Link href="/get-started">Get Started</Link> page
-                            and select a paper you'd like to chat with.
-                        </div>
+                {hasNoPapers ? (
+                    <div className={styles.emptyState}>
+                        <p className={styles.emptyTitle}>No saved papers yet</p>
+                        <p className={styles.emptyMessage}>
+                            Search for a research topic, open a paper you like,
+                            and save it here so you can chat with it anytime.
+                        </p>
+                        <Link href="/get-started" className={styles.searchButton}>
+                            Search papers
+                        </Link>
                     </div>
                 ) : (
                     <>
                         <div className={styles.allpapers}>
                             {visiblePapers.map((page) => (
                                 <SavedPaper
-                                    key={page.id}
+                                    key={`${page.primarySource}-${page.idName}-${page.paperId}`}
                                     page={page}
                                     isLink={true}
                                     deletePaper={deletePaper}
