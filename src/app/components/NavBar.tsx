@@ -67,6 +67,14 @@ const NavBar = () => {
 
     return (
         <header className={styles.navbarShell}>
+            {menuOpen && (
+                <button
+                    type="button"
+                    className={styles.menuBackdrop}
+                    aria-label="Close navigation"
+                    onClick={() => setMenuOpen(false)}
+                />
+            )}
             <div className={styles.navbar}>
                 <Title />
                 <button
@@ -83,24 +91,16 @@ const NavBar = () => {
                     <span />
                     <span />
                 </button>
-                <NavigationMenu
-                    isLoggedIn={isLoggedIn}
-                    sessionLoading={loading}
-                    isAdmin={Boolean(user?.isAdmin)}
-                    handleLogout={handleLogout}
-                    pathname={pathname}
-                    isOpen={menuOpen}
-                    onNavigate={() => setMenuOpen(false)}
-                />
             </div>
-            {menuOpen && (
-                <button
-                    type="button"
-                    className={styles.menuBackdrop}
-                    aria-label="Close navigation"
-                    onClick={() => setMenuOpen(false)}
-                />
-            )}
+            <NavigationMenu
+                isLoggedIn={isLoggedIn}
+                sessionLoading={loading}
+                isAdmin={Boolean(user?.isAdmin)}
+                handleLogout={handleLogout}
+                pathname={pathname}
+                isOpen={menuOpen}
+                onNavigate={() => setMenuOpen(false)}
+            />
         </header>
     );
 };

@@ -7,27 +7,32 @@
 }
 
 .navbarShell {
-    width: 100%;
-    padding: 0 0 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.navbar {
-    position: relative;
-    z-index: 2;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 24px;
     width: 100%;
     padding: 10px 14px 10px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    overflow: visible;
     background-color: rgba(13, 14, 14, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
     backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    margin-bottom: 12px;
+}
+
+.navbar {
+    position: relative;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-width: 0;
+    flex: 0 1 auto;
 }
 
 .menuToggle,
@@ -37,12 +42,31 @@
 
 @media (max-width: 720px) {
     .navbarShell {
-        padding-bottom: 4px;
+        display: block;
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        margin: 0;
+        padding: 0 0 calc(10px + env(safe-area-inset-bottom));
+        background: none;
+        border: 0;
+        border-radius: 0;
+        backdrop-filter: none;
+        box-shadow: none;
     }
 
     .navbar {
+        width: 100%;
         padding: 6px 8px;
         gap: 10px;
+        background-color: rgba(13, 14, 14, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     }
 
     .menuToggle {
@@ -87,7 +111,7 @@
 
     .menuBackdrop {
         position: fixed;
-        z-index: 1;
+        z-index: 20;
         inset: 0;
         display: block;
         width: 100%;
