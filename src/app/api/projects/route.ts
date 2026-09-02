@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth } from "../authMiddleware";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasAcceptableContentLength,
+    hasValidMutationOrigin,
+} from "../../lib/request-security";
 import { consumeRateLimit } from "../../lib/rate-limit";
 import {
     consumeQuota,
@@ -131,6 +134,12 @@ export const POST = withAuth(async (request: NextRequest) => {
             return NextResponse.json(
                 { error: "Invalid origin." },
                 { status: 403 },
+            );
+        }
+        if (!hasAcceptableContentLength(request, 32 * 1024)) {
+            return NextResponse.json(
+                { error: "Project request is too large." },
+                { status: 413 },
             );
         }
 

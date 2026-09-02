@@ -9,6 +9,11 @@ import {
     suggestSearchQuery,
 } from "../spell-suggest";
 import { consumeRateLimit } from "../../../lib/rate-limit";
+import {
+    getPlanEntitlements,
+    resolvePlan,
+} from "../../../lib/entitlements";
+import { isAdminUser } from "../../../lib/admin";
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
     if (value === "nih" || value === "springer" || value === "scholar") {
@@ -48,7 +53,26 @@ export const GET = withAuth(async (req: NextRequest) => {
             );
         }
 
-        const suggestedQuery = await suggestSearchQuery(query);
+        if (sourceFilter === "scholar" && !isAdminUser(req.user)) {
+            const entitlements = await getPlanEntitlements(
+                resolvePlan(req.user),
+            );
+            if (entitlements.scholar_search <= 0) {
+                return NextResponse.json(
+                    {
+                        error: "Google Scholar search is available with Researcher Pro.",
+                        code: "PRO_REQUIRED",
+                    },
+                    { status: 403 },
+                );
+            }
+        }
+
+        // Suggestions should not make a second, unmetered AI request. NIH's
+        // spelling endpoint is sufficient for this optional UI affordance.
+        const suggestedQuery = await suggestSearchQuery(query, {
+            allowAi: false,
+        });
 
         if (!suggestedQuery || queriesMatch(suggestedQuery, query)) {
             return NextResponse.json({

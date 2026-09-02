@@ -574,8 +574,9 @@ export const getCombinedSearchTotalCount = async (
     const includeNih = sourceFilter === "all" || sourceFilter === "nih";
     const includeSpringer =
         sourceFilter === "all" || sourceFilter === "springer";
-    const includeScholar =
-        sourceFilter === "all" || sourceFilter === "scholar";
+    // "all" mirrors the main search route (NIH + Springer). Scholar is a
+    // separately metered source and must only run when explicitly selected.
+    const includeScholar = sourceFilter === "scholar";
 
     const [nihSearch, springerSearch, scholarSearch] = await Promise.all([
         includeNih

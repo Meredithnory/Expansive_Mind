@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasAcceptableContentLength,
+    hasValidMutationOrigin,
+} from "../../lib/request-security";
 import SavedDiscovery from "../../models/SavedDiscovery";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
 import {
@@ -90,6 +93,12 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             return NextResponse.json(
                 { error: "Invalid origin." },
                 { status: 403 },
+            );
+        }
+        if (!hasAcceptableContentLength(request, 16 * 1024)) {
+            return NextResponse.json(
+                { error: "Discovery request is too large." },
+                { status: 413 },
             );
         }
 

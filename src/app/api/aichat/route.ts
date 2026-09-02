@@ -11,7 +11,10 @@ import {
 import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import { consumeRateLimit } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasAcceptableContentLength,
+    hasValidMutationOrigin,
+} from "../../lib/request-security";
 import { consumeQuota, resolvePlan } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
 
@@ -21,6 +24,12 @@ export const POST = withAuth(async (request: NextRequest) => {
             return NextResponse.json(
                 { error: "Invalid origin." },
                 { status: 403 },
+            );
+        }
+        if (!hasAcceptableContentLength(request, 32 * 1024)) {
+            return NextResponse.json(
+                { error: "Chat request is too large." },
+                { status: 413 },
             );
         }
         const data = await request.json();

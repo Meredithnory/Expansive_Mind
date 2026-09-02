@@ -194,6 +194,19 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         }
 
         const entitlements = await getPlanEntitlements(plan);
+        if (
+            sourceFilter === "scholar" &&
+            entitlements.scholar_search <= 0 &&
+            !isAdmin
+        ) {
+            return NextResponse.json(
+                {
+                    error: "Google Scholar search is available with Researcher Pro.",
+                    code: "PRO_REQUIRED",
+                },
+                { status: 403 },
+            );
+        }
 
         const quota = await consumeQuota({
             plan,
@@ -216,7 +229,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        if (sourceFilter === "scholar" && entitlements.scholar_search > 0) {
+        if (sourceFilter === "scholar") {
             const scholarQuota = await consumeQuota({
                 plan,
                 feature: "scholar_search",

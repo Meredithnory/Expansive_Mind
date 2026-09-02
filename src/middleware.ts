@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
                 throw new Error("No JWT SECRET");
             }
             const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-            await jwtVerify(token, secret);
+            await jwtVerify(token, secret, { algorithms: ["HS256"] });
             return true;
         } catch (error) {
             console.error("Token verification failed:", error);

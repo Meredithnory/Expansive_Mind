@@ -8,6 +8,9 @@ import {
 
 const apiKey = process.env.AI_API_KEY;
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+const MAX_OUTPUT_TOKENS = 5_000;
+const MAX_TEXT_PROMPT_CHARACTERS = 120_000;
+const MAX_MESSAGES = 32;
 
 const client = apiKey
     ? new OpenAI({
@@ -29,13 +32,43 @@ function requireClient() {
     return client;
 }
 
+function textCharacters(
+    messages: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming["messages"],
+) {
+    return messages.reduce((total, message) => {
+        if (typeof message.content === "string") {
+            return total + message.content.length;
+        }
+        if (!Array.isArray(message.content)) return total;
+        return (
+            total +
+            message.content.reduce(
+                (subtotal, part) =>
+                    subtotal +
+                    (part.type === "text" ? part.text.length : 0),
+                0,
+            )
+        );
+    }, 0);
+}
+
 export async function createPrivateChatCompletion(
     request: Omit<OpenAI.Chat.ChatCompletionCreateParamsNonStreaming, "stream">,
     usageContext?: UsageContext,
     options?: { timeoutMs?: number },
 ) {
+    if (
+        request.messages.length > MAX_MESSAGES ||
+        textCharacters(request.messages) > MAX_TEXT_PROMPT_CHARACTERS
+    ) {
+        throw new Error("AI prompt exceeds the configured safety limit.");
+    }
     const payload = {
         ...request,
+        max_tokens: Math.min(
+            request.max_tokens ?? 1_000,
+            MAX_OUTPUT_TOKENS,
+        ),
         stream: false,
         provider: OPENROUTER_PROVIDER_POLICY,
     } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & {

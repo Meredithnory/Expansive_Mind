@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import {
     fetchFigureImage,
+    MAX_FIGURE_BYTES,
     MAX_FIGURE_PIXELS,
     validateFigureBytes,
     validateFigureSourceUrl,
@@ -93,5 +94,27 @@ describe("figure image security", () => {
                 "https://pmc.ncbi.nlm.nih.gov/articles/PMC1/bin/f1.png",
             ),
         ).rejects.toThrow(/not allowed/);
+    });
+
+    it("stops reading chunked image responses at the byte limit", async () => {
+        const stream = new ReadableStream<Uint8Array>({
+            start(controller) {
+                controller.enqueue(new Uint8Array(MAX_FIGURE_BYTES));
+                controller.enqueue(new Uint8Array([1]));
+                controller.close();
+            },
+        });
+        vi.spyOn(globalThis, "fetch").mockResolvedValue(
+            new Response(stream, {
+                status: 200,
+                headers: { "content-type": "image/png" },
+            }),
+        );
+
+        await expect(
+            fetchFigureImage(
+                "https://pmc.ncbi.nlm.nih.gov/articles/PMC1/bin/f1.png",
+            ),
+        ).rejects.toThrow(/5 MB/);
     });
 });

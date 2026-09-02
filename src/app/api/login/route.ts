@@ -4,18 +4,35 @@ import bcrypt from "bcrypt";
 import User from "../../models/User";
 import connectDB from "../../db/connectDB";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
+import {
+    hasAcceptableContentLength,
+    hasValidMutationOrigin,
+} from "../../lib/request-security";
 
 const maxAge = 24 * 60 * 60;
 
 //Defining a function to create token - encrypting the token with the secret
 const createToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET!, {
+        algorithm: "HS256",
         expiresIn: 24 * 60 * 60, //JWT in seconds
     });
 };
 
 export async function POST(request: NextRequest) {
     try {
+        if (!hasValidMutationOrigin(request)) {
+            return NextResponse.json(
+                { success: false, message: "Invalid origin." },
+                { status: 403 },
+            );
+        }
+        if (!hasAcceptableContentLength(request, 16 * 1024)) {
+            return NextResponse.json(
+                { success: false, message: "Login request is too large." },
+                { status: 413 },
+            );
+        }
         const rateLimit = await consumeRateLimit({
             scope: "login",
             identity: requestIp(request),
@@ -43,7 +60,14 @@ export async function POST(request: NextRequest) {
         const { email, password } = await request.json();
 
         // Validate required fields
-        if (!email || !password) {
+        if (
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !email ||
+            !password ||
+            email.length > 254 ||
+            password.length > 128
+        ) {
             return NextResponse.json(
                 {
                     success: false,
