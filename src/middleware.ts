@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { isAdminIdentity } from "./app/lib/admin-identity";
 
 export async function middleware(request: NextRequest) {
     const token = request.cookies.get("auth_token")?.value;
@@ -29,11 +30,13 @@ export async function middleware(request: NextRequest) {
                 throw new Error("No JWT SECRET");
             }
             const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-            await jwtVerify(token, secret, { algorithms: ["HS256"] });
-            return true;
+            const { payload } = await jwtVerify(token, secret, {
+                algorithms: ["HS256"],
+            });
+            return payload;
         } catch {
             console.error("Token verification failed");
-            return false;
+            return null;
         }
     };
 
@@ -48,13 +51,28 @@ export async function middleware(request: NextRequest) {
     }
 
     // Token exists - verify it
-    const isValidToken = await verifyToken(token);
+    const tokenPayload = await verifyToken(token);
 
-    if (!isValidToken) {
+    if (!tokenPayload) {
         // Invalid token - clear it and redirect to login
         const response = NextResponse.redirect(new URL("/login", request.url));
         response.cookies.delete("auth_token");
         return response;
+    }
+
+    if (
+        pathname.startsWith("/admin") &&
+        !isAdminIdentity({
+            email:
+                typeof tokenPayload.email === "string"
+                    ? tokenPayload.email
+                    : "",
+        })
+    ) {
+        return NextResponse.json(
+            { error: "Not authorized." },
+            { status: 403 },
+        );
     }
 
     // Valid token cases
