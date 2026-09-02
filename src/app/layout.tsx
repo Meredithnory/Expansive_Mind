@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.scss";
-import { CookiesProvider } from "next-client-cookies/server";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
-import Image from "next/image";
-const inter = Inter({ subsets: ["latin"] });
+import ScrollTheme from "./components/ScrollTheme";
+import { SessionProvider } from "./lib/use-session";
+
+const manrope = Manrope({
+    subsets: ["latin"],
+    variable: "--font-manrope",
+    display: "swap",
+});
 
 export const metadata: Metadata = {
     title: "Expansive Mind",
@@ -18,22 +23,14 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-            <body className={`${inter.className} antialiased`}>
-                <div className="mobile-only-message">
-                    <Image
-                        src="/brainlogo.svg"
-                        alt="brain logo"
-                        width={60}
-                        height={60}
-                    />
-                    Mobile view is not ready yet. Please use on desktop :)
-                </div>
-                <CookiesProvider>
+        <html lang="en" className={manrope.variable}>
+            <body className="antialiased">
+                <SessionProvider>
+                    <ScrollTheme />
                     <NavBar />
                     <div className="main-content">{children}</div>
                     <Footer />
-                </CookiesProvider>
+                </SessionProvider>
             </body>
         </html>
     );

@@ -185,22 +185,28 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding-top: 200px;
+        padding: 0;
     }
 }
 
 @media (max-width: 720px) {
     .page {
-        padding: 16px;
+        min-height: 100%;
+        height: auto;
+        padding: 16px 0 28px;
+        align-items: center;
 
         .loginContainer {
             min-height: auto;
+            width: min(560px, 100%);
+            margin-inline: auto;
             padding: 34px 20px;
             border-radius: 20px;
         }
 
         .loginText {
-            font-size: 38px;
+            margin: 0;
+            font-size: 34px;
         }
 
         .email,

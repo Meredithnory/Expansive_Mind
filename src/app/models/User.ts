@@ -25,16 +25,56 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    plan: {
+        type: String,
+        enum: ["free", "pro"],
+        default: "free",
+        index: true,
+    },
+    accessOverride: {
+        type: String,
+        enum: ["pro", null],
+        default: null,
+        index: true,
+    },
+    subscriptionStatus: {
+        type: String,
+        enum: [
+            "none",
+            "trialing",
+            "active",
+            "past_due",
+            "canceled",
+            "unpaid",
+        ],
+        default: "none",
+    },
+    stripeCustomerId: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
+    stripeSubscriptionId: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
+    stripePriceId: {
+        type: String,
+    },
+    subscriptionCurrentPeriodEnd: {
+        type: Date,
+    },
 });
 
-//Fire a function before document is saved to db - first got to salt the password & hash before storing in db
+// Hash the password before saving.
 userSchema.pre("save", async function (next) {
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
 
-//Fire a function after document has been saved to db
+// no-op post-save hook kept for mongoose middleware order
 userSchema.post("save", function (doc, next) {
     next();
 });

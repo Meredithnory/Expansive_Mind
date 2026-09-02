@@ -1,42 +1,107 @@
 "use client";
-import React, { useEffect } from "react";
-import { useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import NavigationMenu from "./NavigationMenu";
-import { useCookies } from "next-client-cookies";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./styles/navbar.module.scss";
 import Title from "./Title";
+import { useSession } from "../lib/use-session";
+
+function resetWindowScroll() {
+    if (typeof window === "undefined") return;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const main = document.querySelector(".main-content");
+    if (main instanceof HTMLElement) {
+        main.scrollTop = 0;
+    }
+    document.querySelectorAll("[data-page-scroll]").forEach((node) => {
+        if (node instanceof HTMLElement) {
+            node.scrollTop = 0;
+        }
+    });
+}
 
 const NavBar = () => {
-    const cookies = useCookies();
     const router = useRouter();
     const pathname = usePathname();
+    const { isLoggedIn, loading, user, logout } = useSession();
+    const [menuOpen, setMenuOpen] = useState(false);
 
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-    const token = cookies.get("auth_token");
+    useLayoutEffect(() => {
+        resetWindowScroll();
+        const frame = window.requestAnimationFrame(resetWindowScroll);
+        const timer = window.setTimeout(resetWindowScroll, 50);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            window.clearTimeout(timer);
+        };
+    }, [pathname]);
 
     useEffect(() => {
-        setIsLoggedIn(!!token);
-    }, [token]);
+        setMenuOpen(false);
+    }, [pathname]);
 
-    const handleLogout = () => {
-        cookies.remove("auth_token");
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setMenuOpen(false);
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [menuOpen]);
+
+    const handleLogout = async () => {
+        await logout();
         router.push("/");
+        router.refresh();
     };
-    //end early rendering if it is the homepage
     if (pathname === "/") {
-        return null;
+        return <div className={styles.homeSpacer} aria-hidden="true" />;
     }
-    console.log(isLoggedIn);
+
     return (
-        <div className={styles.navbar}>
-            <Title />
-            <NavigationMenu
-                isLoggedIn={isLoggedIn}
-                handleLogout={handleLogout}
-            />
-        </div>
+        <header className={styles.navbarShell}>
+            <div className={styles.navbar}>
+                <Title />
+                <button
+                    type="button"
+                    className={`${styles.menuToggle} ${
+                        menuOpen ? styles.menuToggleOpen : ""
+                    }`}
+                    aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+                    aria-expanded={menuOpen}
+                    aria-controls="main-navigation"
+                    onClick={() => setMenuOpen((open) => !open)}
+                >
+                    <span />
+                    <span />
+                    <span />
+                </button>
+                <NavigationMenu
+                    isLoggedIn={isLoggedIn}
+                    sessionLoading={loading}
+                    isAdmin={Boolean(user?.isAdmin)}
+                    handleLogout={handleLogout}
+                    pathname={pathname}
+                    isOpen={menuOpen}
+                    onNavigate={() => setMenuOpen(false)}
+                />
+            </div>
+            {menuOpen && (
+                <button
+                    type="button"
+                    className={styles.menuBackdrop}
+                    aria-label="Close navigation"
+                    onClick={() => setMenuOpen(false)}
+                />
+            )}
+        </header>
     );
 };
 

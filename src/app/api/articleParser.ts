@@ -17,8 +17,6 @@ const parser = new XMLParser({
     preserveOrder: false,
     removeNSPrefix: true,
     parseTagValue: true,
-    parseTrueNumberOnly: false,
-    arrayMode: false,
     alwaysCreateTextNode: false,
 });
 

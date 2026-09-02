@@ -1,4 +1,12 @@
 .searchbox {
+    --search-accent: #ff0084;
+    --search-accent-hover: rgba(255, 0, 132, 0.28);
+    --search-accent-ring: rgba(255, 0, 132, 0.45);
+    --search-accent-mid: rgba(255, 0, 132, 0.22);
+    --search-accent-inset: rgba(255, 0, 132, 0.08);
+    --search-accent-glow: rgba(255, 0, 132, 0.12);
+    --search-accent-fill: rgba(255, 0, 132, 0.12);
+
     display: flex;
     align-items: center;
     background-color: #000;
@@ -7,7 +15,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     width: 100%;
     max-width: 600px;
-    padding: 0 8px 0 18px;
+    padding: 0 10px 0 22px;
     transition:
         border-color 160ms ease,
         background-color 160ms ease,
@@ -15,9 +23,9 @@
 
     &:hover,
     &:focus-within {
-        border-color: rgba(255, 0, 132, 0.28);
+        border-color: var(--search-accent-hover);
         background-color: #0b0b0b;
-        box-shadow: inset 0 0 0 1px rgba(255, 0, 132, 0.08);
+        box-shadow: inset 0 0 0 1px var(--search-accent-inset);
     }
 
     .vertline {
@@ -25,9 +33,58 @@
         width: 1px;
         align-self: stretch;
         border-radius: 99px;
-        margin: 10px 6px 10px 0;
+        margin: 12px 8px 12px 0;
+        flex-shrink: 0;
     }
+
+    .inputWrap {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .ghostText,
+    .ghostTextFull {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        padding: 0 16px 0 2px;
+        font-size: 1.2rem;
+        font-family: inherit;
+        line-height: 1.2;
+        pointer-events: none;
+        white-space: pre;
+        overflow: hidden;
+    }
+
+    .ghostMirror {
+        color: transparent;
+    }
+
+    .ghostSuffix,
+    .ghostTextFull {
+        color: rgba(215, 235, 255, 0.34);
+    }
+
+    .ghostTextFull {
+        animation: ghost-fade-in 700ms ease forwards;
+    }
+
+    @keyframes ghost-fade-in {
+        0% {
+            opacity: 0;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
+
     input {
+        position: relative;
+        z-index: 1;
         border: none;
         outline: none;
         height: 100%;
@@ -35,7 +92,7 @@
         font-size: 1.2rem;
         background-color: transparent;
         width: 100%;
-        padding: 0 12px 0 0;
+        padding: 0 16px 0 2px;
         font-family: inherit;
         color: #d7ebff;
 
@@ -43,11 +100,15 @@
             color: rgba(215, 235, 255, 0.45);
         }
     }
-    img {
+
+    .icon {
         width: 22px;
         height: 24px;
         display: block;
+        color: var(--search-accent);
+        transition: color 160ms ease;
     }
+
     .button {
         display: inline-flex;
         align-items: center;
@@ -65,25 +126,79 @@
         transition: background-color 160ms ease;
 
         &:hover {
-            background-color: rgba(255, 0, 132, 0.08);
+            background-color: var(--search-accent-inset);
         }
     }
 }
 
+.nih {
+    --search-accent: #ff0084;
+    --search-accent-hover: rgba(255, 0, 132, 0.42);
+    --search-accent-ring: rgba(255, 0, 132, 0.55);
+    --search-accent-mid: rgba(255, 0, 132, 0.28);
+    --search-accent-inset: rgba(255, 0, 132, 0.12);
+    --search-accent-glow: rgba(255, 0, 132, 0.18);
+    --search-accent-fill: rgba(255, 0, 132, 0.16);
+}
+
+.springer {
+    --search-accent: #ff4e4e;
+    --search-accent-hover: rgba(255, 78, 78, 0.42);
+    --search-accent-ring: rgba(255, 78, 78, 0.55);
+    --search-accent-mid: rgba(255, 78, 78, 0.28);
+    --search-accent-inset: rgba(255, 78, 78, 0.12);
+    --search-accent-glow: rgba(255, 78, 78, 0.18);
+    --search-accent-fill: rgba(255, 78, 78, 0.16);
+}
+
+.scholar {
+    --search-accent: #0ab1ff;
+    --search-accent-hover: rgba(10, 177, 255, 0.42);
+    --search-accent-ring: rgba(10, 177, 255, 0.55);
+    --search-accent-mid: rgba(10, 177, 255, 0.28);
+    --search-accent-inset: rgba(10, 177, 255, 0.12);
+    --search-accent-glow: rgba(10, 177, 255, 0.18);
+    --search-accent-fill: rgba(10, 177, 255, 0.16);
+}
+
+.nih,
+.springer,
+.scholar {
+    border-color: var(--search-accent-hover);
+    box-shadow: inset 0 0 0 1px var(--search-accent-inset);
+}
+
 @media (max-width: 720px) {
     .searchbox {
-        min-height: 54px;
-        border-radius: 16px;
-        padding: 0 6px 0 14px;
+        width: 100%;
+        max-width: 100%;
+        min-height: 52px;
+        border-radius: 18px;
+        padding: 0 6px 0 16px;
+        background-color: #111;
+        border-color: rgba(255, 255, 255, 0.12);
 
         input {
-            min-height: 52px;
+            min-height: 50px;
+            font-size: 1rem;
+        }
+
+        .ghostText,
+        .ghostTextFull {
             font-size: 1rem;
         }
 
         .button {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background-color: var(--search-accent-fill);
         }
+    }
+
+    .nih,
+    .springer,
+    .scholar {
+        border-color: var(--search-accent-hover);
     }
 }

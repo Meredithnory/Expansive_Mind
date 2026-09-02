@@ -1,16 +1,22 @@
 import React from "react";
-import Image from "next/image";
 import styles from "./styles/savedpaper.module.scss";
 import Link from "next/link";
+import clsx from "clsx";
+import { buildPaperPath, SourceDatabase } from "../lib/paper-sources";
 
 export interface Paper {
     title: string;
     authors: string;
     description: string;
-    id: string;
+    paperId: string;
+    idName: string;
+    primarySource: string;
+    database: SourceDatabase;
+    canonicalUrl?: string;
+    accessStatus?: "available" | "restricted" | "check";
+    canSendToAI?: boolean | null;
+    contentLabel?: "Abstract" | "Search snippet";
 }
-
-const SOURCE_LABEL = "NIH PubMed";
 
 const SavedPaper = ({
     page,
@@ -19,64 +25,85 @@ const SavedPaper = ({
 }: {
     page: Paper;
     isLink: boolean;
-    deletePaper: (id: string) => void;
+    deletePaper: (paper: Paper) => void;
 }) => {
-    //we have all papers but now we need to delete the papers find the key and delete
-    function handleDelete() {
-        deletePaper(page.id);
-    }
-    return (
-        <>
-            <div key={page.id} className={styles.entirepage}>
-                <div className={styles.page}>
-                    <div className={styles.sourceTag} aria-label={SOURCE_LABEL}>
-                        <span className={styles.sourceDot} />
-                        <span className={styles.sourceText}>
-                            {SOURCE_LABEL}
-                        </span>
-                    </div>
-                    <Link href={`/paperchatbot/${page.id}`}>
-                        <div className={styles.title}>{page.title}</div>
-                    </Link>
-                    <div className={styles.authors}>{page.authors}</div>
-                    <div className={styles.description}>{page.description}</div>
-                </div>
-                <div className={styles.icons}>
-                    {isLink && (
-                        <>
-                            <Link href={`/paperchatbot/${page.id}`}>
-                                <div className={styles.chaticon}>
-                                    <Image
-                                        className={styles.icon}
-                                        src="/chaticon.svg"
-                                        alt="Chaticon"
-                                        width={100}
-                                        height={100}
-                                    />
-                                    Chat
-                                </div>
-                            </Link>
+    const paperPath = buildPaperPath(page.database, page.paperId, page.idName);
+    const openLabel =
+        page.canSendToAI === false
+            ? "View source"
+            : page.accessStatus === "check"
+              ? "Open paper"
+              : "Open chat";
+    const openHref =
+        page.canSendToAI === false && page.canonicalUrl
+            ? page.canonicalUrl
+            : paperPath;
+    const opensExternally = page.canSendToAI === false && Boolean(page.canonicalUrl);
 
-                            <button
-                                onClick={handleDelete}
-                                className={styles.deletebutton}
-                            >
-                                <div className={styles.trashicon}>
-                                    <Image
-                                        className={styles.icon}
-                                        src="/trashicon.svg"
-                                        alt="Trashicon"
-                                        width={30}
-                                        height={30}
-                                    />
-                                    Delete
-                                </div>
-                            </button>
-                        </>
-                    )}
-                </div>
+    return (
+        <article
+            className={clsx(styles.card, {
+                [styles.springerCard]: page.database === "springer",
+                [styles.scholarCard]: page.database === "scholar",
+            })}
+        >
+            <div className={styles.meta}>
+                <span
+                    className={clsx(styles.sourceTag, {
+                        [styles.springerTag]: page.database === "springer",
+                        [styles.scholarTag]: page.database === "scholar",
+                    })}
+                >
+                    <span
+                        className={clsx(styles.sourceDot, {
+                            [styles.springerDot]: page.database === "springer",
+                            [styles.scholarDot]: page.database === "scholar",
+                        })}
+                        aria-hidden="true"
+                    />
+                    {page.primarySource}
+                </span>
+                {page.contentLabel ? (
+                    <span className={styles.contentLabel}>{page.contentLabel}</span>
+                ) : null}
             </div>
-        </>
+            <h3 className={styles.title}>
+                <Link href={paperPath}>
+                    {typeof page.title === "string" ? page.title : "Untitled"}
+                </Link>
+            </h3>
+            {typeof page.authors === "string" && page.authors ? (
+                <p className={styles.authors}>{page.authors}</p>
+            ) : null}
+            {typeof page.description === "string" && page.description ? (
+                <p className={styles.description}>{page.description}</p>
+            ) : null}
+            {isLink ? (
+                <div className={styles.actions}>
+                    {opensExternally ? (
+                        <a
+                            className={styles.primaryAction}
+                            href={openHref}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {openLabel} <span aria-hidden="true">↗</span>
+                        </a>
+                    ) : (
+                        <Link className={styles.primaryAction} href={openHref}>
+                            {openLabel} <span aria-hidden="true">→</span>
+                        </Link>
+                    )}
+                    <button
+                        type="button"
+                        className={styles.deleteAction}
+                        onClick={() => deletePaper(page)}
+                    >
+                        Delete
+                    </button>
+                </div>
+            ) : null}
+        </article>
     );
 };
 

@@ -1,12 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import User from "../../models/User";
 import connectDB from "../../db/connectDB";
+import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 
-const maxAge = 24 * 60 * 60 * 1000; // 1 day in miliseconds
+const maxAge = 24 * 60 * 60;
 
-//Defining a function to create token - encrypting the token with the secret
+// Sign a 1-day JWT containing the user id.
 const createToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET!, {
         expiresIn: 24 * 60 * 60, //JWT in seconds
@@ -15,6 +16,26 @@ const createToken = (id: string) => {
 
 export async function POST(request: NextRequest) {
     try {
+        const rateLimit = await consumeRateLimit({
+            scope: "login",
+            identity: requestIp(request),
+            limit: 5,
+            windowMs: 15 * 60_000,
+        });
+        if (!rateLimit.allowed) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Too many login attempts. Try again later.",
+                },
+                {
+                    status: 429,
+                    headers: {
+                        "Retry-After": String(rateLimit.retryAfterSeconds),
+                    },
+                },
+            );
+        }
         // Connect to MongoDB
         await connectDB();
 
@@ -33,7 +54,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Find user by email
-        const user = await User.findOne({ email: email.trim() });
+        const user = await User.findOne({
+            email: email.trim().toLowerCase(),
+        });
         if (!user) {
             return NextResponse.json(
                 {
@@ -71,7 +94,7 @@ export async function POST(request: NextRequest) {
         });
         // Setting the HTTP-only cookie - must be stored in milisecconds
         response.cookies.set("auth_token", token, {
-            httpOnly: false,
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: maxAge,

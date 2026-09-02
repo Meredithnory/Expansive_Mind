@@ -1,17 +1,67 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getPaperDetails } from "./utils";
-import { withAuth } from "../authMiddleware";
-import SavedPaper from "../../models/SavedPaper";
+import { withOptionalAuth } from "../authMiddleware";
 import Message from "../../models/Message";
-import mongoose from "mongoose";
+import {
+    getSourceByDatabase,
+    SourceDatabase,
+} from "./sources";
+import { normalizeStoredPaperId } from "../../lib/paper-sources";
+import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
+import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
+import { deferUsageRecording } from "../../lib/usage-meter";
+import { resolvePlan } from "../../lib/entitlements";
+import { isAdminUser } from "../../lib/admin";
+import { loadCachedPaperBySource } from "./load-paper";
 
-export const GET = withAuth(async (request: NextRequest) => {
+export const GET = withOptionalAuth(async (request: NextRequest) => {
+    const requestStartedAt = performance.now();
+    const timings: string[] = [];
+    const measure = (name: string, startedAt: number) => {
+        timings.push(`${name};dur=${(performance.now() - startedAt).toFixed(1)}`);
+    };
     try {
-        const pmcid = request.nextUrl.searchParams.get("pmcid");
-        if (!pmcid) {
-            throw Error("Invalid PMCID.");
+        const database = request.nextUrl.searchParams.get("database");
+        const paperId = request.nextUrl.searchParams.get("paperId");
+        const idName = request.nextUrl.searchParams.get("idName") || undefined;
+
+        if (!database || !paperId) {
+            return NextResponse.json(
+                {
+                    error: "database and paperId query parameters are required.",
+                },
+                { status: 400 }
+            );
         }
-        const paper = await getPaperDetails(pmcid);
+
+        const identity = request.user?._id?.toString() || requestIp(request);
+        const rateLimitStartedAt = performance.now();
+        const rateLimit = await consumeRateLimit({
+            scope: "paper",
+            identity,
+            limit: request.user ? 60 : 20,
+            windowMs: 60_000,
+        });
+        measure("rate_limit", rateLimitStartedAt);
+        if (!rateLimit.allowed) {
+            return NextResponse.json(
+                { error: "Too many paper requests. Please try again shortly." },
+                {
+                    status: 429,
+                    headers: {
+                        "Retry-After": String(rateLimit.retryAfterSeconds),
+                    },
+                },
+            );
+        }
+
+        const sourceConfig = getSourceByDatabase(database);
+        if (!sourceConfig) {
+            return NextResponse.json(
+                { error: `Unsupported database: ${database}` },
+                { status: 400 }
+            );
+        }
+
         interface MessageInterface {
             id: string;
             sender: string;
@@ -19,29 +69,98 @@ export const GET = withAuth(async (request: NextRequest) => {
             timestamp: Date;
         }
         let messages: MessageInterface[] = [];
-        const foundPaper = await SavedPaper.findOne({
-            pmcid: pmcid,
-            userID: request.user._id,
-        });
 
-        if (foundPaper) {
-            const allMessages = await Message.find({
-                savedPaperID: foundPaper._id,
-            }).sort({
-                createdAt: 1,
+        const paperLoadStartedAt = performance.now();
+        const paperResult = await loadCachedPaperBySource(
+            database as SourceDatabase,
+            paperId,
+            idName,
+        );
+        measure("paper_load", paperLoadStartedAt);
+        const paper = paperResult.value;
+
+        if (!paper) {
+            return NextResponse.json(
+                { error: "Paper not found." },
+                { status: 404 }
+            );
+        }
+
+        const normalizedPaperId = normalizeStoredPaperId(paperId);
+        const resolvedIdName = idName || sourceConfig.defaultIdName;
+
+        const savedPaperStartedAt = performance.now();
+        const foundSavedPaper = request.user
+            ? await findSavedPaperForUser({
+                  userID: request.user._id,
+                  primarySource: sourceConfig.label,
+                  paperId: normalizedPaperId,
+                  idName: resolvedIdName,
+              })
+            : null;
+        measure("saved_paper", savedPaperStartedAt);
+
+        if (!paperResult.cacheHit) {
+            deferUsageRecording({
+                context: {
+                    feature: "paper",
+                    userID: request.user?._id?.toString(),
+                    anonymousId: request.user ? undefined : identity,
+                },
+                provider: database,
+                operation: "paper_detail",
+                callCount: database === "nih" ? 3 : 1,
             });
-            messages = allMessages.map((message) => ({
-                id: message._id,
+        }
+
+        if (foundSavedPaper && paper.access.canSendToAI) {
+            const historyStartedAt = performance.now();
+            const allMessages = await Message.find({
+                savedPaperID: foundSavedPaper._id,
+            })
+                .sort({ createdAt: -1 })
+                .limit(50)
+                .select({ _id: 1, sender: 1, message: 1, createdAt: 1 })
+                .lean<
+                    Array<{
+                        _id: unknown;
+                        sender: string;
+                        message: string;
+                        createdAt: Date;
+                    }>
+                >();
+            messages = allMessages.reverse().map((message) => ({
+                id: String(message._id),
                 sender: message.sender,
                 message: message.message,
                 timestamp: message.createdAt,
             }));
+            measure("chat_history", historyStartedAt);
         }
-        return NextResponse.json({ paper, messages }); // return the paper as the key paper
-    } catch (err: any) {
-        console.error("Error in API req handler", err.message);
+
+        measure("total", requestStartedAt);
         return NextResponse.json(
-            { error: err.message || "An internal server error occured." },
+            {
+                paper,
+                messages,
+                authenticated: Boolean(request.user),
+                plan: resolvePlan(request.user),
+                canAnalyzeFigures:
+                    resolvePlan(request.user) === "pro" ||
+                    isAdminUser(request.user),
+                cacheHit: paperResult.cacheHit,
+            },
+            {
+                headers: {
+                    "Cache-Control": "private, no-store",
+                    "Server-Timing": timings.join(", "),
+                },
+            },
+        );
+    } catch {
+        console.error("Paper request failed");
+        return NextResponse.json(
+            { error: "Unable to load this paper." },
             { status: 500 }
         );
     }

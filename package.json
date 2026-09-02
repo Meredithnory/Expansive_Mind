@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "migrate:saved-papers": "node --env-file=.env.local scripts/migrate-saved-papers.mjs"
   },
   "dependencies": {
     "@next/font": "^14.2.15",
@@ -15,6 +18,7 @@
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "fast-xml-parser": "^5.2.5",
+    "html-to-image": "^1.11.13",
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
@@ -28,6 +32,8 @@
     "react-loader-spinner": "^6.1.6",
     "react-markdown": "^10.1.0",
     "sass": "^1.89.2",
+    "stripe": "^22.5.0",
+    "ulid": "^3.0.2",
     "xml-js": "^1.6.11",
     "xmldom": "^0.6.0"
   },
@@ -38,10 +44,15 @@
     }
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.10.5",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.2.5",
+    "@types/xmldom": "^0.1.34",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.3.8",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.11"
   }
 }

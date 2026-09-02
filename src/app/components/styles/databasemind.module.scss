@@ -1,0 +1,404 @@
+.panel {
+    --scene: 320px;
+    --head: 168px;
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 640px;
+}
+
+/* ---------------------------------- scene ---------------------------------- */
+
+.scene {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--scene);
+    height: var(--scene);
+}
+
+.ringOuter,
+.ringInner {
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.ringOuter {
+    inset: 0;
+    border: 1px solid rgba(215, 235, 255, 0.09);
+    box-shadow:
+        inset 0 0 40px rgba(120, 90, 255, 0.05),
+        0 0 60px rgba(255, 0, 132, 0.04);
+}
+
+.ringInner {
+    inset: 17%;
+    border: 1px dashed rgba(215, 235, 255, 0.07);
+    animation: ring-spin 90s linear infinite reverse;
+}
+
+.orbit {
+    position: absolute;
+    inset: 0;
+    animation: ring-spin 34s linear infinite;
+    pointer-events: none;
+}
+
+.satelliteArm,
+.absorbArm {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 260ms ease;
+}
+
+.angleNih {
+    transform: rotate(28deg);
+}
+
+.angleSpringer {
+    transform: rotate(148deg);
+}
+
+.angleScholar {
+    transform: rotate(268deg);
+}
+
+.satellite {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    background: var(--mind-color);
+    box-shadow:
+        0 0 10px var(--mind-color),
+        0 0 0 5px var(--mind-color-faint);
+}
+
+.absorbDot {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--mind-color);
+    box-shadow: 0 0 8px var(--mind-color);
+    opacity: 0;
+    animation: mind-absorb 3.4s ease-in infinite;
+}
+
+.nih .absorbDot {
+    animation-delay: 0.4s;
+}
+
+.springer .absorbDot {
+    animation-delay: 1.5s;
+}
+
+.scholar .absorbDot {
+    animation-delay: 2.6s;
+}
+
+.headGlow {
+    position: absolute;
+    inset: 20%;
+    background:
+        radial-gradient(
+            circle at 70% 30%,
+            rgba(255, 0, 132, 0.34),
+            transparent 55%
+        ),
+        radial-gradient(
+            circle at 80% 55%,
+            rgba(255, 78, 78, 0.24),
+            transparent 52%
+        ),
+        radial-gradient(
+            circle at 68% 78%,
+            rgba(10, 177, 255, 0.3),
+            transparent 55%
+        );
+    filter: blur(20px);
+    animation: mind-breathe 6.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.headFloat {
+    position: relative;
+    width: var(--head);
+    height: var(--head);
+    animation: mind-float 6.5s ease-in-out infinite;
+    will-change: transform;
+}
+
+.head {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.5));
+}
+
+.headShadow {
+    position: absolute;
+    bottom: 13%;
+    left: 50%;
+    width: calc(var(--head) * 0.55);
+    height: 13px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: radial-gradient(
+        ellipse,
+        rgba(120, 90, 255, 0.26),
+        rgba(0, 0, 0, 0.4) 55%,
+        transparent 72%
+    );
+    filter: blur(5px);
+    animation: mind-shadow 6.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ---------------------------------- chips ---------------------------------- */
+
+.chips {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.nih {
+    --mind-color: #ff0084;
+    --mind-color-soft: rgba(255, 0, 132, 0.4);
+    --mind-color-faint: rgba(255, 0, 132, 0.1);
+}
+
+.springer {
+    --mind-color: #ff4e4e;
+    --mind-color-soft: rgba(255, 78, 78, 0.4);
+    --mind-color-faint: rgba(255, 78, 78, 0.1);
+}
+
+.scholar {
+    --mind-color: #0ab1ff;
+    --mind-color-soft: rgba(10, 177, 255, 0.4);
+    --mind-color-faint: rgba(10, 177, 255, 0.1);
+}
+
+.chip {
+    flex: 1 1 0;
+    max-width: 212px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 58px;
+    padding: 10px 14px;
+    border-radius: 17px;
+    border: 1px solid var(--mind-color-soft);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.035),
+        rgba(255, 255, 255, 0.008)
+    );
+    color: #f4f8ff;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 200ms ease,
+        background-color 200ms ease,
+        box-shadow 200ms ease,
+        transform 200ms ease,
+        opacity 260ms ease;
+
+    &:hover {
+        border-color: var(--mind-color);
+        background: var(--mind-color-faint);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px var(--mind-color-faint);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--mind-color);
+        outline-offset: 2px;
+    }
+}
+
+.chipDot {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--mind-color);
+    box-shadow: 0 0 0 4px var(--mind-color-faint);
+}
+
+.chipText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.chipName {
+    font-size: 13.5px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.chipDetail {
+    font-size: 11.5px;
+    line-height: 1.3;
+    color: rgba(215, 235, 255, 0.58);
+}
+
+.chipActive {
+    border-color: var(--mind-color);
+    background: var(--mind-color-faint);
+    box-shadow: 0 10px 28px var(--mind-color-faint);
+
+    .chipName {
+        color: var(--mind-color);
+    }
+}
+
+/* Focused: quiet everything that isn't the chosen source */
+.panelFocused {
+    .chip:not(.chipActive) {
+        opacity: 0.55;
+    }
+
+    .satelliteArm,
+    .absorbArm {
+        opacity: 0.25;
+    }
+}
+
+.focusNih .nih,
+.focusSpringer .springer,
+.focusScholar .scholar {
+    &.satelliteArm,
+    &.absorbArm {
+        opacity: 1;
+    }
+}
+
+/* ------------------------------- animations -------------------------------- */
+
+@keyframes ring-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes mind-absorb {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+    }
+
+    14% {
+        opacity: 1;
+    }
+
+    72% {
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translate(-50%, calc(var(--scene) * 0.5 - 14px))
+            scale(0.35);
+        opacity: 0;
+    }
+}
+
+@keyframes mind-breathe {
+    0%,
+    100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+}
+
+@keyframes mind-float {
+    0%,
+    100% {
+        transform: translateY(4px) rotate(0.4deg);
+    }
+
+    50% {
+        transform: translateY(-8px) rotate(-1deg);
+    }
+}
+
+@keyframes mind-shadow {
+    0%,
+    100% {
+        transform: translateX(-50%) scaleX(1);
+        opacity: 0.85;
+    }
+
+    50% {
+        transform: translateX(-50%) scaleX(0.7);
+        opacity: 0.45;
+    }
+}
+
+/* -------------------------------- responsive ------------------------------- */
+
+@media (max-width: 719px) {
+    .panel {
+        --scene: 232px;
+        --head: 120px;
+
+        gap: 34px;
+    }
+
+    .chips {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 340px;
+    }
+
+    .chip {
+        max-width: none;
+        min-height: 54px;
+    }
+}
+
+@media (max-width: 379px) {
+    .panel {
+        --scene: 208px;
+        --head: 106px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orbit,
+    .ringInner,
+    .headGlow,
+    .headFloat,
+    .headShadow {
+        animation: none;
+    }
+
+    .absorbDot {
+        animation: none;
+        opacity: 0;
+    }
+}

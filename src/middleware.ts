@@ -9,9 +9,8 @@ export async function middleware(request: NextRequest) {
     // Define protected routes
     const protectedRoutes = [
         "/savedpapers",
-        "/get-started",
-        "/searchpaper",
-        "/paperchatbot",
+        "/projects",
+        "/admin",
     ];
 
     // Define public routes that logged-in users shouldn't access
@@ -60,8 +59,8 @@ export async function middleware(request: NextRequest) {
 
     // Valid token cases
     if (isAuthRoute) {
-        // Logged-in user trying to access login/signup - redirect to dashboard
-        return NextResponse.redirect(new URL("/get-started", request.url));
+        // Logged-in users return to the product's discovery-first home.
+        return NextResponse.redirect(new URL("/discover", request.url));
     }
 
     // Allow access to protected routes and other pages
@@ -69,5 +68,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+    matcher: [
+        "/savedpapers/:path*",
+        "/projects/:path*",
+        "/admin/:path*",
+        "/login",
+        "/signup",
+    ],
 };

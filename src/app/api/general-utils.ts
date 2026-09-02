@@ -6,9 +6,9 @@ import {
     RawArticle,
     FormattedArticle,
     AbstractParagraph,
+    RelatedResearchArticle,
 } from "./general-interfaces";
-import { writeFile } from "fs/promises";
-import { resolve } from "path";
+import { DOMParser } from "xmldom";
 
 const MONTH_NAMES: Record<string, string> = {
     1: "Jan",
@@ -34,20 +34,64 @@ const convertMonthToName = (monthNum: string): string => {
     return name;
 };
 
+const extractAbstractText = (
+    abstractSectionOrSections:
+        | AbstractSection[]
+        | AbstractSection
+        | { sec: AbstractSection[] | AbstractSection }
+        | { p: AbstractParagraph[] | AbstractParagraph }
+        | undefined,
+): string => {
+    if (!abstractSectionOrSections) {
+        return "";
+    }
+
+    let sections:
+        | AbstractSection[]
+        | AbstractSection
+        | { sec: AbstractSection[] | AbstractSection }
+        | { p: AbstractParagraph[] | AbstractParagraph } = abstractSectionOrSections;
+
+    if (Array.isArray(sections) && !("title" in sections)) {
+        sections = sections[0];
+    }
+
+    if ("sec" in sections) {
+        sections = sections.sec;
+    }
+
+    if (Array.isArray(sections)) {
+        const firstAbstractText = sections.find((abstractSec) => abstractSec.p);
+        if (!firstAbstractText) {
+            return "";
+        }
+
+        if (Array.isArray(firstAbstractText)) {
+            return firstAbstractText[0]?._text || "";
+        }
+
+        if (Array.isArray(firstAbstractText.p)) {
+            return firstAbstractText.p[0]?._text || "";
+        }
+
+        return firstAbstractText.p?._text || "";
+    }
+
+    if (!sections.p) {
+        return "";
+    }
+
+    if (Array.isArray(sections.p)) {
+        return sections.p[0]?._text || "";
+    }
+
+    return sections.p._text || "";
+};
+
 //Function to extract the data from the NIH PMC API
 export const extractArticleDetails = (
     article: RawArticle
 ): FormattedArticle | null => {
-    const publicationType = article._attributes["article-type"];
-
-    if (
-        publicationType !== "research-article" ||
-        !article.front["article-meta"].abstract
-    ) {
-        {
-            return null;
-        }
-    }
     let foundArticleIdObj: ArticleID | undefined;
 
     const articleIdOrIds: ArticleID[] | ArticleID =
@@ -79,52 +123,9 @@ export const extractArticleDetails = (
         title = title.join("");
     }
 
-    ////////////Find the abstract////////////////
-    let abstractSectionOrSections:
-        | AbstractSection[]
-        | AbstractSection
-        | { sec: AbstractSection[] | AbstractSection }
-        | { p: AbstractParagraph[] | AbstractParagraph } =
-        article.front["article-meta"].abstract;
-
-    if (
-        Array.isArray(abstractSectionOrSections) &&
-        !("title" in abstractSectionOrSections)
-    ) {
-        abstractSectionOrSections = abstractSectionOrSections[0];
-    }
-    //If the key "sec" exists in the object then drill into it more
-    if ("sec" in abstractSectionOrSections) {
-        abstractSectionOrSections = abstractSectionOrSections.sec;
-    }
-    let abstract: string;
-    if (Array.isArray(abstractSectionOrSections)) {
-        const firstAbstractText = abstractSectionOrSections.find(
-            (abstractSec) => abstractSec.p
-        );
-        if (!firstAbstractText) {
-            return null;
-        }
-
-        if (Array.isArray(firstAbstractText)) {
-            abstract = firstAbstractText[0]._text;
-        } else {
-            if (Array.isArray(firstAbstractText.p)) {
-                abstract = firstAbstractText.p[0]._text;
-            } else {
-                abstract = firstAbstractText.p._text;
-            }
-        }
-    } else {
-        if (!abstractSectionOrSections.p) {
-            return null;
-        }
-        if (Array.isArray(abstractSectionOrSections.p)) {
-            abstract = abstractSectionOrSections.p[0]._text;
-        } else {
-            abstract = abstractSectionOrSections.p._text;
-        }
-    }
+    const abstract = extractAbstractText(
+        article.front["article-meta"].abstract,
+    );
     ///////////Find the authors////////////////////
     let contribGroup:
         | { contrib: Contributor[] | Contributor }
@@ -216,15 +217,66 @@ export const extractArticleDetails = (
     };
 };
 
-export async function saveXmlToRoot(xmlContent, fileName) {
-    try {
-        // Get the absolute path to the repo root (assuming script is run from repo)
-        const repoRoot = resolve(process.cwd(), ".");
-        const filePath = resolve(repoRoot, `${fileName}.xml`);
+const NOTICE_ARTICLE_TYPES = new Set(["correction", "erratum"]);
 
-        await writeFile(filePath, xmlContent, "utf8");
-        console.log(`✅ File saved at: ${filePath}`);
-    } catch (err) {
-        console.error("❌ Error saving XML file:", err);
+const normalizePmcId = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const digits = raw.toString().trim().replace(/^PMC/i, "").replace(/\D/g, "");
+    return digits || null;
+};
+
+const getRelatedArticlePmcid = (node: Element): string | null => {
+    const href =
+        node.getAttributeNS("http://www.w3.org/1999/xlink", "href") ||
+        node.getAttribute("xlink:href");
+    const hrefPmcid = normalizePmcId(href);
+    if (hrefPmcid) return hrefPmcid;
+
+    const pubIds = Array.from(node.getElementsByTagName("pub-id"));
+    for (const pubId of pubIds) {
+        if (pubId.getAttribute("pub-id-type") === "pmcid") {
+            const pmcid = normalizePmcId(pubId.textContent);
+            if (pmcid) return pmcid;
+        }
     }
-}
+
+    return null;
+};
+
+export const extractRelatedResearchArticle = (
+    xmlString: string,
+): RelatedResearchArticle | null => {
+    const doc = new DOMParser().parseFromString(xmlString, "application/xml");
+    const article = doc.getElementsByTagName("article")[0];
+    if (!article) return null;
+
+    const noticeType = article.getAttribute("article-type") || "";
+    if (!NOTICE_ARTICLE_TYPES.has(noticeType)) {
+        return null;
+    }
+
+    const relatedArticles = Array.from(
+        doc.getElementsByTagName("related-article"),
+    );
+    if (relatedArticles.length === 0) return null;
+
+    const preferredType =
+        noticeType === "correction" ? "corrected-article" : "corrected-article";
+    const related =
+        relatedArticles.find(
+            (node) => node.getAttribute("related-article-type") === preferredType,
+        ) || relatedArticles[0];
+
+    const pmcid = getRelatedArticlePmcid(related);
+    if (!pmcid) return null;
+
+    const titleNode = related.getElementsByTagName("article-title")[0];
+    const title = titleNode?.textContent?.trim() || "Related research article";
+
+    return {
+        pmcid,
+        title,
+        noticeType: noticeType as RelatedResearchArticle["noticeType"],
+    };
+};
+

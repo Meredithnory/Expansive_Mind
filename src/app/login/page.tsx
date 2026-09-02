@@ -5,13 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Loading from "../components/Loading";
+import { useSession } from "../lib/use-session";
 
-const page = () => {
+const LoginPage = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
+    const { refresh } = useSession();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,8 +32,9 @@ const page = () => {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Login successful - redirect to protected route
-                router.push("/get-started");
+                await refresh();
+                router.push("/discover");
+                router.refresh();
             } else {
                 //Login failed
                 setError(data.message || "Login failed");
@@ -130,4 +133,4 @@ const page = () => {
     );
 };
 
-export default page;
+export default LoginPage;

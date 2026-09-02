@@ -4,22 +4,139 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 60px;
-    width: 100%;
-    width: fit-content;
+    gap: 4px;
+    flex-shrink: 0;
 
     .link {
         text-decoration: none;
-        font-size: 22px;
-        color: white;
-        display: flex;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.72);
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
+        font-family: inherit;
         cursor: pointer;
+        white-space: nowrap;
+        transition:
+            color 160ms ease,
+            background-color 160ms ease,
+            border-color 160ms ease;
+
+        &:hover {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+        &.active {
+            color: $main-pink;
+            background-color: rgba(255, 0, 132, 0.1);
+        }
     }
 
-    a:hover,
-    .link:hover {
-        color: $main-pink;
-        border-radius: 2px;
+    .authActions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 4px;
+        padding-left: 10px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .signupLink {
+        color: #ffffff;
+        background-color: $main-pink;
+        border: 1px solid $main-pink;
+
+        &:hover {
+            color: #ffffff;
+            background-color: #d6006f;
+            border-color: #d6006f;
+        }
+
+        &.active {
+            color: #ffffff;
+            background-color: #d6006f;
+            border-color: #d6006f;
+        }
+    }
+
+    .logout {
+        margin-left: 4px;
+        color: rgba(255, 255, 255, 0.5);
+
+        &:hover {
+            color: $main-pink;
+            background-color: rgba(255, 0, 132, 0.06);
+        }
+    }
+}
+
+@media (max-width: 720px) {
+    .menubar {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 3;
+        width: min(300px, calc(100vw - 20px));
+        padding: 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 22px;
+        background: rgba(13, 14, 14, 0.98);
+        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(-8px) scale(0.98);
+        transform-origin: top right;
+        transition:
+            opacity 180ms ease,
+            transform 180ms ease,
+            visibility 180ms ease;
+
+        .link {
+            width: 100%;
+            min-height: 44px;
+            justify-content: flex-start;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+        }
+
+        .authActions {
+            width: 100%;
+            margin: 4px 0 0;
+            padding: 8px 0 0;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 0;
+        }
+
+        .logout {
+            margin: 4px 0 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0 0 14px 14px;
+        }
+    }
+
+    .open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .menubar {
+        transition: none;
     }
 }

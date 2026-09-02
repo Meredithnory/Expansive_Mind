@@ -1,8 +1,70 @@
+@use "../../variables" as *;
+
 .link {
     display: flex;
     flex-direction: row;
     text-decoration: none;
     align-items: center;
     justify-content: center;
+    gap: 10px;
     color: white;
+    min-width: 0;
+    transition: opacity 160ms ease;
+
+    &:hover {
+        opacity: 0.88;
+    }
+}
+
+.image {
+    flex-shrink: 0;
+    animation: nav-head-float 6.5s ease-in-out infinite;
+    filter: drop-shadow(0 6px 10px rgba(255, 0, 132, 0.18));
+    will-change: transform;
+}
+
+@keyframes nav-head-float {
+    0%,
+    100% {
+        transform: translateY(2px) rotate(0.4deg);
+    }
+
+    50% {
+        transform: translateY(-3px) rotate(-1deg);
+    }
+}
+
+.title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .title {
+        font-size: 1rem;
+    }
+
+    .link {
+        gap: 8px;
+    }
+
+    .image {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 360px) {
+    .title {
+        font-size: 0.9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .image {
+        animation: none;
+    }
 }

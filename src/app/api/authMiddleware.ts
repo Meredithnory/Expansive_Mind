@@ -3,47 +3,57 @@ import { jwtVerify } from "jose";
 import User from "../models/User";
 import connectDB from "../db/connectDB";
 
-const JWT_SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET!);
+const jwtSecret = () => {
+    if (!process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET is required.");
+    }
+    return new TextEncoder().encode(process.env.JWT_SECRET);
+};
+
+export async function attachAuthenticatedUser(req: NextRequest) {
+    const token = req.cookies.get("auth_token")?.value;
+    if (!token) return null;
+
+    const { payload } = await jwtVerify(token, jwtSecret());
+    await connectDB();
+    const user = await User.findById(payload.id);
+    if (!user) return null;
+    req.user = user;
+    return user;
+}
 
 export const withAuth = (
     handler: (req: NextRequest) => Promise<NextResponse>
 ) => {
     return async (req: NextRequest): Promise<NextResponse> => {
-        const token = req.cookies.get("auth_token")?.value;
-
-        if (!token) {
-            console.error("NO TOKEN FOUND");
-            return NextResponse.json(
-                { message: "You do not have access. Please login." },
-                { status: 401 }
-            );
-        }
-
         try {
-            // Verify the token using jose's jwtVerify
-            const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
-            //Payload will include the userID in an obj bc when creating the token we attatched the userID
-            const decodedToken = payload;
-
-            await connectDB(); // Connect to DB
-
-            let user = await User.findById(decodedToken.id);
-
-            if (user) {
-                req.user = user; // Attach user to the request
-                return handler(req); // Call the original route handler
-            } else {
+            const user = await attachAuthenticatedUser(req);
+            if (!user) {
                 return NextResponse.json(
                     { message: "You do not have access. Please login." },
                     { status: 401 }
                 );
             }
-        } catch (err) {
-            console.error("JWT Verification Error:", err);
+        } catch {
+            console.warn("Authentication failed");
             return NextResponse.json(
                 { message: "You do not have access. Please login." },
                 { status: 401 }
             );
         }
+        return handler(req);
+    };
+};
+
+export const withOptionalAuth = (
+    handler: (req: NextRequest) => Promise<NextResponse>,
+) => {
+    return async (req: NextRequest): Promise<NextResponse> => {
+        try {
+            await attachAuthenticatedUser(req);
+        } catch {
+            req.user = undefined;
+        }
+        return handler(req);
     };
 };

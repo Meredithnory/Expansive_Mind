@@ -1,0 +1,229 @@
+@use "../../variables" as *;
+
+.page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px 80px;
+    background: $bg-color;
+}
+
+.card {
+    width: min(760px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 40px 42px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 0, 132, 0.25);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 0, 132, 0.07) 0%,
+        rgba(0, 0, 0, 0.9) 30%
+    );
+    box-shadow: 0 18px 40px rgba(255, 0, 132, 0.08);
+}
+
+.eyebrow {
+    margin: 0;
+    color: $main-pink;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: #d7ebff;
+    font-size: 30px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.byline {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    color: rgba(215, 235, 255, 0.6);
+    font-size: 14px;
+
+    span + span::before {
+        content: "·";
+        margin-right: 14px;
+        color: rgba(215, 235, 255, 0.35);
+    }
+}
+
+.brief {
+    color: rgba(232, 242, 255, 0.92);
+    font-size: 16px;
+    line-height: 1.65;
+
+    h2 {
+        margin: 26px 0 10px;
+        color: $highlight-blue;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+
+        &:first-child {
+            margin-top: 6px;
+        }
+    }
+
+    p {
+        margin: 0 0 12px;
+    }
+
+    ul {
+        margin: 0 0 12px;
+        padding-left: 22px;
+
+        li {
+            margin-bottom: 8px;
+        }
+    }
+
+    em {
+        color: rgba(215, 235, 255, 0.55);
+        font-size: 14px;
+    }
+}
+
+.sourceLink {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.6);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+
+    a {
+        color: $highlight-blue;
+        text-decoration: underline;
+    }
+}
+
+.sources {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 22px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+
+    h2 {
+        margin: 0;
+        color: rgba(215, 235, 255, 0.85);
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    ol {
+        margin: 0;
+        padding-left: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    li a {
+        color: #d7ebff;
+        font-weight: 600;
+        text-decoration: none;
+
+        &:hover {
+            color: $highlight-blue;
+        }
+    }
+}
+
+.sourceMeta {
+    display: block;
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 0, 132, 0.35);
+    background: rgba(255, 0, 132, 0.08);
+
+    h2 {
+        margin: 0 0 6px;
+        color: #fff;
+        font-size: 18px;
+    }
+
+    p {
+        margin: 0;
+        color: rgba(215, 235, 255, 0.72);
+        font-size: 14px;
+        max-width: 420px;
+    }
+}
+
+.ctaActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ctaPrimary,
+.ctaSecondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ctaPrimary {
+    background: $main-pink;
+    color: #fff;
+}
+
+.ctaSecondary {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    color: #d7ebff;
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.32);
+    }
+}
+
+.disclaimer {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.45);
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: 20px 12px 60px;
+    }
+
+    .card {
+        padding: 26px 20px;
+        border-radius: 18px;
+    }
+
+    .title {
+        font-size: 24px;
+    }
+}

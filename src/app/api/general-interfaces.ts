@@ -1,3 +1,5 @@
+import type { ContentAccessPolicy } from "../lib/content-access-policy";
+
 export interface AbstractParagraph {
     _text: string;
 }
@@ -76,9 +78,25 @@ export interface FormattedArticle {
 }
 
 //Interface for full paper extraction
+export interface PaperFigure {
+    id: string;
+    label: string;
+    captionTitle?: string;
+    caption: string;
+    sourceImageRef?: string;
+    imageUrl?: string;
+    sectionTitle: string;
+    subSectionTitle?: string;
+    rawLicense?: string;
+    licenseUrl?: string;
+    hasSeparateRights: boolean;
+    canAnalyzeSourceImage: boolean;
+}
+
 export interface SubSection {
     title: string;
     content: string;
+    figures?: PaperFigure[];
     graphicSrc?: string;
     graphicTitle?: string;
     graphicContent?: string;
@@ -88,13 +106,41 @@ export interface Section {
     title: string;
     content: string;
     subSections: SubSection[];
+    figures?: PaperFigure[];
     graphicSrc?: string;
     graphicTitle?: string;
     graphicContent?: string;
 }
+export interface RelatedResearchArticle {
+    pmcid: string;
+    title: string;
+    noticeType:
+        | "correction"
+        | "erratum"
+        | "retraction"
+        | "expression-of-concern";
+}
+
+export interface ArticleStatus {
+    isRetracted: boolean;
+    articleType?: string;
+    relatedUpdates: RelatedResearchArticle[];
+}
+
 export interface FormattedPaper {
     title: string;
     authors: string[];
-    pmcid: string;
+    paperId: string;
+    idName: string;
+    primarySource: string;
+    source?: string;
     paper: Section[];
+    figures?: PaperFigure[];
+    abstract?: string;
+    publicationDate?: string;
+    contentLabel?: "Abstract" | "Search snippet";
+    access: ContentAccessPolicy;
+    status?: ArticleStatus;
+    relatedResearchArticle?: RelatedResearchArticle;
+    contentNotice?: string;
 }
