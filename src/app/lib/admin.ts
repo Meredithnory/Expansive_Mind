@@ -29,12 +29,7 @@ export const withAdmin = (
         } catch (error) {
             console.error("Admin request failed", error);
             return NextResponse.json(
-                {
-                    error:
-                        error instanceof Error
-                            ? error.message
-                            : "Admin request failed.",
-                },
+                { error: "Admin request failed." },
                 { status: 500 },
             );
         }

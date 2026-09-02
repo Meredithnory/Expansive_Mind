@@ -1,4 +1,11 @@
-import { DOMParser } from "@xmldom/xmldom";
+import {
+    DOMParser,
+    type Document as XmlDocument,
+    type Element as XmlElement,
+} from "@xmldom/xmldom";
+
+type Document = XmlDocument;
+type Element = XmlElement;
 
 export interface RawLicenseInfo {
     rawLicense: string | null;

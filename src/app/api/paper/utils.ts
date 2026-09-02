@@ -10,7 +10,10 @@ import {
     RawArticle,
 } from "../general-interfaces";
 import { parseArticleXml } from "../section-paser";
-import { DOMParser } from "@xmldom/xmldom";
+import {
+    DOMParser,
+    type Element as XmlElement,
+} from "@xmldom/xmldom";
 import {
     canUseFigureImage,
     evaluateContentAccess,
@@ -23,6 +26,8 @@ import {
     hasParserError,
 } from "../../lib/license-extract";
 import { parseArticlesFromXml } from "../articleParser";
+
+type Element = XmlElement;
 import { consumeRateLimit } from "../../lib/rate-limit";
 import { abstractToText } from "../../lib/abstract-text";
 import {
