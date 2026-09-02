@@ -253,8 +253,8 @@ async function searchScholarForQuestion(
         return dedupeDiscoverCandidates(
             mapScholarResults(search.results || []),
         );
-    } catch (error) {
-        console.error("Discovery Scholar search failed", error);
+    } catch {
+        console.error("Discovery Scholar search failed");
         return [];
     }
 }

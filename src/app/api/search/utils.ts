@@ -396,8 +396,8 @@ export const searchSpringerNaturePapers = async (
                     ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
                     : 0,
         };
-    } catch (err) {
-        console.error("Springer search failed:", err);
+    } catch {
+        console.error("Springer search failed");
         return {
             results: [],
             totalCount: 0,
@@ -555,8 +555,8 @@ export const searchGoogleScholarPapers = async (
                       ? 1
                       : 0,
         };
-    } catch (err) {
-        console.error("Google Scholar search failed:", err);
+    } catch {
+        console.error("Google Scholar search failed");
         return {
             results: [],
             totalCount: 0,
