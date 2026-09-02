@@ -1,6 +1,6 @@
 // sectionParser.ts
 
-import { DOMParser } from "xmldom";
+import { DOMParser } from "@xmldom/xmldom";
 import { PaperFigure, Section, SubSection } from "./general-interfaces";
 
 const WEB_IMAGE_REF = /\.(?:jpe?g|png|webp|gif)$/i;

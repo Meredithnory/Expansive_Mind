@@ -10,7 +10,7 @@ import {
     RawArticle,
 } from "../general-interfaces";
 import { parseArticleXml } from "../section-paser";
-import { DOMParser } from "xmldom";
+import { DOMParser } from "@xmldom/xmldom";
 import {
     canUseFigureImage,
     evaluateContentAccess,

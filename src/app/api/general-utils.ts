@@ -8,7 +8,7 @@ import {
     AbstractParagraph,
     RelatedResearchArticle,
 } from "./general-interfaces";
-import { DOMParser } from "xmldom";
+import { DOMParser } from "@xmldom/xmldom";
 
 const MONTH_NAMES: Record<string, string> = {
     1: "Jan",
