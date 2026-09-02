@@ -59,3 +59,20 @@ export async function readLimitedJsonBody(
         return { ok: false, status: 400 };
     }
 }
+
+export function trustedApplicationOrigin(request: NextRequest) {
+    const configured = process.env.APP_URL;
+    if (!configured && process.env.NODE_ENV === "production") {
+        throw new Error("APP_URL is required in production.");
+    }
+    const url = new URL(configured || request.nextUrl.origin);
+    if (
+        url.username ||
+        url.password ||
+        !["http:", "https:"].includes(url.protocol) ||
+        (process.env.NODE_ENV === "production" && url.protocol !== "https:")
+    ) {
+        throw new Error("APP_URL is invalid.");
+    }
+    return url.origin;
+}

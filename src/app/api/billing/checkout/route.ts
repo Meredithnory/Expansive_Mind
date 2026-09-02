@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "../../authMiddleware";
-import { hasValidMutationOrigin } from "../../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    trustedApplicationOrigin,
+} from "../../../lib/request-security";
 import { getStripe } from "../../../lib/stripe";
 import User from "../../../models/User";
 import { getPlanConfig } from "../../../lib/plan-config";
@@ -36,10 +39,7 @@ export const POST = withAuth(async (request: NextRequest) => {
             );
         }
 
-        const origin =
-            process.env.APP_URL ||
-            request.headers.get("origin") ||
-            request.nextUrl.origin;
+        const origin = trustedApplicationOrigin(request);
         const session = await stripe.checkout.sessions.create({
             mode: "subscription",
             customer: customerId,
@@ -55,8 +55,8 @@ export const POST = withAuth(async (request: NextRequest) => {
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (error) {
-        console.error("Stripe checkout creation failed", error);
+    } catch {
+        console.error("Stripe checkout creation failed");
         return NextResponse.json(
             { error: "Billing checkout is unavailable." },
             { status: 503 },

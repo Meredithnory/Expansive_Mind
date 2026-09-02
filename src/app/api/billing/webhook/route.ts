@@ -6,11 +6,27 @@ import BillingEvent from "../../../models/BillingEvent";
 import User from "../../../models/User";
 import { getStripe } from "../../../lib/stripe";
 import { subscriptionUserUpdate } from "../../../lib/billing-subscription";
+import { getPlanConfig } from "../../../lib/plan-config";
 
 export const runtime = "nodejs";
 
 async function syncSubscription(subscription: Stripe.Subscription) {
     const update = subscriptionUserUpdate(subscription);
+    if (update.values.plan === "pro") {
+        const config = await getPlanConfig();
+        const price = subscription.items.data[0]?.price;
+        const acceptedPrice = Object.values(config.prices).some(
+            (configured) =>
+                (configured.stripePriceId &&
+                    configured.stripePriceId === price?.id) ||
+                (price?.unit_amount === configured.amount &&
+                    price?.currency.toLowerCase() ===
+                        configured.currency.toLowerCase()),
+        );
+        if (!acceptedPrice) {
+            update.values.plan = "free";
+        }
+    }
     const customerUser = await User.findOne({
         stripeCustomerId: update.customerId,
     }).select({ _id: 1 });
@@ -92,9 +108,9 @@ export async function POST(request: NextRequest) {
             await syncSubscription(event.data.object);
         }
         return NextResponse.json({ received: true });
-    } catch (error) {
+    } catch {
         await BillingEvent.deleteOne({ _id: event.id });
-        console.error("Stripe webhook processing failed", error);
+        console.error("Stripe webhook processing failed");
         return NextResponse.json(
             { error: "Webhook processing failed." },
             { status: 500 },
