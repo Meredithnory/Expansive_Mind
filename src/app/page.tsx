@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { preload } from "react-dom";
 import styles from "./home.module.scss";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,110 +13,22 @@ const features = [
 
 export default function Home() {
     const { isLoggedIn, loading } = useSession();
-    const [videoVariant, setVideoVariant] = useState<"standard" | "hd" | null>(
-        null,
-    );
-    const [videoReady, setVideoReady] = useState(false);
-
-    preload("/dnabg-poster.jpg", { as: "image" });
+    const [showVideo, setShowVideo] = useState(true);
 
     useEffect(() => {
-        let idleId: number | undefined;
-        let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
-        let cancelled = false;
         const reduceMotion = window.matchMedia(
             "(prefers-reduced-motion: reduce)",
         ).matches;
-        const connection = (
-            navigator as Navigator & {
-                connection?: { saveData?: boolean; effectiveType?: string };
-            }
-        ).connection;
-        const saveData = Boolean(connection?.saveData);
-        const slowConnection =
-            connection?.effectiveType === "2g" ||
-            connection?.effectiveType === "slow-2g";
-
-        if (reduceMotion || saveData) {
-            return;
-        }
-
-        const startVideo = () => {
-            if (cancelled) return;
-            const minViewport = Math.min(window.innerWidth, window.innerHeight);
-            setVideoVariant(
-                !slowConnection && minViewport >= 720 ? "hd" : "standard",
-            );
-        };
-        const scheduleAfterLcp = () => {
-            const idleWindow = window as Window & {
-                requestIdleCallback?: (
-                    callback: IdleRequestCallback,
-                    options?: IdleRequestOptions,
-                ) => number;
-                cancelIdleCallback?: (handle: number) => void;
-            };
-            if (idleWindow.requestIdleCallback) {
-                idleId = idleWindow.requestIdleCallback(startVideo, {
-                    timeout: 2_000,
-                });
-            } else {
-                fallbackTimer = setTimeout(startVideo, 1_200);
-            }
-        };
-
-        if (document.readyState === "complete") {
-            scheduleAfterLcp();
-        } else {
-            window.addEventListener("load", scheduleAfterLcp, { once: true });
-        }
-
-        return () => {
-            cancelled = true;
-            window.removeEventListener("load", scheduleAfterLcp);
-            if (idleId !== undefined) {
-                (
-                    window as Window & {
-                        cancelIdleCallback?: (handle: number) => void;
-                    }
-                ).cancelIdleCallback?.(idleId);
-            }
-            if (fallbackTimer) clearTimeout(fallbackTimer);
-        };
+        if (reduceMotion) setShowVideo(false);
     }, []);
 
     return (
         <div className={styles.home}>
-            <div className={styles.poster} aria-hidden />
-            {videoVariant ? (
-                <video
-                    className={videoReady ? styles.videoReady : undefined}
-                    poster="/dnabg-poster.jpg"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="none"
-                    disablePictureInPicture
-                    aria-hidden
-                    onPlaying={() => setVideoReady(true)}
-                >
-                    <source
-                        src={
-                            videoVariant === "hd"
-                                ? "/dnabg-hd.webm"
-                                : "/dnabg.webm"
-                        }
-                        type="video/webm"
-                    />
-                    <source
-                        src={
-                            videoVariant === "hd"
-                                ? "/dnabg-hd.mp4"
-                                : "/dnabg.mp4"
-                        }
-                        type="video/mp4"
-                    />
+            {showVideo ? (
+                <video autoPlay muted loop playsInline>
+                    <source src="/dnabg.mov" type="video/quicktime" />
+                    <source src="/dnabg.mp4" type="video/mp4" />
+                    <source src="/dnabg.webm" type="video/webm" />
                 </video>
             ) : null}
             <div className={styles.hero}>

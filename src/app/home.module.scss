@@ -1,5 +1,6 @@
 @use "variables" as *;
 
+:global(html):has(.home),
 :global(body):has(.home) {
     background-color: transparent;
 }
@@ -48,29 +49,14 @@
         content: "";
     }
 
-    .poster,
     video {
         position: fixed;
         inset: 0;
-        z-index: -1;
+        z-index: 0;
         width: 100%;
         height: 100%;
-        pointer-events: none;
-    }
-
-    .poster {
-        background: #000 url("/dnabg-poster.jpg") center / cover no-repeat;
-    }
-
-    video {
         object-fit: cover;
-        overflow: hidden;
-        opacity: 0;
-        transition: opacity 500ms ease;
-    }
-
-    .videoReady {
-        opacity: 1;
+        pointer-events: none;
     }
 }
 

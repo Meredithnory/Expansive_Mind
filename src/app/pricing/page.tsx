@@ -86,7 +86,7 @@ function PricingContent() {
     };
 
     return (
-        <main className={styles.page}>
+        <main className={styles.page} data-page-scroll>
             <header className={styles.hero}>
                 <p className={styles.eyebrow}>Simple research pricing</p>
                 <h1>Search freely. Pay for deeper synthesis.</h1>
@@ -265,7 +265,7 @@ function PricingContent() {
 
 export default function PricingPage() {
     return (
-        <Suspense fallback={<main className={styles.page}>Loading pricing…</main>}>
+        <Suspense fallback={<main className={styles.page} data-page-scroll>Loading pricing…</main>}>
             <PricingContent />
         </Suspense>
     );

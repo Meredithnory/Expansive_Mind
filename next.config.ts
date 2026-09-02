@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     async headers() {
         return [
             {
-                source: "/:file(dnabg.mp4|dnabg-hd.mp4|dnabg-poster.jpg)",
+                source: "/:file(dnabg.mov|dnabg.mp4|dnabg-hd.mp4|dnabg-poster.jpg)",
                 headers: [
                     {
                         key: "Cache-Control",

@@ -5,6 +5,9 @@
     margin: 0 auto;
     padding: 56px 0 72px;
     color: #d7ebff;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .hero {
