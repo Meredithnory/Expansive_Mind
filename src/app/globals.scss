@@ -56,18 +56,25 @@ html.is-scrolling .main-content::-webkit-scrollbar-thumb:hover {
 *::-webkit-scrollbar-corner {
     background: transparent;
 }
+:root {
+    color-scheme: dark;
+    background-color: #000;
+}
+
 html {
     min-width: 320px;
     height: 100%;
+    min-height: 100dvh;
     overflow-x: hidden;
-    background-color: black;
+    color-scheme: dark;
+    background-color: #000;
     font-family:
         var(--font-manrope),
         system-ui,
         sans-serif;
 }
 body {
-    background-color: black;
+    background-color: #000;
     color: white;
     margin: 0;
     width: min(80%, 1440px);
