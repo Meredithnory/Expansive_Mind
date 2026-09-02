@@ -24,10 +24,16 @@ export const GET = withOptionalAuth(async (request: NextRequest) => {
         const paperId = request.nextUrl.searchParams.get("paperId");
         const idName = request.nextUrl.searchParams.get("idName") || undefined;
 
-        if (!database || !paperId) {
+        if (
+            !database ||
+            database.length > 30 ||
+            !paperId ||
+            paperId.length > 300 ||
+            (idName && idName.length > 50)
+        ) {
             return NextResponse.json(
                 {
-                    error: "database and paperId query parameters are required.",
+                    error: "A valid paper reference is required.",
                 },
                 { status: 400 }
             );
@@ -38,7 +44,7 @@ export const GET = withOptionalAuth(async (request: NextRequest) => {
         const rateLimit = await consumeRateLimit({
             scope: "paper",
             identity,
-            limit: request.user ? 60 : 20,
+            limit: request.user ? 60 : 6,
             windowMs: 60_000,
         });
         measure("rate_limit", rateLimitStartedAt);

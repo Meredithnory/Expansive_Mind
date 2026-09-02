@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
-    hasAcceptableContentLength,
     hasValidMutationOrigin,
+    readLimitedJsonBody,
 } from "../../lib/request-security";
 import SavedDiscovery from "../../models/SavedDiscovery";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
@@ -95,10 +95,16 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
-        if (!hasAcceptableContentLength(request, 16 * 1024)) {
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
             return NextResponse.json(
-                { error: "Discovery request is too large." },
-                { status: 413 },
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Discovery request is too large."
+                            : "A valid discovery request is required.",
+                },
+                { status: parsedBody.status },
             );
         }
 
@@ -125,7 +131,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             );
         }
 
-        const data = await request.json();
+        const data = parsedBody.value as Record<string, unknown>;
         const question =
             typeof data.question === "string" ? data.question.trim() : "";
 

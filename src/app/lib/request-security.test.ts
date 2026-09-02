@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { hasValidMutationOrigin } from "./request-security";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "./request-security";
 
 const request = (headers: Record<string, string>) =>
     new NextRequest("https://expansive.example/api/projects", {
@@ -30,5 +33,18 @@ describe("hasValidMutationOrigin", () => {
                 request({ "sec-fetch-site": "same-origin" }),
             ),
         ).toBe(true);
+    });
+
+    it("enforces JSON byte limits while streaming the body", async () => {
+        const body = JSON.stringify({ value: "x".repeat(100) });
+        const oversized = new NextRequest(
+            "https://expansive.example/api/discover",
+            { method: "POST", body },
+        );
+
+        await expect(readLimitedJsonBody(oversized, 32)).resolves.toEqual({
+            ok: false,
+            status: 413,
+        });
     });
 });

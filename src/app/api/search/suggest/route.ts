@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "../../authMiddleware";
 import {
-    getCombinedSearchTotalCount,
-    type SourceFilter,
-} from "../utils";
-import {
     queriesMatch,
     suggestSearchQuery,
 } from "../spell-suggest";
 import { consumeRateLimit } from "../../../lib/rate-limit";
-import {
-    getPlanEntitlements,
-    resolvePlan,
-} from "../../../lib/entitlements";
-import { isAdminUser } from "../../../lib/admin";
-
-const parseSourceFilter = (value: string | null): SourceFilter => {
-    if (value === "nih" || value === "springer" || value === "scholar") {
-        return value;
-    }
-    return "all";
-};
 
 export const GET = withAuth(async (req: NextRequest) => {
     try {
@@ -42,30 +26,12 @@ export const GET = withAuth(async (req: NextRequest) => {
             );
         }
         const query = req.nextUrl.searchParams.get("q")?.trim();
-        const sourceFilter = parseSourceFilter(
-            req.nextUrl.searchParams.get("source"),
-        );
 
         if (!query || query.length > 300) {
             return NextResponse.json(
                 { error: "Missing search query parameter 'q'" },
                 { status: 400 },
             );
-        }
-
-        if (sourceFilter === "scholar" && !isAdminUser(req.user)) {
-            const entitlements = await getPlanEntitlements(
-                resolvePlan(req.user),
-            );
-            if (entitlements.scholar_search <= 0) {
-                return NextResponse.json(
-                    {
-                        error: "Google Scholar search is available with Researcher Pro.",
-                        code: "PRO_REQUIRED",
-                    },
-                    { status: 403 },
-                );
-            }
         }
 
         // Suggestions should not make a second, unmetered AI request. NIH's
@@ -82,15 +48,12 @@ export const GET = withAuth(async (req: NextRequest) => {
             });
         }
 
-        const suggestedTotalCount = await getCombinedSearchTotalCount(
-            suggestedQuery,
-            sourceFilter,
-        );
-
         return NextResponse.json({
             originalQuery: query,
             suggestedQuery,
-            suggestedTotalCount,
+            // Avoid a second full provider search for optional suggestion UI.
+            // The real search remains quota-checked when the user accepts it.
+            suggestedTotalCount: 0,
         });
     } catch {
         console.error("Search suggestion request failed");

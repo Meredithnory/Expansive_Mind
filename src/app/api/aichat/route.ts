@@ -12,8 +12,8 @@ import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import { consumeRateLimit } from "../../lib/rate-limit";
 import {
-    hasAcceptableContentLength,
     hasValidMutationOrigin,
+    readLimitedJsonBody,
 } from "../../lib/request-security";
 import { consumeQuota, resolvePlan } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
@@ -26,13 +26,19 @@ export const POST = withAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
-        if (!hasAcceptableContentLength(request, 32 * 1024)) {
+        const parsedBody = await readLimitedJsonBody(request, 32 * 1024);
+        if (!parsedBody.ok) {
             return NextResponse.json(
-                { error: "Chat request is too large." },
-                { status: 413 },
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Chat request is too large."
+                            : "A valid chat request is required.",
+                },
+                { status: parsedBody.status },
             );
         }
-        const data = await request.json();
+        const data = parsedBody.value as Record<string, unknown>;
         const messageForAI =
             typeof data.userResponse === "string"
                 ? data.userResponse.trim()

@@ -5,8 +5,8 @@ import User from "../../models/User";
 import connectDB from "../../db/connectDB";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
-    hasAcceptableContentLength,
     hasValidMutationOrigin,
+    readLimitedJsonBody,
 } from "../../lib/request-security";
 
 const maxAge = 24 * 60 * 60;
@@ -27,10 +27,17 @@ export async function POST(request: NextRequest) {
                 { status: 403 },
             );
         }
-        if (!hasAcceptableContentLength(request, 16 * 1024)) {
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
             return NextResponse.json(
-                { success: false, message: "Login request is too large." },
-                { status: 413 },
+                {
+                    success: false,
+                    message:
+                        parsedBody.status === 413
+                            ? "Login request is too large."
+                            : "A valid login request is required.",
+                },
+                { status: parsedBody.status },
             );
         }
         const rateLimit = await consumeRateLimit({
@@ -57,7 +64,10 @@ export async function POST(request: NextRequest) {
         await connectDB();
 
         // Parse JSON from the request
-        const { email, password } = await request.json();
+        const { email, password } = parsedBody.value as Record<
+            string,
+            unknown
+        >;
 
         // Validate required fields
         if (

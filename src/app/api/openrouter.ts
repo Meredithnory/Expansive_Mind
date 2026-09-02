@@ -11,6 +11,8 @@ const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 const MAX_OUTPUT_TOKENS = 5_000;
 const MAX_TEXT_PROMPT_CHARACTERS = 120_000;
 const MAX_MESSAGES = 32;
+const MAX_EMBEDDING_INPUTS = 32;
+const MAX_EMBEDDING_CHARACTERS = 32_000;
 
 const client = apiKey
     ? new OpenAI({
@@ -109,6 +111,17 @@ export async function createPrivateEmbedding(request: {
     model: string;
     input: string[];
 }, usageContext?: UsageContext) {
+    const embeddingCharacters = request.input.reduce(
+        (total, value) => total + value.length,
+        0,
+    );
+    if (
+        request.input.length === 0 ||
+        request.input.length > MAX_EMBEDDING_INPUTS ||
+        embeddingCharacters > MAX_EMBEDDING_CHARACTERS
+    ) {
+        throw new Error("Embedding input exceeds the configured safety limit.");
+    }
     const payload = {
         ...request,
         provider: OPENROUTER_PROVIDER_POLICY,

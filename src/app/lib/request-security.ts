@@ -20,3 +20,42 @@ export function hasAcceptableContentLength(
     const length = Number(raw);
     return Number.isInteger(length) && length >= 0 && length <= maxBytes;
 }
+
+export async function readLimitedJsonBody(
+    request: NextRequest,
+    maxBytes: number,
+): Promise<
+    | { ok: true; value: unknown }
+    | { ok: false; status: 400 | 413 }
+> {
+    if (!hasAcceptableContentLength(request, maxBytes)) {
+        return { ok: false, status: 413 };
+    }
+    if (!request.body) return { ok: false, status: 400 };
+
+    const reader = request.body.getReader();
+    const decoder = new TextDecoder();
+    let bytesRead = 0;
+    let text = "";
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytesRead += value.byteLength;
+            if (bytesRead > maxBytes) {
+                await reader.cancel();
+                return { ok: false, status: 413 };
+            }
+            text += decoder.decode(value, { stream: true });
+        }
+        text += decoder.decode();
+    } finally {
+        reader.releaseLock();
+    }
+
+    try {
+        return { ok: true, value: JSON.parse(text) };
+    } catch {
+        return { ok: false, status: 400 };
+    }
+}
