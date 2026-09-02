@@ -82,6 +82,8 @@ type DiscoverResponse = {
     brief: string;
     report?: OpportunityReport;
     extractions?: PaperExtraction[];
+    noResults?: boolean;
+    message?: string;
     plan?: "guest" | "free" | "pro";
     quota?: DiscoveryQuota;
     meta: {
@@ -103,6 +105,7 @@ type DiscoverResponse = {
 
 type AgentStep =
     | "idle"
+    | "checking"
     | "expanding"
     | "searching"
     | "reading"
@@ -112,6 +115,7 @@ type AgentStep =
     | "done";
 
 const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
+    checking: "Taking a look at your question…",
     expanding: "Expanding your question into targeted searches…",
     searching: "Searching Springer Nature, NIH PubMed Central, and Google Scholar…",
     reading: "Reading licensed paper excerpts…",
@@ -134,6 +138,7 @@ const AGENT_STEPS: Array<{
 
 const STEP_ORDER: Record<AgentStep, number> = {
     idle: -1,
+    checking: -1,
     expanding: 0,
     searching: 1,
     reading: 2,
@@ -366,7 +371,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     }, [discoveryQuota, isLoggedIn, qParam, result, sessionLoading]);
 
     useEffect(() => {
-        if (!result || isLoggedIn || sessionLoading) return;
+        if (!result || result.noResults || isLoggedIn || sessionLoading) return;
         if (typeof window === "undefined") return;
         if (window.sessionStorage.getItem(GUEST_UPGRADE_PROMPTED_KEY)) return;
 
@@ -615,9 +620,12 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             setShowPlanLink(false);
             // Keep the current brief visible while a follow-up discovery runs.
             if (!result) setResult(null);
-            setStep("expanding");
+            // Don't pretend we expanded or started reading until the cheap
+            // quality check has had a beat. Junk should bounce before this.
+            setStep("checking");
 
             const timers = [
+                window.setTimeout(() => setStep("expanding"), 3_000),
                 window.setTimeout(() => setStep("searching"), 8_000),
                 window.setTimeout(() => setStep("reading"), 20_000),
                 window.setTimeout(() => setStep("extracting"), 36_000),
@@ -655,6 +663,17 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                     );
                 }
                 const savedResult = data as DiscoverResponse;
+                if (savedResult.noResults) {
+                    setResult(savedResult);
+                    if (data.quota) setDiscoveryQuota(data.quota);
+                    setHighlightedPaper(null);
+                    setPreviewPaperIndex(null);
+                    setStep("done");
+                    posthog.capture("discovery_no_results", {
+                        cache_hit: Boolean(data.cacheHit),
+                    });
+                    return;
+                }
                 if (!isLoggedIn) {
                     const cached = parseGuestDiscoveryResult(savedResult);
                     writeGuestDiscoveryResult(cached ?? savedResult);
@@ -723,15 +742,15 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         <div
             ref={pageRef}
             className={clsx(styles.page, {
-                [styles.initialPage]: !result,
-                [styles.reportPage]: Boolean(result),
+                [styles.initialPage]: !result || result.noResults,
+                [styles.reportPage]: Boolean(result) && !result.noResults,
                 [styles.pageWithPreview]: previewPaperIndex !== null,
             })}
             data-page-scroll
         >
             <section
                 className={clsx(styles.hero, {
-                    [styles.heroCompact]: Boolean(result),
+                    [styles.heroCompact]: Boolean(result) && !result.noResults,
                 })}
             >
                 {hero}
@@ -755,13 +774,13 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
 
             <form
                 className={clsx(styles.form, {
-                    [styles.dockedForm]: Boolean(result),
+                    [styles.dockedForm]: Boolean(result) && !result.noResults,
                 })}
                 onSubmit={runDiscovery}
             >
                 <div className={styles.formHeading}>
                     <label className={styles.label} htmlFor="discover-question">
-                        {result
+                        {result && !result.noResults
                             ? "Ask another research question"
                             : "Research question"}
                     </label>
@@ -793,11 +812,11 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             onChange={(event) => setQuestion(event.target.value)}
                             aria-describedby="discover-supporting-metadata"
                             placeholder={
-                                result
+                                result && !result.noResults
                                     ? "Ask another question…"
                                     : "e.g. How does GLP-1 receptor agonism affect cardiovascular outcomes in type 2 diabetes?"
                             }
-                            rows={result ? 1 : 4}
+                            rows={result && !result.noResults ? 1 : 4}
                             maxLength={2000}
                             disabled={isRunning}
                         />
@@ -841,7 +860,8 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             {isRunning && (
                 <section
                     className={clsx(styles.answerPreview, {
-                        [styles.answerPreviewOverReport]: Boolean(result),
+                        [styles.answerPreviewOverReport]:
+                            Boolean(result) && !result.noResults,
                     })}
                     aria-live="polite"
                     aria-busy="true"
@@ -907,7 +927,24 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 </div>
             )}
 
-            {result && (
+            {result?.noResults && (
+                <section className={styles.noResults} role="status">
+                    <p className={styles.noResultsKicker}>No papers found</p>
+                    <h2 className={styles.noResultsTitle}>
+                        Nothing I can synthesize yet
+                    </h2>
+                    <p className={styles.noResultsBody}>
+                        {result.message ||
+                            "I couldn't find papers for this one. Try a clearer research question — something I can actually look up in the literature."}
+                    </p>
+                    <blockquote className={styles.questionCard}>
+                        <span>Question</span>
+                        <p>{result.question}</p>
+                    </blockquote>
+                </section>
+            )}
+
+            {result && !result.noResults && (
                 <div className={styles.results}>
                     <header className={styles.reportHeader}>
                         <div>

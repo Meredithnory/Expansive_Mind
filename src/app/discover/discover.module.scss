@@ -629,6 +629,46 @@
     line-height: 1.5;
 }
 
+.noResults {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(820px, 100%);
+    margin: 0 auto;
+    padding: 22px 22px 20px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.noResultsKicker {
+    margin: 0;
+    color: #ff6aab;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.noResultsTitle {
+    margin: 0;
+    color: #e4f1ff;
+    font-size: 1.35rem;
+    font-weight: 620;
+    letter-spacing: -0.03em;
+}
+
+.noResultsBody {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.68);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.noResults .questionCard {
+    margin-top: 4px;
+}
+
 .historySection {
     width: min(780px, 100%);
     margin: 4px auto 0;

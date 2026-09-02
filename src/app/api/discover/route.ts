@@ -194,19 +194,54 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             anonymousId: userID ? undefined : identity,
         };
         const discovery = await cached({
-            namespace: "discovery-v4",
+            namespace: "discovery-v5",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),
         });
         const result = discovery.value;
-        if (!discovery.cacheHit) {
+        if (!discovery.cacheHit && !result.noResults) {
             deferUsageRecording({
                 context: usageContext,
                 provider: "literature_apis",
                 operation: "discovery_retrieval",
                 callCount: 12,
             });
+        }
+        if (result.noResults) {
+            if (reservation) {
+                await refundQuota({
+                    plan: reservation.plan,
+                    feature: "discover",
+                    identity: reservation.identity,
+                }).catch((refundError) =>
+                    console.warn(
+                        "Discovery no-results quota refund failed",
+                        refundError,
+                    ),
+                );
+                reservation = null;
+            }
+            const quotas = await getQuotaSnapshot({
+                plan,
+                identity,
+                userID,
+                unlimited: isAdminUser(request.user),
+            });
+            return NextResponse.json(
+                {
+                    ...result,
+                    id: `empty-${Date.now()}`,
+                    createdAt: new Date().toISOString(),
+                    plan,
+                    quota: quotas.discover,
+                    cacheHit: discovery.cacheHit,
+                },
+                {
+                    status: 200,
+                    headers: { "Cache-Control": "private, no-store" },
+                },
+            );
         }
         const savedDiscovery = request.user
             ? await SavedDiscovery.create({

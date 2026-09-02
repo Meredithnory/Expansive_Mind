@@ -37,6 +37,11 @@ import {
     applyDiscoverySpellingSuggestion,
     buildNihDiscoveryQuery,
 } from "./discovery-query";
+import {
+    judgeResearchQuestion,
+    NO_RESULTS_COPY,
+    shouldSearchLiterature,
+} from "./question-quality";
 
 export interface DiscoverPaperCard {
     index: number;
@@ -58,6 +63,8 @@ export interface DiscoverAgentResult {
     brief: string;
     report?: OpportunityReport;
     extractions: PaperExtraction[];
+    noResults?: boolean;
+    message?: string;
     meta: {
         springerCandidateCount: number;
         springerEligibleCount: number;
@@ -441,6 +448,31 @@ function collectExtractions(
     return { extractions, extractionFailureCount };
 }
 
+function emptyDiscoveryResult(question: string): DiscoverAgentResult {
+    return {
+        question,
+        papers: [],
+        brief: "",
+        extractions: [],
+        noResults: true,
+        message: NO_RESULTS_COPY,
+        meta: {
+            springerCandidateCount: 0,
+            springerEligibleCount: 0,
+            nihCandidateCount: 0,
+            nihEligibleCount: 0,
+            scholarCandidateCount: 0,
+            scholarEligibleCount: 0,
+            nihFillCount: 0,
+            papersUsed: 0,
+            usedNihFill: false,
+            usedScholar: false,
+            subQueriesUsed: [],
+            extractionFailureCount: 0,
+        },
+    };
+}
+
 export async function runDiscoverAgent(
     question: string,
     usageContext?: UsageContext,
@@ -454,6 +486,13 @@ export async function runDiscoverAgent(
             "No literature sources are configured. Add SPRINGER_API_KEY, NIH (API_KEY and NCBI_EMAIL), or SERPAPI_KEY to enable discovery.",
             503,
         );
+    }
+
+    // Cheap yes/no first. Expanding or eSpell-ing junk turns it into a real
+    // topic, then we go read papers the user never asked for.
+    const quality = await judgeResearchQuestion(question, usageContext);
+    if (!shouldSearchLiterature(quality)) {
+        return emptyDiscoveryResult(question);
     }
 
     let queries = await expandDiscoveryQueries(question, usageContext);
