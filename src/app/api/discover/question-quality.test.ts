@@ -6,17 +6,17 @@ const { createPrivateChatCompletion } = vi.hoisted(() => ({
 vi.mock("../openrouter", () => ({ createPrivateChatCompletion }));
 
 import {
-    emptyCandidateAction,
     judgeResearchQuestion,
     parseQuestionQuality,
     QUESTION_QUALITY_MODEL,
+    shouldSearchLiterature,
 } from "./question-quality";
 
-describe("emptyCandidateAction", () => {
-    it("returns no-results only when the question is clearly not research", () => {
-        expect(emptyCandidateAction("not_research")).toBe("no_results");
-        expect(emptyCandidateAction("research")).toBe("retry_spelling");
-        expect(emptyCandidateAction("unknown")).toBe("retry_spelling");
+describe("shouldSearchLiterature", () => {
+    it("skips search only when the question is clearly not research", () => {
+        expect(shouldSearchLiterature("not_research")).toBe(false);
+        expect(shouldSearchLiterature("research")).toBe(true);
+        expect(shouldSearchLiterature("unknown")).toBe(true);
     });
 });
 
@@ -54,7 +54,7 @@ describe("judgeResearchQuestion", () => {
         });
 
         await expect(
-            judgeResearchQuestion("asdfghjkl", {
+            judgeResearchQuestion("weijptw", {
                 feature: "discover",
                 userID: "user-1",
             }),
@@ -68,6 +68,7 @@ describe("judgeResearchQuestion", () => {
         expect(request.messages[0].content).toContain(
             "untrusted quoted material",
         );
+        expect(request.messages[0].content).toContain("keyboard smash");
         expect(request.messages[0].content).not.toContain("opportunity report");
         expect(usageContext).toEqual({
             feature: "discover",

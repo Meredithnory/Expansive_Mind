@@ -38,9 +38,9 @@ import {
     buildNihDiscoveryQuery,
 } from "./discovery-query";
 import {
-    emptyCandidateAction,
     judgeResearchQuestion,
     NO_RESULTS_COPY,
+    shouldSearchLiterature,
 } from "./question-quality";
 
 export interface DiscoverPaperCard {
@@ -448,18 +448,7 @@ function collectExtractions(
     return { extractions, extractionFailureCount };
 }
 
-function emptyDiscoveryResult(
-    question: string,
-    candidateResult: {
-        springerCandidateCount: number;
-        springerEligibleCount: number;
-        nihCandidateCount: number;
-        nihEligibleCount: number;
-        scholarCandidateCount: number;
-        scholarEligibleCount: number;
-    },
-    queries: string[],
-): DiscoverAgentResult {
+function emptyDiscoveryResult(question: string): DiscoverAgentResult {
     return {
         question,
         papers: [],
@@ -468,17 +457,17 @@ function emptyDiscoveryResult(
         noResults: true,
         message: NO_RESULTS_COPY,
         meta: {
-            springerCandidateCount: candidateResult.springerCandidateCount,
-            springerEligibleCount: candidateResult.springerEligibleCount,
-            nihCandidateCount: candidateResult.nihCandidateCount,
-            nihEligibleCount: candidateResult.nihEligibleCount,
-            scholarCandidateCount: candidateResult.scholarCandidateCount,
-            scholarEligibleCount: candidateResult.scholarEligibleCount,
+            springerCandidateCount: 0,
+            springerEligibleCount: 0,
+            nihCandidateCount: 0,
+            nihEligibleCount: 0,
+            scholarCandidateCount: 0,
+            scholarEligibleCount: 0,
             nihFillCount: 0,
             papersUsed: 0,
             usedNihFill: false,
             usedScholar: false,
-            subQueriesUsed: queries.slice(1),
+            subQueriesUsed: [],
             extractionFailureCount: 0,
         },
     };
@@ -499,6 +488,13 @@ export async function runDiscoverAgent(
         );
     }
 
+    // Cheap yes/no first. Expanding or eSpell-ing junk turns it into a real
+    // topic, then we go read papers the user never asked for.
+    const quality = await judgeResearchQuestion(question, usageContext);
+    if (!shouldSearchLiterature(quality)) {
+        return emptyDiscoveryResult(question);
+    }
+
     let queries = await expandDiscoveryQueries(question, usageContext);
     let candidateResult = await retrieveCandidates(
         question,
@@ -508,14 +504,6 @@ export async function runDiscoverAgent(
     let correctedQuery: string | undefined;
 
     if (candidateResult.selected.length === 0) {
-        // Cheap yes/no after a miss. Papers already found skip this entirely.
-        const quality = await judgeResearchQuestion(question, usageContext);
-        if (emptyCandidateAction(quality) === "no_results") {
-            return emptyDiscoveryResult(question, candidateResult, queries);
-        }
-
-        // NIH's spell fixer will happily turn "asdfghjkl" into a real topic.
-        // Keep that retry for actual research questions; skip it for junk.
         const suggestion = await suggestSearchQueryNihOnly(question).catch(
             () => null,
         );

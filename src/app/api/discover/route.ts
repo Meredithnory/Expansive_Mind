@@ -157,13 +157,13 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             anonymousId: userID ? undefined : identity,
         };
         const discovery = await cached({
-            namespace: "discovery-v4",
+            namespace: "discovery-v5",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),
         });
         const result = discovery.value;
-        if (!discovery.cacheHit) {
+        if (!discovery.cacheHit && !result.noResults) {
             deferUsageRecording({
                 context: usageContext,
                 provider: "literature_apis",

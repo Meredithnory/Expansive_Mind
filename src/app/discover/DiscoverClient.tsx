@@ -105,6 +105,7 @@ type DiscoverResponse = {
 
 type AgentStep =
     | "idle"
+    | "checking"
     | "expanding"
     | "searching"
     | "reading"
@@ -114,6 +115,7 @@ type AgentStep =
     | "done";
 
 const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
+    checking: "Taking a look at your question…",
     expanding: "Expanding your question into targeted searches…",
     searching: "Searching Springer Nature, NIH PubMed Central, and Google Scholar…",
     reading: "Reading licensed paper excerpts…",
@@ -136,6 +138,7 @@ const AGENT_STEPS: Array<{
 
 const STEP_ORDER: Record<AgentStep, number> = {
     idle: -1,
+    checking: -1,
     expanding: 0,
     searching: 1,
     reading: 2,
@@ -617,9 +620,12 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             setShowPlanLink(false);
             // Keep the current brief visible while a follow-up discovery runs.
             if (!result) setResult(null);
-            setStep("expanding");
+            // Don't pretend we expanded or started reading until the cheap
+            // quality check has had a beat. Junk should bounce before this.
+            setStep("checking");
 
             const timers = [
+                window.setTimeout(() => setStep("expanding"), 3_000),
                 window.setTimeout(() => setStep("searching"), 8_000),
                 window.setTimeout(() => setStep("reading"), 20_000),
                 window.setTimeout(() => setStep("extracting"), 36_000),
