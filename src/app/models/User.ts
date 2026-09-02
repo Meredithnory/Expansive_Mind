@@ -67,14 +67,14 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-// Hash the password before saving.
+//Fire a function before document is saved to db - first got to salt the password & hash before storing in db
 userSchema.pre("save", async function (next) {
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
 
-// no-op post-save hook kept for mongoose middleware order
+//Fire a function after document has been saved to db
 userSchema.post("save", function (doc, next) {
     next();
 });

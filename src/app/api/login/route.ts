@@ -7,7 +7,7 @@ import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 
 const maxAge = 24 * 60 * 60;
 
-// Sign a 1-day JWT containing the user id.
+//Defining a function to create token - encrypting the token with the secret
 const createToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET!, {
         expiresIn: 24 * 60 * 60, //JWT in seconds
