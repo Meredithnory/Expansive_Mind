@@ -12,6 +12,7 @@ import { deferUsageRecording } from "../../lib/usage-meter";
 import { resolvePlan } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
 import { loadCachedPaperBySource } from "./load-paper";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
 export const GET = withOptionalAuth(async (request: NextRequest) => {
     const requestStartedAt = performance.now();
@@ -66,6 +67,27 @@ export const GET = withOptionalAuth(async (request: NextRequest) => {
                 { error: `Unsupported database: ${database}` },
                 { status: 400 }
             );
+        }
+
+        if (!request.user) {
+            const dailyCap = await consumeGuestDailyCap(request, "paper");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error:
+                            "That's the guest paper limit for today. Create an account to keep reading.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
         }
 
         interface MessageInterface {

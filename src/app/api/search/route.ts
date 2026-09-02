@@ -22,6 +22,7 @@ import {
     type UsageContext,
 } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
 type SourceFilter = "all" | "nih" | "springer" | "scholar";
 
@@ -191,6 +192,26 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 { error: "Invalid search options." },
                 { status: 400 },
             );
+        }
+
+        if (!req.user) {
+            const dailyCap = await consumeGuestDailyCap(req, "search");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error: "That's the guest search limit for today.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
         }
 
         const entitlements = await getPlanEntitlements(plan);

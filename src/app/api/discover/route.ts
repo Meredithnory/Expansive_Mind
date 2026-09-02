@@ -22,6 +22,7 @@ import {
 } from "../../lib/provider-cache";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
 export const maxDuration = 120;
 
@@ -140,6 +141,27 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { error: "A research question of 1–2000 characters is required." },
                 { status: 400 },
             );
+        }
+
+        if (!request.user) {
+            const dailyCap = await consumeGuestDailyCap(request, "discover");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error:
+                            "That's the guest limit for today. Create an account to keep going.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
         }
 
         const quota = await consumeQuota({
