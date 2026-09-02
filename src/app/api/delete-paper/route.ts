@@ -4,7 +4,10 @@ import { withAuth } from "../authMiddleware";
 import SavedPaper from "../../models/SavedPaper";
 import Message from "../../models/Message";
 import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
 import { normalizeStoredPaperId } from "../../lib/paper-sources";
 import PaperHighlight from "../../models/PaperHighlight";
 
@@ -16,10 +19,28 @@ export const DELETE = withAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
-        const { primarySource, paperId, idName } = await request.json();
+        const parsedBody = await readLimitedJsonBody(request, 8 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                { success: false, error: "A valid paper reference is required." },
+                { status: parsedBody.status },
+            );
+        }
+        const { primarySource, paperId, idName } =
+            parsedBody.value as Record<string, unknown>;
         const userID = request.user._id;
 
-        if (!primarySource || !paperId || !idName) {
+        if (
+            typeof primarySource !== "string" ||
+            typeof paperId !== "string" ||
+            typeof idName !== "string" ||
+            !primarySource.trim() ||
+            !paperId.trim() ||
+            !idName.trim() ||
+            primarySource.length > 100 ||
+            paperId.length > 300 ||
+            idName.length > 50
+        ) {
             return NextResponse.json(
                 {
                     success: false,
@@ -31,9 +52,9 @@ export const DELETE = withAuth(async (request: NextRequest) => {
 
         const paper = await findSavedPaperForUser({
             userID,
-            primarySource,
-            paperId,
-            idName,
+            primarySource: primarySource.trim(),
+            paperId: paperId.trim(),
+            idName: idName.trim(),
         });
 
         if (!paper) {
@@ -46,9 +67,10 @@ export const DELETE = withAuth(async (request: NextRequest) => {
         await Message.deleteMany({ savedPaperID: paper._id });
         await PaperHighlight.deleteMany({
             userID,
-            primarySource: paper.primarySource || primarySource,
-            paperId: paper.paperId || normalizeStoredPaperId(paperId),
-            idName: paper.idName || idName,
+            primarySource: paper.primarySource || primarySource.trim(),
+            paperId:
+                paper.paperId || normalizeStoredPaperId(paperId.trim()),
+            idName: paper.idName || idName.trim(),
         });
         await SavedPaper.deleteOne({ _id: paper._id });
 

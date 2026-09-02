@@ -124,8 +124,8 @@ export async function suggestSearchQuery(
             ]);
             nihSuggestion = nih || ai;
         }
-    } catch (err) {
-        console.error("Search suggestion failed:", err);
+    } catch {
+        console.error("Search suggestion failed");
     }
 
     return nihSuggestion;

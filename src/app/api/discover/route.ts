@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
 import SavedDiscovery from "../../models/SavedDiscovery";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
 import {
@@ -19,6 +22,7 @@ import {
 } from "../../lib/provider-cache";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
 export const maxDuration = 120;
 
@@ -92,6 +96,18 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Discovery request is too large."
+                            : "A valid discovery request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
 
         const userID = request.user?._id?.toString();
         const identity = userID || requestIp(request);
@@ -116,7 +132,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             );
         }
 
-        const data = await request.json();
+        const data = parsedBody.value as Record<string, unknown>;
         const question =
             typeof data.question === "string" ? data.question.trim() : "";
 
@@ -125,6 +141,27 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { error: "A research question of 1–2000 characters is required." },
                 { status: 400 },
             );
+        }
+
+        if (!request.user) {
+            const dailyCap = await consumeGuestDailyCap(request, "discover");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error:
+                            "That's the guest limit for today. Create an account to keep going.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
         }
 
         const quota = await consumeQuota({

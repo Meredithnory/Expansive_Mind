@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import User from "../models/User";
 import connectDB from "../db/connectDB";
+import { sessionVersionMatches } from "../lib/session-version";
 
 const jwtSecret = () => {
     if (!process.env.JWT_SECRET) {
@@ -14,10 +15,16 @@ export async function attachAuthenticatedUser(req: NextRequest) {
     const token = req.cookies.get("auth_token")?.value;
     if (!token) return null;
 
-    const { payload } = await jwtVerify(token, jwtSecret());
+    const { payload } = await jwtVerify(token, jwtSecret(), {
+        algorithms: ["HS256"],
+    });
+    if (typeof payload.id !== "string" || !payload.id) return null;
     await connectDB();
     const user = await User.findById(payload.id);
     if (!user) return null;
+    if (!sessionVersionMatches(payload.tokenVersion, user.tokenVersion)) {
+        return null;
+    }
     req.user = user;
     return user;
 }

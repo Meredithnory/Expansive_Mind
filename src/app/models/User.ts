@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema({
         required: [true, "Please enter a password"],
         minLength: [6, "Minimum password length is 6 characters"],
     },
+    tokenVersion: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     submittedAt: {
         type: Date,
         default: Date.now,
@@ -69,6 +74,10 @@ const userSchema = new mongoose.Schema({
 
 //Fire a function before document is saved to db - first got to salt the password & hash before storing in db
 userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) {
+        next();
+        return;
+    }
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);
     next();

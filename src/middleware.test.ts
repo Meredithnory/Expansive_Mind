@@ -4,9 +4,14 @@ import { NextRequest } from "next/server";
 import { config, middleware } from "./middleware";
 
 const originalSecret = process.env.JWT_SECRET;
+const originalAdminEmails = process.env.ADMIN_EMAILS;
 
-async function token() {
-    return new SignJWT({ id: "user-1" })
+async function token(email?: string) {
+    return new SignJWT({
+        id: "user-1",
+        tokenVersion: 0,
+        ...(email ? { email } : {}),
+    })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("1h")
         .sign(new TextEncoder().encode(process.env.JWT_SECRET));
@@ -29,6 +34,7 @@ describe("auth navigation middleware", () => {
     afterEach(() => {
         vi.restoreAllMocks();
         process.env.JWT_SECRET = originalSecret;
+        process.env.ADMIN_EMAILS = originalAdminEmails;
     });
 
     it("only matches protected route trees and exact auth routes", () => {
@@ -74,5 +80,23 @@ describe("auth navigation middleware", () => {
         expect(response.headers.get("set-cookie")).toContain(
             "auth_token=; Path=/; Expires=",
         );
+    });
+
+    it("returns 403 for a signed-in user outside the admin allowlist", async () => {
+        process.env.ADMIN_EMAILS = "owner@example.test";
+        const response = await middleware(
+            request("/admin", await token("member@example.test")),
+        );
+
+        expect(response.status).toBe(403);
+    });
+
+    it("checks the current admin allowlist on every admin page request", async () => {
+        process.env.ADMIN_EMAILS = "owner@example.test";
+        const response = await middleware(
+            request("/admin/usage", await token("owner@example.test")),
+        );
+
+        expect(response.headers.get("x-middleware-next")).toBe("1");
     });
 });

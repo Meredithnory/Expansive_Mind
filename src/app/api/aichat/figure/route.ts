@@ -314,7 +314,7 @@ export const POST = withAuth(async (request: NextRequest) => {
                 identity: userID,
             }).catch(() => undefined);
         }
-        console.error("Figure analysis failed", error);
+        console.error("Figure analysis failed");
         const message =
             error instanceof Error &&
             /image|figure|supported|dimensions|5 MB/i.test(error.message)
