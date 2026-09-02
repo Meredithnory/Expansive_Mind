@@ -100,7 +100,7 @@ describe("extractPaperFindings", () => {
             "untrusted quoted material",
         );
         expect(request.messages[1].content).toContain(
-            `"""${paper.excerpt}"""`,
+            JSON.stringify(paper.excerpt),
         );
         expect(PAPER_EXCERPT_CHAR_BUDGET).toBe(3_000);
     });
