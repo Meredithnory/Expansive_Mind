@@ -8,12 +8,21 @@ import {
     hasValidMutationOrigin,
     readLimitedJsonBody,
 } from "../../lib/request-security";
+import { sessionVersion } from "../../lib/session-version";
 
 const maxAge = 24 * 60 * 60;
 
 //Defining a function to create token - encrypting the token with the secret
-const createToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET!, {
+const createToken = (user: {
+    _id: { toString(): string };
+    email: string;
+    tokenVersion?: number;
+}) => {
+    return jwt.sign({
+        id: user._id.toString(),
+        email: user.email.trim().toLowerCase(),
+        tokenVersion: sessionVersion(user.tokenVersion),
+    }, process.env.JWT_SECRET!, {
         algorithm: "HS256",
         expiresIn: 24 * 60 * 60, //JWT in seconds
     });
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create token
-        const token = createToken(user._id.toString());
+        const token = createToken(user);
 
         // Create response
         const response = NextResponse.json({

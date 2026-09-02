@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import User from "../models/User";
 import connectDB from "../db/connectDB";
+import { sessionVersionMatches } from "../lib/session-version";
 
 const jwtSecret = () => {
     if (!process.env.JWT_SECRET) {
@@ -21,6 +22,9 @@ export async function attachAuthenticatedUser(req: NextRequest) {
     await connectDB();
     const user = await User.findById(payload.id);
     if (!user) return null;
+    if (!sessionVersionMatches(payload.tokenVersion, user.tokenVersion)) {
+        return null;
+    }
     req.user = user;
     return user;
 }

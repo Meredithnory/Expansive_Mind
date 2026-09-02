@@ -7,6 +7,7 @@ import {
     hasAcceptableContentLength,
     hasValidMutationOrigin,
 } from "../../lib/request-security";
+import { sessionVersion } from "../../lib/session-version";
 
 const maxAge = 24 * 60 * 60;
 
@@ -107,7 +108,11 @@ export async function POST(request: NextRequest) {
 
         //Return success response
         const token = jwt.sign(
-            { id: savedSubmission._id.toString() },
+            {
+                id: savedSubmission._id.toString(),
+                email: savedSubmission.email,
+                tokenVersion: sessionVersion(savedSubmission.tokenVersion),
+            },
             process.env.JWT_SECRET!,
             { algorithm: "HS256", expiresIn: maxAge },
         );
