@@ -743,14 +743,14 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             ref={pageRef}
             className={clsx(styles.page, {
                 [styles.initialPage]: !result || result.noResults,
-                [styles.reportPage]: Boolean(result) && !result.noResults,
+                [styles.reportPage]: Boolean(result && !result.noResults),
                 [styles.pageWithPreview]: previewPaperIndex !== null,
             })}
             data-page-scroll
         >
             <section
                 className={clsx(styles.hero, {
-                    [styles.heroCompact]: Boolean(result) && !result.noResults,
+                    [styles.heroCompact]: Boolean(result && !result.noResults),
                 })}
             >
                 {hero}
@@ -774,7 +774,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
 
             <form
                 className={clsx(styles.form, {
-                    [styles.dockedForm]: Boolean(result) && !result.noResults,
+                    [styles.dockedForm]: Boolean(result && !result.noResults),
                 })}
                 onSubmit={runDiscovery}
             >
@@ -861,7 +861,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 <section
                     className={clsx(styles.answerPreview, {
                         [styles.answerPreviewOverReport]:
-                            Boolean(result) && !result.noResults,
+                            Boolean(result && !result.noResults),
                     })}
                     aria-live="polite"
                     aria-busy="true"
