@@ -59,6 +59,8 @@ html.is-scrolling .main-content::-webkit-scrollbar-thumb:hover {
 :root {
     color-scheme: dark;
     background-color: #000;
+    /* Desktop: no bottom chrome. Mobile override matches the fixed nav. */
+    --mobile-bottom-nav-clearance: 0px;
 }
 
 html {
@@ -116,6 +118,13 @@ textarea {
 }
 
 @media (max-width: 720px) {
+    :root {
+        /* Pill (~56px) + shell pad (10px) + gap (~22px) + home-indicator. */
+        --mobile-bottom-nav-clearance: calc(
+            88px + env(safe-area-inset-bottom, 0px)
+        );
+    }
+
     html,
     body {
         height: auto;
@@ -130,7 +139,7 @@ textarea {
         padding:
             max(12px, env(safe-area-inset-top))
             max(16px, env(safe-area-inset-right))
-            calc(88px + env(safe-area-inset-bottom))
+            var(--mobile-bottom-nav-clearance)
             max(16px, env(safe-area-inset-left));
         overscroll-behavior-y: auto;
     }
