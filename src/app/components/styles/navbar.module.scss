@@ -50,7 +50,8 @@
         right: 12px;
         width: auto;
         margin: 0;
-        padding: 0 0 calc(10px + env(safe-area-inset-bottom));
+        /* Height of this stack is reserved as --mobile-bottom-nav-clearance. */
+        padding: 0 0 calc(10px + env(safe-area-inset-bottom, 0px));
         background: none;
         border: 0;
         border-radius: 0;

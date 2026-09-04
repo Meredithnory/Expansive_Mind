@@ -1775,7 +1775,6 @@
     }
 
     .dockedForm {
-        bottom: max(10px, env(safe-area-inset-bottom));
         width: calc(100vw - 20px);
         max-height: min(46dvh, 320px);
         overflow-y: auto;
@@ -1837,6 +1836,17 @@
 
     .historyHeading {
         align-items: flex-start;
+    }
+}
+
+@media (max-width: 720px) {
+    .dockedForm {
+        /* Sit above the thumb-reachable bottom nav, not on top of it. */
+        bottom: var(--mobile-bottom-nav-clearance);
+    }
+
+    .results {
+        padding-bottom: calc(150px + var(--mobile-bottom-nav-clearance));
     }
 }
 

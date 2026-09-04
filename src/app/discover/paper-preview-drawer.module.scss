@@ -325,9 +325,15 @@
     }
 }
 
+@media (max-width: 720px) {
+    .overlay {
+        bottom: var(--mobile-bottom-nav-clearance);
+    }
+}
+
 @media (max-width: 620px) {
     .overlay {
-        inset: auto 10px max(10px, env(safe-area-inset-bottom));
+        inset: auto 10px var(--mobile-bottom-nav-clearance);
         width: calc(100vw - 20px);
         align-items: flex-end;
         justify-content: stretch;
@@ -337,9 +343,7 @@
         width: 100%;
         height: auto;
         max-height: min(72dvh, 560px);
-        padding:
-            14px 18px
-            max(16px, env(safe-area-inset-bottom));
+        padding: 14px 18px 16px;
         border-radius: 22px;
         animation-name: slide-up;
     }
