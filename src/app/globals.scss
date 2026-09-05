@@ -130,22 +130,28 @@ textarea {
         height: auto;
         max-height: none;
         overflow-x: clip;
+        overscroll-behavior-x: none;
     }
 
     body {
         width: 100%;
         max-width: 100%;
-        overflow: visible;
+        /* Keep overflow-x clipped; the shorthand would reopen horizontal scroll. */
+        overflow-x: clip;
+        overflow-y: visible;
         padding:
             max(12px, env(safe-area-inset-top))
             max(16px, env(safe-area-inset-right))
             var(--mobile-bottom-nav-clearance)
             max(16px, env(safe-area-inset-left));
+        overscroll-behavior-x: none;
         overscroll-behavior-y: auto;
     }
 
     .main-content {
-        overflow: visible;
+        max-width: 100%;
+        overflow-x: clip;
+        overflow-y: visible;
     }
 }
 
