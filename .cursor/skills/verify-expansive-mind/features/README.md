@@ -38,6 +38,6 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 
 ## Features
 
-- [Discover](./discover.md) covers the question form, progress, opportunity report, and guest vs signed-in share affordance.
+- [Discover](./discover.md) covers the question form, progress, opportunity report, claim ledger, and guest vs signed-in share affordance (locked until the ledger is complete).
 - [Shareable brief](./shareable-brief.md) covers Discover share, paper summary share, and the public `/brief/{slug}` page.
 - [Paper reader](./paper-reader.md) covers opening a cited paper from a report, load, tools, and chat.

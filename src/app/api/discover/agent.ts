@@ -20,6 +20,7 @@ import {
     dedupeDiscoverCandidates,
     type DiscoverCandidate,
 } from "./select-candidates";
+import { attachClaimLedger } from "./claim-ledger";
 import { synthesizeOpportunityReport } from "./synthesize";
 import {
     extractPaperFindings,
@@ -571,7 +572,9 @@ export async function runDiscoverAgent(
         question,
         papers: cards,
         brief: synthesis.brief,
-        report: synthesis.report,
+        report: synthesis.report
+            ? attachClaimLedger(synthesis.report, cards, extractions)
+            : undefined,
         extractions,
         meta: {
             springerCandidateCount,

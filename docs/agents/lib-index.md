@@ -42,7 +42,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `session-types.ts` | both | Session / quota snapshot types |
 | `session-version.ts` | both | Revocable JWT `tokenVersion` |
 | `share-slug.ts` | both | Public share slug helpers |
-| `shared-brief.ts` | server | Load public shared brief |
+| `shared-brief.ts` | server | Load public shared brief, including a discovery claim ledger |
 | `springer-media.ts` | both | Springer image URLs |
 | `stripe.ts` | server | Stripe client + price IDs |
 | `usage-meter.ts` | server | Record estimated AI cost |

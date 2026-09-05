@@ -33,9 +33,11 @@ UI DiscoverClient
         5. load excerpts (content-access-policy)
         6. extractPaperFindings
         7. synthesizeOpportunityReport
+        8. attachClaimLedger (gaps / problems / ventures → sourced rows)
     → persist SavedDiscovery (signed-in) or guest cache
-  ← papers + brief + OpportunityReport
+  ← papers + brief + OpportunityReport (includes claimLedger)
 UI may open /paperchatbot/... or seed /api/projects
+Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote and a resolvable paper citation. Public `/brief/{slug}` carries that structured ledger.
 ```
 
 ## Auth & session

@@ -6,6 +6,7 @@ import {
     briefPreviewText,
     findSharedBrief,
 } from "../../lib/shared-brief";
+import ClaimLedgerView from "../../discover/ClaimLedgerView";
 import styles from "./brief.module.scss";
 
 export async function generateMetadata({
@@ -72,6 +73,12 @@ const SharedBriefPage = async ({
                         <span>{shared.publicationDate}</span>
                     )}
                 </p>
+
+                {shared.claimLedger ? (
+                    <div className={styles.ledger}>
+                        <ClaimLedgerView ledger={shared.claimLedger} />
+                    </div>
+                ) : null}
 
                 <div className={styles.brief}>
                     <ReactMarkdown>{shared.brief}</ReactMarkdown>

@@ -4,7 +4,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 
 | Feature | UI entry | API / server | Shared types / lib | Tests | Avoid unless editing |
 | --- | --- | --- | --- | --- | --- |
-| Discover | `src/app/discover/page.tsx` | `src/app/api/discover/route.ts` → `agent.ts` | `src/app/discover/discover-types.ts`, `src/app/api/discover/report-types.ts` | `src/app/api/discover/*.test.ts`, `src/app/discover/report-text.test.ts` | `DiscoverClient.tsx` (~1.3k), `OpportunityReportView.tsx` |
+| Discover | `src/app/discover/page.tsx` | `src/app/api/discover/route.ts` → `agent.ts` | `src/app/discover/discover-types.ts`, `src/app/api/discover/report-types.ts`, `src/app/api/discover/claim-ledger.ts` | `src/app/api/discover/*.test.ts`, `src/app/discover/report-text.test.ts` | `DiscoverClient.tsx` (~1.3k), `OpportunityReportView.tsx` |
 | Discover pipeline | — | `question-quality.ts` → `expand-queries.ts` → `search/utils.ts` → `select-candidates.ts` → `analyze.ts` → `synthesize.ts` | `src/app/lib/content-access-policy.ts`, `paper-context.ts` | `agent.test.ts`, `question-quality.test.ts`, `synthesize.test.ts` | `src/app/api/search/utils.ts` |
 | Search | `src/app/searchpaper/page.tsx` | `src/app/api/search/route.ts` | `src/app/lib/search-suggest.ts`, `paper-sources.ts` | `src/app/api/search/springer-query.test.ts` | `SearchPaperClient.tsx`, `search/utils.ts` |
 | Paper reader | `src/app/paperchatbot/[database]/[...paperId]/page.tsx` | `src/app/api/paper/route.ts` | `src/app/lib/paper-sources.ts`, `paper-citation.ts` | `src/app/api/paper/load-paper.test.ts` | `paper/utils.ts` (~1k), `Paperbox.tsx`, `Chatbox.tsx` |
@@ -12,7 +12,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Figure chat | same reader | `src/app/api/aichat/figure/route.ts` | `src/app/lib/figure-image.ts`, `figure-capture.ts` | `src/app/api/aichat/figure/route.test.ts` | — |
 | Library | `src/app/savedpapers/page.tsx` | `src/app/api/all-user-papers/route.ts`, `delete-paper`, `highlights` | `src/app/lib/saved-paper-utils.ts` | `src/app/api/highlights/route.test.ts` | — |
 | Projects / plans | `src/app/projects/[id]/page.tsx` | `src/app/api/projects/route.ts`, `[id]/route.ts`, `[id]/research` | `src/app/lib/project-types.ts` | `generate-plan.test.ts`, `generate-briefing.test.ts` | `ProjectDetailClient.tsx` |
-| Share / brief | `src/app/brief/[slug]/page.tsx` | `src/app/api/discover/share/route.ts`, `src/app/api/brief/route.ts` | `src/app/lib/share-slug.ts`, `shared-brief.ts` | — | — |
+| Share / brief | `src/app/brief/[slug]/page.tsx` | `src/app/api/discover/share/route.ts`, `src/app/api/brief/route.ts` | `src/app/lib/share-slug.ts`, `shared-brief.ts`, `src/app/api/discover/claim-ledger.ts` | `src/app/api/discover/share/route.test.ts`, `src/app/api/discover/claim-ledger.test.ts` | — |
 | Auth / session | `src/app/login/page.tsx`, `signup` | `src/app/api/login`, `signup`, `logout`, `session`, `account/password` | `src/app/api/authMiddleware.ts`, `src/app/lib/use-session.tsx`, `session-version.ts` | `src/middleware.test.ts`, `session-version.test.ts` | — |
 | Billing | `src/app/pricing/page.tsx` | `src/app/api/billing/checkout`, `portal`, `webhook` | `src/app/lib/stripe.ts`, `billing-subscription.ts`, `plan-config.ts` | `billing-subscription.test.ts`, `stripe-webhook-signature.test.ts` | — |
 | Quotas | — | consumed in discover/search/chat/projects routes | `src/app/lib/entitlements.ts`, `guest-usage.ts`, `guest-cost-cap.ts` | `entitlements.test.ts`, `guest-*.test.ts` | — |

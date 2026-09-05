@@ -88,6 +88,26 @@ export interface OpportunityReportSections {
     projectSeeds: ProjectSeed[];
 }
 
+export type ClaimLedgerKind = "gap" | "problem" | "venture";
+
+/** One sourced claim on the opportunity brief. Quote is a licensed excerpt, never invented. */
+export interface ClaimLedgerRow {
+    id: string;
+    kind: ClaimLedgerKind;
+    claim: string;
+    paperIndex?: number;
+    paperId?: string;
+    doi?: string;
+    href?: string;
+    quote: string;
+    confidence?: ReportConfidence;
+}
+
+export interface ClaimLedger {
+    rows: ClaimLedgerRow[];
+}
+
 export interface OpportunityReport {
     sections: OpportunityReportSections;
+    claimLedger?: ClaimLedger;
 }

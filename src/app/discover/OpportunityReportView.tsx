@@ -12,6 +12,7 @@ import type {
 } from "../api/discover/report-types";
 import { useSession } from "../lib/use-session";
 import { splitCitedText, splitParagraphs } from "./report-text";
+import ClaimLedgerView from "./ClaimLedgerView";
 
 type ProjectGapPayload = {
     title: string;
@@ -326,6 +327,13 @@ export default function OpportunityReportView({
 
     return (
         <div className={styles.briefGrid}>
+            {report.claimLedger ? (
+                <ClaimLedgerView
+                    ledger={report.claimLedger}
+                    activePaperIndex={activePaperIndex}
+                    onCitePaper={onCitePaper}
+                />
+            ) : null}
             {showError && (
                 <div className={styles.projectNotice} role="alert">
                     <span>{action.error}</span>

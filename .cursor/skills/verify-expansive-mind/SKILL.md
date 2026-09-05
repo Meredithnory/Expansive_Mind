@@ -67,9 +67,9 @@ Stable handles (from source, not guesses):
 - Discover question: `#discover-question` (`<textarea>`, label **Research question** or **Ask another research question**).
 - Discover submit: button **Run discovery** (disabled while empty or **Working…**).
 - Discover running: `aria-live="polite"` region, copy **Your answer is taking shape**, steps **Expanding your question** through **Composing report**.
-- Discover report: **Topic synthesis**, then **Gaps, problems, and potential** (structured) or **Evidence synthesis**. Cards **State of the science** and **Gaps in the science**. Paper nodes `id="discover-paper-{index}"`.
-- Discover share: **Share synthesis** (signed-in only, `result.id` is a 24-char hex ObjectId). Success label **Link copied!**.
-- Brief page: `/brief/{slug}`. Eyebrow **Topic Synthesis** or **Paper Summary**. Heading is the question or paper title. Source list heading **Papers behind this synthesis**. Primary CTA **Try Discover** or **Open this paper**.
+- Discover report: **Topic synthesis**, then **Gaps, problems, and potential** (structured) or **Evidence synthesis**. Cards **Claim ledger** (`#claim-ledger`), **State of the science**, and **Gaps in the science**. Paper nodes `id="discover-paper-{index}"`. Clicking a complete ledger row opens the same paper preview as a citation chip.
+- Discover share: **Share synthesis** (signed-in only, `result.id` is a 24-char hex ObjectId). Enabled only when every claim-ledger row has a non-empty excerpt and a resolvable paper citation (DOI, paper id, or href). Incomplete: the button stays visible and disabled; `#discover-share-lock` explains why. Success label **Link copied!**.
+- Brief page: `/brief/{slug}`. Eyebrow **Topic Synthesis** or **Paper Summary**. Heading is the question or paper title. Topic briefs also show **Claim ledger** (`#claim-ledger`) as structured rows (quote + DOI or paper link), not markdown-only. Source list heading **Papers behind this synthesis**. Primary CTA **Try Discover** or **Open this paper**.
 - Paper reader: `/paperchatbot/{nih|springer|scholar}/{id}` from `buildPaperPath`. Title is an `h1`. Back control **Back to research**. Signed-in toolbar `aria-label="Paper tools"`: **Highlight**, **Share summary**. Summary dialog `aria-label="Paper summary"`, generate **Generate summary**, copy **Copy share link**. Chat placeholder **Ask this paper…**, send `aria-label="Send message"`.
 - Login: `/login`, heading **Login**, email `name="email"`, password `name="password"`, submit **Login**.
 
