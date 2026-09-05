@@ -9,7 +9,7 @@
 - License checks go through `evaluateContentAccess` / `canUseFigureImage`.
 - Quotas go through `consumeQuota` + `resolvePlan`. Do not hardcode plan numbers in UI except to display the snapshot.
 - Tests: Vitest, colocated `*.test.ts`. Mock `server-only`. Look at `src/app/api/discover/agent.test.ts` for the pattern.
-- Package manager in docs/scripts: **npm** (`package-lock.json`). `pnpm-lock.yaml` exists but is not the documented path.
+- Package manager for this repo: **npm** (`package-lock.json`). `pnpm-lock.yaml` exists but is not the documented path.
 
 ## Forbidden
 

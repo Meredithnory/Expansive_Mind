@@ -29,7 +29,6 @@ import type {
     DiscoveryQuota,
     DiscoverResponse,
     OpportunityReport,
-    PaperExtraction,
 } from "./discover-types";
 import {
     evidenceMixLabel,
