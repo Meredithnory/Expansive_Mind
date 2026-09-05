@@ -60,3 +60,9 @@ npm run lint
 - `CONTENT_ACCESS_MODE` and license/AI-send policy
 - Public marketing copy and brand voice (`OWNER-EDIT` sections)
 - Secrets (never commit `.env.local`)
+
+## Product bar (locked)
+
+- **No share without claim ledger** once built: every Discover opportunity-brief claim needs a source (DOI + quote/excerpt) before Share synthesis.
+- Until the ledger ships, treat share as incomplete vs the product bar.
+- First-50: mix of ECR personal pay and PI/lab — learn in validation (concierge test). Do not invent a single ICP.

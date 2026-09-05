@@ -22,6 +22,7 @@ Agents do **not** merge. Wait for the GitHub Actions **CI** check (`.github/work
 4. Tests cover the new branch. `npm test` and `npm run lint` pass. Discover or brief claims also have verify-expansive-mind evidence.
 5. `.env.example` updated if a new variable appeared. No secrets in the diff.
 6. Agent docs still true. If a path moved, update FEATURES / architecture / lib-index.
+7. Share / brief: once a claim ledger exists, no Share synthesis without every claim linked (DOI + quote/excerpt). Until then, treat share as incomplete vs the product bar.
 
 ## Owner / e.m. approve when
 
