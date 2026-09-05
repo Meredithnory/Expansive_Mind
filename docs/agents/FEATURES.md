@@ -1,6 +1,6 @@
 # Feature index
 
-Open the **entry** and **tests** first. Skip the “avoid” column unless the task is inside that file.
+Launch priority: Discover → shareable brief. Open the **entry** and **tests** first. Skip the “avoid” column unless the task is inside that file.
 
 | Feature | UI entry | API / server | Shared types / lib | Tests | Avoid unless editing |
 | --- | --- | --- | --- | --- | --- |
