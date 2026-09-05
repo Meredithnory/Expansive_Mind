@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE_URL="${EM_VERIFY_BASE_URL:-${1:-http://127.0.0.1:3000}}"
+BASE_URL="${BASE_URL%/}"
+EXPECT_AUTH="${EM_VERIFY_EXPECT_AUTH:-0}"
+
+fail() {
+  echo "doctor fail: $*" >&2
+  exit 1
+}
+
+discover_html="$(curl -fsS -L --max-time 25 "${BASE_URL}/discover")" \
+  || fail "GET ${BASE_URL}/discover"
+printf '%s' "$discover_html" | grep -q "Discover across papers" \
+  || fail "Discover heading missing"
+printf '%s' "$discover_html" | grep -q 'id="discover-question"' \
+  || fail "#discover-question missing"
+
+session_body="$(mktemp)"
+session_code="$(curl -sS -o "$session_body" -w '%{http_code}' --max-time 20 \
+  "${BASE_URL}/api/session")" \
+  || fail "GET /api/session"
+if [[ "$EXPECT_AUTH" == "1" ]]; then
+  [[ "$session_code" == "200" ]] || fail "GET /api/session expected 200, got ${session_code}"
+  grep -q '"authenticated":true' "$session_body" \
+    || fail "session 200 missing authenticated true"
+else
+  [[ "$session_code" == "401" ]] || fail "GET /api/session expected 401 anonymous, got ${session_code}"
+  grep -q "Please login" "$session_body" \
+    || fail "session 401 body mismatch"
+fi
+
+paper_body="$(mktemp)"
+paper_code="$(curl -sS -o "$paper_body" -w '%{http_code}' --max-time 20 \
+  "${BASE_URL}/api/paper")" \
+  || fail "GET /api/paper"
+[[ "$paper_code" == "400" ]] || fail "GET /api/paper expected 400, got ${paper_code}"
+grep -q "A valid paper reference is required" "$paper_body" \
+  || fail "paper 400 body mismatch"
+
+brief_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+  "${BASE_URL}/brief/x")" \
+  || fail "GET /brief/x"
+[[ "$brief_code" == "404" ]] || fail "GET /brief/x expected 404, got ${brief_code}"
+
+echo "doctor ok: ${BASE_URL}"
+echo "  GET /discover has Discover across papers and #discover-question"
+if [[ "$EXPECT_AUTH" == "1" ]]; then
+  echo "  GET /api/session HTTP 200 authenticated"
+else
+  echo "  GET /api/session HTTP 401 anonymous"
+fi
+echo "  GET /api/paper HTTP 400 missing ref"
+echo "  GET /brief/x HTTP 404 invalid slug"
