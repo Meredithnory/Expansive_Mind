@@ -2,6 +2,8 @@
 
 Expansive Mind is a discovery-first research workspace. It synthesizes evidence across open literature, connects every claim to its source papers, supports paper-grounded reading and chat, and turns promising evidence gaps into saved research plans.
 
+AI agents: start at [AGENTS.md](AGENTS.md). Do not scan the whole repo to orient.
+
 ## Features
 
 - Discover a research question across Springer Nature, NIH PubMed Central, and Google Scholar.
@@ -43,32 +45,19 @@ npm install
 
 ### 2. Add environment variables
 
-Create a `.env.local` file in the project root with the following values:
-
-```env
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-API_KEY=your_nih_eutilities_api_key
-AI_API_KEY=your_openrouter_api_key
-RATE_LIMIT_SECRET=your_random_rate_limit_secret
-SPRINGER_API_KEY=your_springer_api_key
-SERPAPI_KEY=your_serpapi_key
-STRIPE_SECRET_KEY=sk_test_or_live_key
-STRIPE_WEBHOOK_SECRET=whsec_webhook_signing_secret
-STRIPE_PRICE_MONTHLY=price_monthly_recurring_id
-STRIPE_PRICE_ANNUAL=price_annual_recurring_id
-ADMIN_EMAILS=owner@example.com
-```
+Copy [`.env.example`](.env.example) to `.env.local` and fill in values. The example file is the source of truth (README used to omit NCBI, PostHog, Resend, `APP_URL`, and `CONTENT_ACCESS_MODE`).
 
 Notes:
 
 - `MONGODB_URI` is used for users, saved papers, and stored messages.
 - `JWT_SECRET` signs and verifies authentication tokens.
 - `API_KEY` is used for NIH E-Utilities requests.
+- `NCBI_EMAIL` is required for NIH requests; `NCBI_TOOL` defaults to `ExpansiveMind`.
 - `AI_API_KEY` is used by the OpenRouter-backed AI chat client.
 - Stripe price IDs provide the initial recurring monthly and annual prices.
 - `ADMIN_EMAILS` accepts a comma-separated list. Matching signed-in users have
   unlimited product quotas and access to `/admin`.
+- See [docs/agents/env.md](docs/agents/env.md) for the full map.
 
 ### Stripe setup
 
@@ -108,14 +97,19 @@ npm run dev
 npm run build
 npm run start
 npm run lint
+npm test
+npm run check:agent-docs
 ```
 
 ## Project Structure
 
 ```text
+AGENTS.md           Entry point for AI agents (read this first)
+docs/agents/        Architecture, feature index, gates, brand OWNER-EDIT
 src/app/
 	api/            Auth, discovery, search, paper, chat, project, and billing routes
 	discover/       Multi-paper synthesis and opportunity reports
+	lib/            Shared helpers (see docs/agents/lib-index.md)
 	components/     Reusable UI components
 	db/             MongoDB connection logic
 	models/         Mongoose models for users and saved research artifacts
@@ -123,6 +117,7 @@ src/app/
 	projects/       Research-plan detail views
 	savedpapers/    Unified Research Library
 	searchpaper/    Quick paper search and pagination
+	admin/          Owner portal (ADMIN_EMAILS)
 ```
 
 ## API Overview

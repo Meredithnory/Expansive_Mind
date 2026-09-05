@@ -1,3 +1,21 @@
+// Shared Discover contract. Client HTTP types: src/app/discover/discover-types.ts
+import type { SourceDatabase } from "../../lib/paper-sources";
+
+/** Cited paper card returned by Discover and stored on SavedDiscovery. */
+export interface DiscoverPaperCard {
+    index: number;
+    database: SourceDatabase;
+    paperId: string;
+    idName: string;
+    title: string;
+    authors: string[];
+    date: string;
+    sourceLabel: string;
+    sourceUrl: string;
+    href: string;
+    doi?: string;
+}
+
 export type EvidenceType =
     | "review"
     | "rct"

@@ -27,6 +27,7 @@ import {
 } from "./analyze";
 import { expandDiscoveryQueries } from "./expand-queries";
 import type {
+    DiscoverPaperCard,
     OpportunityReport,
     PaperExcerptForSynthesis,
     PaperExtraction,
@@ -43,19 +44,7 @@ import {
     shouldSearchLiterature,
 } from "./question-quality";
 
-export interface DiscoverPaperCard {
-    index: number;
-    database: SourceDatabase;
-    paperId: string;
-    idName: string;
-    title: string;
-    authors: string[];
-    date: string;
-    sourceLabel: string;
-    sourceUrl: string;
-    href: string;
-    doi?: string;
-}
+export type { DiscoverPaperCard } from "./report-types";
 
 export interface DiscoverAgentResult {
     question: string;

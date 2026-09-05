@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:agent-docs": "node scripts/check-agent-docs.mjs",
     "migrate:saved-papers": "node --env-file=.env.local scripts/migrate-saved-papers.mjs"
   },
   "dependencies": {
