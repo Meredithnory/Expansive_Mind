@@ -4,7 +4,6 @@ alwaysApply: true
 ---
 # pstack model configuration. One line per role. Delete a line to fall back to the skill default.
 # `inherit-parent` or `auto` as a value: the role runs on the parent chat model (omit Task `model`). Alias entries in a panel list still count toward its fan-out.
-# Account note: Grok 4.7 is not listed yet, so feature/explorer/swarm/why-investigator use grok-4.6.
 feature, refactoring: grok-4.6
 bug-fix: claude-fable-5-1
 perf-issue: claude-fable-5-1
