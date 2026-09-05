@@ -4,6 +4,8 @@ Production: [expansivemind.ai](https://expansivemind.ai). Default branch: `maste
 
 Meredith decides **brand, product, security, and money** (usually from her phone). e.m. assistant coordinates. EM Builder / Reviewer / Ops do the technical work. Do not invent voice, pricing, or access rules.
 
+- **Launch north star** (locked 2026-09-05): Discover to shareable brief. Full wording in [`docs/agents/product-intent.md`](docs/agents/product-intent.md).
+
 ## Read first (stop when you can act)
 
 1. This file

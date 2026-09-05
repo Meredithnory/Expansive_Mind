@@ -51,7 +51,7 @@ _Meredith: logo rules, color tokens (today: dark shell, Manrope, `#000` theme), 
 ## OWNER-EDIT: Product north star
 
 <!-- OWNER-EDIT:start north-star -->
-_Meredith: the one outcome that matters this quarter. What “done” looks like for a feature from your phone._
+**Locked 2026-09-05 (Meredith).** Discover to shareable brief for biomedical researchers: fuzzy question → cited opportunity report → shareable brief. Other surfaces (search, reader chat, projects/plans) serve that wedge and must not compete with it this launch.
 <!-- OWNER-EDIT:end north-star -->
 
 ## OWNER-EDIT: Money & security exceptions
