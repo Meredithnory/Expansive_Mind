@@ -6,6 +6,13 @@ export interface PaperSourceConfig {
     defaultIdName: string;
 }
 
+/** Reader route / cache / SavedDiscovery identity. Does not grow with catalogs. */
+export interface PaperLocator {
+    database: SourceDatabase;
+    paperId: string;
+    idName: string;
+}
+
 export const PAPER_SOURCES: Record<SourceDatabase, PaperSourceConfig> = {
     nih: {
         database: "nih",
@@ -24,10 +31,59 @@ export const PAPER_SOURCES: Record<SourceDatabase, PaperSourceConfig> = {
     },
 };
 
+export function isSourceDatabase(
+    database: string | undefined | null,
+): database is SourceDatabase {
+    return (
+        database === "nih" ||
+        database === "springer" ||
+        database === "scholar"
+    );
+}
+
 export function getSourceByDatabase(
     database: string,
 ): PaperSourceConfig | undefined {
-    return PAPER_SOURCES[database as SourceDatabase];
+    return isSourceDatabase(database) ? PAPER_SOURCES[database] : undefined;
+}
+
+export function makePaperLocator(
+    database: SourceDatabase,
+    paperId: string,
+    idName?: string,
+): PaperLocator {
+    return {
+        database,
+        paperId,
+        idName: idName || PAPER_SOURCES[database].defaultIdName,
+    };
+}
+
+export function searchSourceTag(
+    database: SourceDatabase,
+): "nih" | "nature" | "scholar" {
+    if (database === "nih") return "nih";
+    if (database === "scholar") return "scholar";
+    return "nature";
+}
+
+export function locatorFromLoadedPaper(
+    paper: {
+        source?: string;
+        paperId?: string;
+        idName?: string;
+    },
+    requested: PaperLocator,
+): PaperLocator {
+    const database = isSourceDatabase(paper.source)
+        ? paper.source
+        : requested.database;
+    return makePaperLocator(
+        database,
+        paper.paperId || requested.paperId,
+        paper.idName ||
+            (database === requested.database ? requested.idName : undefined),
+    );
 }
 
 export function getSourceByLabel(label: string): PaperSourceConfig | undefined {
