@@ -1,4 +1,5 @@
 "use client";
+// Types live in ./discover-types.ts — read that before this 1.3k-line island.
 
 import React, {
     useCallback,
@@ -24,9 +25,11 @@ import {
     shouldPromptGuestUpgrade,
 } from "../lib/guest-discovery";
 import type {
+    DiscoverAgentStep,
+    DiscoveryQuota,
+    DiscoverResponse,
     OpportunityReport,
-    PaperExtraction,
-} from "../api/discover/report-types";
+} from "./discover-types";
 import {
     evidenceMixLabel,
     evidenceTypeLabel,
@@ -53,68 +56,7 @@ const PaperPreviewDrawer = dynamic(() => import("./PaperPreviewDrawer"));
 
 const autoStartedQueries = new Set<string>();
 
-type DiscoveryQuota = {
-    limit: number | null;
-    used: number;
-    remaining: number | null;
-    unlimited?: boolean;
-};
-
-type DiscoverPaper = {
-    index: number;
-    database: "nih" | "springer" | "scholar";
-    paperId: string;
-    idName: string;
-    title: string;
-    authors: string[];
-    date: string;
-    sourceLabel: string;
-    sourceUrl: string;
-    href: string;
-    doi?: string;
-};
-
-type DiscoverResponse = {
-    id: string;
-    createdAt: string;
-    question: string;
-    papers: DiscoverPaper[];
-    brief: string;
-    report?: OpportunityReport;
-    extractions?: PaperExtraction[];
-    noResults?: boolean;
-    message?: string;
-    plan?: "guest" | "free" | "pro";
-    quota?: DiscoveryQuota;
-    meta: {
-        springerCandidateCount: number;
-        springerEligibleCount: number;
-        nihFillCount: number;
-        papersUsed: number;
-        usedNihFill: boolean;
-        usedScholar?: boolean;
-        nihCandidateCount?: number;
-        nihEligibleCount?: number;
-        scholarCandidateCount?: number;
-        scholarEligibleCount?: number;
-        correctedQuery?: string;
-        subQueriesUsed?: string[];
-        extractionFailureCount?: number;
-    };
-};
-
-type AgentStep =
-    | "idle"
-    | "checking"
-    | "expanding"
-    | "searching"
-    | "reading"
-    | "extracting"
-    | "analyzing"
-    | "composing"
-    | "done";
-
-const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
+const STEP_COPY: Record<Exclude<DiscoverAgentStep, "idle" | "done">, string> = {
     checking: "Taking a look at your question…",
     expanding: "Expanding your question into targeted searches…",
     searching: "Searching Springer Nature, NIH PubMed Central, and Google Scholar…",
@@ -125,7 +67,7 @@ const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
 };
 
 const AGENT_STEPS: Array<{
-    id: Exclude<AgentStep, "idle" | "done">;
+    id: Exclude<DiscoverAgentStep, "idle" | "done">;
     label: string;
 }> = [
     { id: "expanding", label: "Expanding your question" },
@@ -136,7 +78,7 @@ const AGENT_STEPS: Array<{
     { id: "composing", label: "Composing report" },
 ];
 
-const STEP_ORDER: Record<AgentStep, number> = {
+const STEP_ORDER: Record<DiscoverAgentStep, number> = {
     idle: -1,
     checking: -1,
     expanding: 0,
@@ -263,7 +205,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     } = useSession();
 
     const [question, setQuestion] = useState(qParam);
-    const [step, setStep] = useState<AgentStep>("idle");
+    const [step, setStep] = useState<DiscoverAgentStep>("idle");
     const [error, setError] = useState<string | null>(null);
     const [showPlanLink, setShowPlanLink] = useState(false);
     const [result, setResult] = useState<DiscoverResponse | null>(null);
