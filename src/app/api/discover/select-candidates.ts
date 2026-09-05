@@ -1,5 +1,6 @@
 import type { ContentAccessPolicy } from "../../lib/content-access-policy";
 import type { SourceDatabase } from "../../lib/paper-sources";
+import { normalizeDoi } from "../../lib/research-citation";
 
 export const TARGET_PAPER_COUNT = 10;
 /** @deprecated Discovery now searches NIH on every run, not as a Springer fill. */
@@ -26,8 +27,8 @@ export function filterAiEligible(
 }
 
 export function candidateKey(candidate: DiscoverCandidate): string {
-    const doi = candidate.doi?.trim().toLowerCase();
-    if (doi) return `doi:${doi}`;
+    const doi = normalizeDoi(candidate.doi);
+    if (doi) return `doi:${doi.toLowerCase()}`;
     return `${candidate.database}:${candidate.paperId.trim().toLowerCase()}`;
 }
 

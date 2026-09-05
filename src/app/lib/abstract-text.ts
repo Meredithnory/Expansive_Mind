@@ -1,6 +1,4 @@
-export const abstractToText = (
-    abstract: string | string[] | Record<string, unknown> | null | undefined,
-): string => {
+export const abstractToText = (abstract: unknown): string => {
     if (!abstract) return "";
     if (typeof abstract === "string") return abstract;
     if (Array.isArray(abstract)) {

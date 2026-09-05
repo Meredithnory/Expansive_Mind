@@ -1,6 +1,6 @@
 # Discover
 
-Discover takes a biomedical question, searches Springer Nature, NIH PubMed Central, and (Pro) Google Scholar, and returns a cited opportunity report. This is the launch path. A pass here is a report the user can read and share, not a search list.
+Discover takes a biomedical question, searches Springer Nature, NIH PubMed Central, and (when keys are set) Google Scholar plus OpenAlex and Europe PMC, and returns a cited opportunity report. This is the launch path. A pass here is a report the user can read and share, not a search list.
 
 ## Sub-features
 

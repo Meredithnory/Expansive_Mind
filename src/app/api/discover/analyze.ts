@@ -26,7 +26,9 @@ const asEvidenceType = (value: unknown): EvidenceType =>
     isEvidenceType(value) ? value : "other";
 
 function supportingExcerptFrom(paper: PaperExcerptForSynthesis): string {
-    return truncateAtSentence(paper.excerpt, SUPPORTING_EXCERPT_CHAR_BUDGET);
+    const quote = paper.quoteExcerpt?.trim() ?? "";
+    if (!quote) return "";
+    return truncateAtSentence(quote, SUPPORTING_EXCERPT_CHAR_BUDGET);
 }
 
 export function fallbackPaperExtraction(

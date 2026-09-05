@@ -55,6 +55,7 @@ function discoveryDoc(overrides: Record<string, unknown> = {}) {
                 paperId: "10.1/one",
                 href: "/paperchatbot/springer/10.1/one",
                 doi: "10.1/one",
+                licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
             },
         ],
         extractions: [
@@ -91,6 +92,28 @@ describe("POST /api/discover/share", () => {
         expect(response.status).toBe(200);
         expect(body.slug).toBe("shareSlug12ab");
         expect(doc.save).toHaveBeenCalled();
+    });
+
+    it("rejects share when a claim has no commercial-friendly license", async () => {
+        mocks.findOne.mockResolvedValue(
+            discoveryDoc({
+                papers: [
+                    {
+                        index: 1,
+                        paperId: "10.1/one",
+                        href: "/paperchatbot/springer/10.1/one",
+                        doi: "10.1/one",
+                    },
+                ],
+            }),
+        );
+
+        const response = await POST(requestWithUser(DISCOVERY_ID));
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.code).toBe("CLAIM_LEDGER_INCOMPLETE");
+        expect(mocks.generateShareSlug).not.toHaveBeenCalled();
     });
 
     it("rejects share when a claim has no excerpt", async () => {

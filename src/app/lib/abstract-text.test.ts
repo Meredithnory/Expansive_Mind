@@ -17,4 +17,9 @@ describe("abstractToText", () => {
             "Para one. Para two.",
         );
     });
+
+    it("returns empty for missing or non-text values", () => {
+        expect(abstractToText(undefined)).toBe("");
+        expect(abstractToText(12)).toBe("");
+    });
 });

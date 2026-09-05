@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
     buildPaperFocusHref,
+    locatorFromLoadedPaper,
+    makePaperLocator,
     normalizeStoredPaperId,
+    searchSourceTag,
 } from "./paper-sources";
 
 describe("normalizeStoredPaperId", () => {
@@ -53,5 +56,31 @@ describe("buildPaperFocusHref", () => {
         expect(buildPaperFocusHref("https://doi.org/10.1/example")).toBe(
             "https://doi.org/10.1/example",
         );
+    });
+});
+
+describe("searchSourceTag / locatorFromLoadedPaper", () => {
+    it("maps springer to the persisted nature search tag", () => {
+        expect(searchSourceTag("nih")).toBe("nih");
+        expect(searchSourceTag("scholar")).toBe("scholar");
+        expect(searchSourceTag("springer")).toBe("nature");
+    });
+
+    it("homes a Scholar load that resolved to PMC on nih", () => {
+        const requested = makePaperLocator(
+            "scholar",
+            "7955732030691120796",
+            "cluster_id",
+        );
+        expect(
+            locatorFromLoadedPaper(
+                { source: "nih", paperId: "1234567", idName: "pmcid" },
+                requested,
+            ),
+        ).toEqual({
+            database: "nih",
+            paperId: "1234567",
+            idName: "pmcid",
+        });
     });
 });

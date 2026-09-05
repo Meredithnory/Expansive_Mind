@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FormattedPaper } from "../api/general-interfaces";
-import { selectPaperContext } from "./paper-context";
+import { selectPaperContext, selectQuotableExcerpt } from "./paper-context";
 
 const paper: FormattedPaper = {
     title: "Example",
@@ -78,6 +78,30 @@ describe("selectPaperContext", () => {
         );
         expect(context).toContain("## Methods");
         expect(context).not.toContain("## Abstract");
+    });
+
+    it("selects a body-only quote and ignores abstract-only papers", () => {
+        const quote = selectQuotableExcerpt(
+            paper,
+            "Did treatment reduce inflammation?",
+        );
+        expect(quote).toContain("## Results");
+        expect(quote).not.toContain("## Abstract");
+        expect(
+            selectQuotableExcerpt(
+                {
+                    ...paper,
+                    paper: [
+                        {
+                            title: "Abstract",
+                            content: "The treatment reduced inflammation.",
+                            subSections: [],
+                        },
+                    ],
+                },
+                "Did treatment reduce inflammation?",
+            ),
+        ).toBe("");
     });
 
     it("caps the complete context", () => {

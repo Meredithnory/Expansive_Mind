@@ -1,16 +1,42 @@
 import type { SourceDatabase } from "./paper-sources";
 
-export type NormalizedLicense = "CC0" | "CC-BY" | "OTHER" | "UNKNOWN";
+export type NormalizedLicense =
+    | "CC0"
+    | "CC-BY"
+    | "CC-BY-SA"
+    | "CC-BY-ND"
+    | "OTHER"
+    | "UNKNOWN";
 export type ContentAccessMode = "strict" | "legacy";
 
 export type PolicyReasonCode =
     | "allowed_cc0"
     | "allowed_cc_by"
+    | "allowed_cc_by_sa"
+    | "allowed_cc_by_nd"
     | "legacy_live_access"
     | "license_not_permitted"
     | "license_unknown"
     | "license_conflict"
     | "source_no_license";
+
+export const COMMERCIAL_FRIENDLY_LICENSES = [
+    "CC0",
+    "CC-BY",
+    "CC-BY-SA",
+    "CC-BY-ND",
+] as const satisfies readonly NormalizedLicense[];
+
+export function isCommercialFriendlyLicense(
+    license: NormalizedLicense,
+): boolean {
+    return (
+        license === "CC0" ||
+        license === "CC-BY" ||
+        license === "CC-BY-SA" ||
+        license === "CC-BY-ND"
+    );
+}
 
 export interface ArticleAttribution {
     title: string;
@@ -55,13 +81,10 @@ export function canUseFigureImage(input: {
 }) {
     // Figures without their own <permissions> block inherit the
     // article-level policy. A figure that declares its own license must
-    // itself be CC0 or CC BY, even when the article allows images.
+    // itself be commercial-friendly, even when the article allows images.
     if (!input.hasSeparateRights) return Boolean(input.articleAllowsImages);
     const normalized = normalizeLicense(input.rawLicense, input.licenseUrl);
-    return (
-        normalized.normalizedLicense === "CC0" ||
-        normalized.normalizedLicense === "CC-BY"
-    );
+    return isCommercialFriendlyLicense(normalized.normalizedLicense);
 }
 
 export function getContentAccessMode(): ContentAccessMode {
@@ -72,6 +95,10 @@ export function getContentAccessMode(): ContentAccessMode {
 
 const CC_BY_URL =
     /^https?:\/\/creativecommons\.org\/licenses\/by\/([0-9.]+)\/?$/i;
+const CC_BY_SA_URL =
+    /^https?:\/\/creativecommons\.org\/licenses\/by-sa\/([0-9.]+)\/?$/i;
+const CC_BY_ND_URL =
+    /^https?:\/\/creativecommons\.org\/licenses\/by-nd\/([0-9.]+)\/?$/i;
 const CC0_URL =
     /^https?:\/\/creativecommons\.org\/publicdomain\/zero\/([0-9.]+)\/?$/i;
 
@@ -102,6 +129,24 @@ export function normalizeLicense(
             };
         }
 
+        const ccBySaMatch = candidate.match(CC_BY_SA_URL);
+        if (ccBySaMatch) {
+            return {
+                normalizedLicense: "CC-BY-SA",
+                licenseName: `CC BY-SA ${ccBySaMatch[1]}`,
+                licenseUrl: `https://creativecommons.org/licenses/by-sa/${ccBySaMatch[1]}/`,
+            };
+        }
+
+        const ccByNdMatch = candidate.match(CC_BY_ND_URL);
+        if (ccByNdMatch) {
+            return {
+                normalizedLicense: "CC-BY-ND",
+                licenseName: `CC BY-ND ${ccByNdMatch[1]}`,
+                licenseUrl: `https://creativecommons.org/licenses/by-nd/${ccByNdMatch[1]}/`,
+            };
+        }
+
         const ccByMatch = candidate.match(CC_BY_URL);
         if (ccByMatch) {
             return {
@@ -121,11 +166,10 @@ export function normalizeLicense(
     }
 
     const text = normalizedLicenseText(raw || url);
-    const restrictedVariant =
-        /\b(?:NC|ND|SA)\b/.test(text) ||
-        /NONCOMMERCIAL|NO DERIVATIVES|SHAREALIKE|SHARE ALIKE/.test(text);
+    const nonCommercial =
+        /\bNC\b/.test(text) || /NONCOMMERCIAL|NON COMMERCIAL/.test(text);
 
-    if (!restrictedVariant) {
+    if (!nonCommercial) {
         const cc0Match = text.match(
             /^(?:CREATIVE COMMONS )?(?:CC )?ZERO(?: UNIVERSAL)?(?: ([0-9.]+))?$/,
         );
@@ -135,6 +179,30 @@ export function normalizeLicense(
                 normalizedLicense: "CC0",
                 licenseName: `CC0 ${version}`,
                 licenseUrl: `https://creativecommons.org/publicdomain/zero/${version}/`,
+            };
+        }
+
+        const ccBySaMatch = text.match(
+            /^(?:CC BY SA|CREATIVE COMMONS ATTRIBUTION SHARE ?ALIKE)(?: ([0-9.]+))?(?: INTERNATIONAL)?$/,
+        );
+        if (ccBySaMatch) {
+            const version = ccBySaMatch[1] || "4.0";
+            return {
+                normalizedLicense: "CC-BY-SA",
+                licenseName: `CC BY-SA ${version}`,
+                licenseUrl: `https://creativecommons.org/licenses/by-sa/${version}/`,
+            };
+        }
+
+        const ccByNdMatch = text.match(
+            /^(?:CC BY ND|CREATIVE COMMONS ATTRIBUTION NO DERIVATIVES)(?: ([0-9.]+))?(?: INTERNATIONAL)?$/,
+        );
+        if (ccByNdMatch) {
+            const version = ccByNdMatch[1] || "4.0";
+            return {
+                normalizedLicense: "CC-BY-ND",
+                licenseName: `CC BY-ND ${version}`,
+                licenseUrl: `https://creativecommons.org/licenses/by-nd/${version}/`,
             };
         }
 
@@ -169,9 +237,7 @@ export function evaluateContentAccess(input: {
     const normalized = normalizeLicense(input.rawLicense, input.licenseUrl);
     const conflict = Boolean(input.hasConflictingLicenseData);
     const strictlyAllowed =
-        !conflict &&
-        (normalized.normalizedLicense === "CC0" ||
-            normalized.normalizedLicense === "CC-BY");
+        !conflict && isCommercialFriendlyLicense(normalized.normalizedLicense);
     const mode = input.mode || getContentAccessMode();
     const allowed = mode === "legacy" || strictlyAllowed;
 
@@ -181,7 +247,7 @@ export function evaluateContentAccess(input: {
     if (mode === "legacy" && !strictlyAllowed) {
         policyReasonCode = "legacy_live_access";
         policyReason =
-            "Live access mode is enabled. The app can display and process this source without a verified CC0 or CC BY license, but publisher permission may still be required.";
+            "Live access mode is enabled. The app can display and process this source without a verified commercial-friendly license, but publisher permission may still be required.";
     } else if (conflict) {
         policyReasonCode = "license_conflict";
         policyReason =
@@ -194,6 +260,14 @@ export function evaluateContentAccess(input: {
         policyReasonCode = "allowed_cc_by";
         policyReason =
             "This article is licensed under CC BY and may be displayed and processed with attribution.";
+    } else if (normalized.normalizedLicense === "CC-BY-SA") {
+        policyReasonCode = "allowed_cc_by_sa";
+        policyReason =
+            "This article is licensed under CC BY-SA and may be displayed and processed with attribution and share-alike.";
+    } else if (normalized.normalizedLicense === "CC-BY-ND") {
+        policyReasonCode = "allowed_cc_by_nd";
+        policyReason =
+            "This article is licensed under CC BY-ND and may be displayed and processed with attribution and no derivatives.";
     } else if (input.source === "scholar") {
         policyReasonCode = "source_no_license";
         policyReason =
@@ -201,10 +275,10 @@ export function evaluateContentAccess(input: {
     } else if (normalized.normalizedLicense === "UNKNOWN") {
         policyReasonCode = "license_unknown";
         policyReason =
-            "No qualifying CC0 or CC BY license could be verified, so only citation and metadata can be shown.";
+            "No qualifying commercial-friendly license could be verified, so only citation and metadata can be shown.";
     } else {
         policyReasonCode = "license_not_permitted";
-        policyReason = `${normalized.licenseName || "This license"} is outside this app's CC0 and CC BY full-text policy, so only citation and metadata can be shown.`;
+        policyReason = `${normalized.licenseName || "This license"} is outside this app's commercial-friendly full-text policy, so only citation and metadata can be shown.`;
     }
 
     return {

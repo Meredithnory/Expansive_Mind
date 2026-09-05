@@ -72,3 +72,19 @@ export const selectPaperContext = (
     }
     return truncateAtSentence(parts.join("\n\n"), MAX_CONTEXT_CHARS);
 };
+
+/** Body-only excerpt for claim-ledger quotes. Never uses Abstract. */
+export function selectQuotableExcerpt(
+    paper: FormattedPaper,
+    question: string,
+    maxChars = 600,
+): string {
+    const body = paper.paper.filter(
+        (section) => !section.title.toLowerCase().includes("abstract"),
+    );
+    if (body.length === 0) return "";
+    return truncateAtSentence(
+        selectPaperContext({ ...paper, paper: body, abstract: "" }, question),
+        maxChars,
+    );
+}

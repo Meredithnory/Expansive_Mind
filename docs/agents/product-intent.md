@@ -15,7 +15,7 @@ Home tagline in code: “Evidence, made actionable.”
 - Answers can be wrong. **Not medical advice.**
 - Do not store article bodies in Mongo. Saved papers store identifiers + metadata.
 - AI goes through OpenRouter with **Zero Data Retention** (`src/app/lib/openrouter-policy.ts`).
-- Full text / figures only when `content-access-policy` allows it (CC0 / CC BY, or `CONTENT_ACCESS_MODE=legacy`).
+- Full text / figures only when `content-access-policy` allows it (CC0 / CC BY / CC BY-SA / CC BY-ND, or `CONTENT_ACCESS_MODE=legacy`). Share and claim-ledger quotes always use the strict commercial-friendly gate on the **home** full-text license (NIH/Springer JATS or publisher JSON): not NC licenses, null/unknown home licenses, abstracts, or Scholar snippets. Unpaywall may locate OA URLs or flag a conflict; it must not authorize quotes when the home license is null.
 - Independent — not affiliated with NIH, Springer Nature, Google Scholar, SerpApi, or OpenRouter.
 - Guest / Free / Pro quotas are real product limits, not UI decoration. Admin emails bypass quotas.
 - Scholar search is an explicit **Pro** source, not a default for guests.
@@ -70,7 +70,7 @@ Complimentary Pro, refunds, who may be in `ADMIN_EMAILS`, and when to flip `CONT
 
 ## Product rules (locked)
 
-- **Claim ledger is Must-have before share.** Every claim on a Discover opportunity brief must link to a source (DOI + quote/excerpt) before Share synthesis is allowed.
+- **Claim ledger is Must-have before share.** Every claim on a Discover opportunity brief must have a quote from verified home full text, a resolvable citation (DOI, paper id, or href), and a commercial-friendly home license URI (CC0 / CC BY / CC BY-SA / CC BY-ND) before Share synthesis is allowed. Unpaywall does not widen that license.
 - Once the ledger is built, do not enable or ship Share synthesis without it.
 - Until the ledger ships, treat current share as **incomplete vs the product bar** — not a finished Discover trust surface.
 - Next Discover trust work is the ledger: reshape existing gaps + citations into rows. Do not rewrite the opportunity report to get there.

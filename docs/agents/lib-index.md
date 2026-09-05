@@ -12,7 +12,8 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `canvas-image.ts` | client | Canvas → file, size cap |
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
 | `contact.ts` | both | Contact form parse / mailto |
-| `content-access-policy.ts` | both | License normalize + AI/display flags |
+| `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
+| `quote-eligibility.ts` | both | Share/claim-ledger quote gate: home full text + commercial-friendly home license (Unpaywall does not widen) |
 | `entitlements.ts` | server | Quota consume / refund / snapshot |
 | `evidence-type.ts` | both | Evidence labels on extractions |
 | `figure-capture.ts` | both | Crop + rights attestation |
@@ -27,7 +28,8 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
 | `paper-highlights.ts` | server | Highlight CRUD |
-| `paper-sources.ts` | both | `nih \| springer \| scholar` IDs and paths |
+| `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
+| `research-citation.ts` | both | DOI/PMCID normalize + citation merge keys for the source registry |
 | `plan-config.ts` | server | Default + DB plan/price config |
 | `pmc-media.ts` | both | PMC figure URL resolve |
 | `project-types.ts` | both | Serialized research-plan types |

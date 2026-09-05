@@ -10,17 +10,23 @@ import {
     shareLockDetail,
 } from "./claim-ledger";
 
+const CC_BY = "https://creativecommons.org/licenses/by/4.0/";
+
 const papers = [
     {
         index: 1,
         paperId: "10.1/one",
         href: "/paperchatbot/springer/10.1/one",
         doi: "10.1/one",
+        licenseUrl: CC_BY,
+        database: "springer" as const,
     },
     {
         index: 2,
         paperId: "PMC99",
         href: "/paperchatbot/nih/PMC99",
+        licenseUrl: CC_BY,
+        database: "nih" as const,
     },
 ];
 
@@ -79,6 +85,7 @@ describe("buildClaimLedger", () => {
             paperIndex: 1,
             doi: "10.1/one",
             quote: "Events fell by 12% in the treatment arm.",
+            licenseUrl: CC_BY,
             confidence: "suggested",
         });
         expect(ledger.rows[1].doi).toBeUndefined();
@@ -133,6 +140,40 @@ describe("buildClaimLedger", () => {
 });
 
 describe("evaluateClaimLedger / share gate", () => {
+    it("does not copy Scholar snippets or NC licenses onto ledger quotes", () => {
+        const ledger = buildClaimLedger(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    gaps: [
+                        {
+                            title: "Scholar-only gap",
+                            description: "Cited to a snippet.",
+                            whyItMatters: "",
+                            citations: [1],
+                            confidence: "suggested",
+                        },
+                    ],
+                    problems: [],
+                    venturePotential: [],
+                },
+            },
+            [
+                {
+                    index: 1,
+                    paperId: "cluster-1",
+                    href: "/paperchatbot/scholar/cluster-1",
+                    database: "scholar",
+                    licenseUrl: CC_BY,
+                },
+            ],
+            [{ index: 1, supportingExcerpt: "A Scholar snippet." }],
+        );
+        expect(ledger.rows[0].quote).toBe("");
+        expect(ledger.rows[0].licenseUrl).toBeUndefined();
+        expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
+    });
+
     it("opens share when every row has a quote and a paper citation", () => {
         const gate = evaluateShareGate(completeReport, papers, extractions);
         expect(gate.ok).toBe(true);
@@ -160,6 +201,42 @@ describe("evaluateClaimLedger / share gate", () => {
         expect(shareLockDetail(empty)).toBe(
             "Share stays locked until this brief has sourced claims.",
         );
+    });
+
+    it("locks share when the license is missing or not commercial-friendly", () => {
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    index: paper.index,
+                    paperId: paper.paperId,
+                    href: paper.href,
+                    doi: paper.doi,
+                    database: paper.database,
+                })),
+                extractions,
+            ).ok,
+        ).toBe(false);
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    ...paper,
+                    licenseUrl: "https://creativecommons.org/licenses/by-nc/4.0/",
+                })),
+                extractions,
+            ).ok,
+        ).toBe(false);
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    ...paper,
+                    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
+                })),
+                extractions,
+            ).ok,
+        ).toBe(true);
     });
 
     it("accepts paper id or href when DOI is missing", () => {
