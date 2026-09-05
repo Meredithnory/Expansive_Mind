@@ -1,0 +1,45 @@
+# Lint, Vitest, and agent-docs path check.
+# Node 22 matches the Vercel project (expansive-mind, nodeVersion 22.x).
+# npm + package-lock.json is the documented install path (pnpm-lock.yaml is leftover).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Same as vercel.json installCommand --legacy-peer-deps
+      NPM_CONFIG_LEGACY_PEER_DEPS: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Agent docs
+        run: npm run check:agent-docs

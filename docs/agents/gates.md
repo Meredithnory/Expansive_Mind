@@ -9,7 +9,7 @@ EM Builder implements
                     → Vercel production (expansivemind.ai)
 ```
 
-Agents do **not** merge. There is no GitHub Actions workflow in this repo today. Reviewer + `npm test` / `npm run lint` are the automated bar.
+Agents do **not** merge. Wait for the GitHub Actions **CI** check (`.github/workflows/ci.yml`) to be green before merge. Reviewer still runs this checklist; local `npm test` / `npm run lint` are not a substitute for the PR check.
 
 ## Reviewer checklist
 

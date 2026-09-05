@@ -44,7 +44,7 @@ npm test
 npm run lint
 ```
 
-`npm test` includes the agent-docs path check. There is **no GitHub Actions CI** yet — local/PR checks are the gate.
+`npm test` includes the agent-docs path check. GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `test`, and `check:agent-docs` on pull requests and on push to `master`. Builder/Reviewer must wait for the green check before merge.
 
 ## Hard stops (Meredith / e.m. only)
 
