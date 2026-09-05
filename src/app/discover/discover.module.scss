@@ -172,12 +172,14 @@
 
 .dockedForm {
     position: fixed;
-    right: auto;
+    /* Insets avoid left:50% + translateX + 100vw, which iOS pans on focus. */
+    left: 16px;
+    right: 16px;
     bottom: 20px;
-    left: 50%;
     z-index: 30;
-    width: min(780px, calc(100vw - 32px));
-    margin: 0;
+    width: auto;
+    max-width: 780px;
+    margin-inline: auto;
     padding: 9px 11px 10px;
     border: 1px solid rgba(215, 235, 255, 0.12);
     border-radius: 20px;
@@ -186,7 +188,6 @@
         0 24px 70px rgba(0, 0, 0, 0.75),
         0 0 0 1px rgba(255, 255, 255, 0.025) inset;
     backdrop-filter: blur(22px);
-    transform: translateX(-50%);
 
     .formHeading {
         padding: 0 5px;
@@ -1698,8 +1699,10 @@
     .page {
         height: auto;
         min-height: 100%;
+        max-width: 100%;
         padding: 10px 0 180px;
-        overflow: visible;
+        overflow-x: clip;
+        overflow-y: visible;
     }
 
     .initialPage {
@@ -1755,7 +1758,7 @@
     .textarea {
         min-height: 128px;
         padding: 13px 12px;
-        font-size: 0.92rem;
+        font-size: 16px;
     }
 
     .formFooter {
@@ -1775,8 +1778,12 @@
     }
 
     .dockedForm {
-        width: calc(100vw - 20px);
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
         max-height: min(46dvh, 320px);
+        overflow-x: hidden;
         overflow-y: auto;
 
         .promptShell {
@@ -1843,6 +1850,10 @@
     .dockedForm {
         /* Sit above the thumb-reachable bottom nav, not on top of it. */
         bottom: var(--mobile-bottom-nav-clearance);
+
+        .textarea {
+            font-size: 16px;
+        }
     }
 
     .results {

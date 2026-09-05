@@ -497,6 +497,21 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         target.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
+    const keepAskFieldHorizontallyInView = useCallback(() => {
+        const resetX = () => {
+            if (typeof window === "undefined") return;
+            if (window.scrollX !== 0) {
+                window.scrollTo(0, window.scrollY);
+            }
+            document.documentElement.scrollLeft = 0;
+            document.body.scrollLeft = 0;
+            const page = pageRef.current;
+            if (page) page.scrollLeft = 0;
+        };
+        resetX();
+        window.requestAnimationFrame(resetX);
+    }, []);
+
     const openPaperPreview = useCallback(
         (paperIndex: number, trigger?: HTMLElement | null) => {
             const exists = result?.papers.some(
@@ -810,6 +825,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             className={styles.textarea}
                             value={question}
                             onChange={(event) => setQuestion(event.target.value)}
+                            onFocus={keepAskFieldHorizontallyInView}
                             aria-describedby="discover-supporting-metadata"
                             placeholder={
                                 result && !result.noResults
