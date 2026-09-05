@@ -14,6 +14,8 @@ export interface DiscoverPaperCard {
     sourceUrl: string;
     href: string;
     doi?: string;
+    /** Canonical commercial-friendly license URI when the paper is quote-eligible. */
+    licenseUrl?: string;
 }
 
 export type EvidenceType =
@@ -34,6 +36,8 @@ export interface PaperExcerptForSynthesis {
     authors: string[];
     publicationDate?: string;
     excerpt: string;
+    /** Body-only licensed excerpt for the claim ledger. Never a Scholar snippet or abstract. */
+    quoteExcerpt?: string;
 }
 
 export interface PaperExtraction {
@@ -100,6 +104,8 @@ export interface ClaimLedgerRow {
     doi?: string;
     href?: string;
     quote: string;
+    /** Canonical commercial-friendly license URI that justified the quote. */
+    licenseUrl?: string;
     confidence?: ReportConfidence;
 }
 

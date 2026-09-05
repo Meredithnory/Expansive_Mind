@@ -1,5 +1,8 @@
 import "server-only";
-import { evaluateContentAccess } from "../../../lib/content-access-policy";
+import {
+    evaluateContentAccess,
+    normalizeLicense,
+} from "../../../lib/content-access-policy";
 import { abstractToText } from "../../../lib/abstract-text";
 import {
     extractDoiFromJatsXml,
@@ -65,7 +68,7 @@ export function parseEuropePmcRecord(raw: unknown): WorkLead | null {
         abstract: abstractToText(record.abstractText) || "",
         ...(pmcid ? { pmcid } : {}),
         licenseHint: licenseHint || null,
-        licenseUrl: null,
+        licenseUrl: normalizeLicense(licenseHint, licenseHint).licenseUrl,
     };
 }
 
@@ -156,7 +159,7 @@ export async function fetchPmcFullTextViaEuropePmc(
         source: "nih",
         paper,
         abstract,
-        contentLabel: "Abstract",
+        contentLabel: access.canDisplayFullText ? undefined : "Abstract",
         access: {
             ...access,
             attribution: {

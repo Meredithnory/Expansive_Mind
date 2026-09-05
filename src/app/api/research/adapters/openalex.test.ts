@@ -24,6 +24,7 @@ describe("parseOpenAlexWork", () => {
             producer: "openalex",
             pmcid: "7654321",
             licenseHint: "cc-by",
+            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
             citation: {
                 title: "A PMC work",
                 doi: "10.1000/oa-work",

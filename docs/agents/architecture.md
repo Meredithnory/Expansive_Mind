@@ -30,14 +30,14 @@ UI DiscoverClient
         2. expandDiscoveryQueries
         3. search via ResearchSource registry (Springer + NIH + Scholar; OpenAlex + Europe PMC when env is set)
         4. rank + select-candidates (AI-eligible only)
-        5. load excerpts (content-access-policy)
+        5. load excerpts (content-access-policy); Scholar snippets stay discovery-only
         6. extractPaperFindings
         7. synthesizeOpportunityReport
-        8. attachClaimLedger (gaps / problems / ventures → sourced rows)
+        8. attachClaimLedger (gaps / problems / ventures → sourced rows + license URI)
     → persist SavedDiscovery (signed-in) or guest cache
   ← papers + brief + OpportunityReport (includes claimLedger)
 UI may open /paperchatbot/... or seed /api/projects
-Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote and a resolvable paper citation. Public `/brief/{slug}` carries that structured ledger.
+Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote from OA full text, a resolvable paper citation, and a commercial-friendly license URI (CC0, CC BY, CC BY-SA, or CC BY-ND). The Share path evaluates that license gate in `strict` mode even when `CONTENT_ACCESS_MODE=legacy`. Public `/brief/{slug}` carries that structured ledger.
 ```
 
 ## Auth & session
@@ -66,7 +66,7 @@ User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, 
 | Admin wrapper | `src/app/lib/admin.ts` |
 | CSRF-ish origin | `src/app/lib/request-security.ts` |
 | Rate limit | `src/app/lib/rate-limit.ts` |
-| License / AI-send | `src/app/lib/content-access-policy.ts` |
+| License / AI-send | `src/app/lib/content-access-policy.ts`, `src/app/lib/quote-eligibility.ts` |
 | Paper IDs / paths | `src/app/lib/paper-sources.ts` |
 | Source registry | `src/app/api/research/registry.ts` |
 | OpenRouter client | `src/app/api/openrouter.ts` |

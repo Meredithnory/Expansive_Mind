@@ -21,6 +21,7 @@ const paper: PaperExcerptForSynthesis = {
     authors: ["A. Author"],
     publicationDate: "2024",
     excerpt: "The trial found a 12% reduction in events. Limitations include small n.",
+    quoteExcerpt: "The trial found a 12% reduction in events. Limitations include small n.",
 };
 
 describe("parsePaperExtraction", () => {
@@ -46,7 +47,7 @@ describe("parsePaperExtraction", () => {
             limitations: ["Small sample"],
             openQuestions: ["Durability?"],
             evidenceType: "other",
-            supportingExcerpt: paper.excerpt,
+            supportingExcerpt: paper.quoteExcerpt,
         });
     });
 
@@ -57,6 +58,15 @@ describe("parsePaperExtraction", () => {
 });
 
 describe("fallbackPaperExtraction", () => {
+    it("omits supportingExcerpt when the paper has no quotable body", () => {
+        const fallback = fallbackPaperExtraction({
+            ...paper,
+            quoteExcerpt: undefined,
+        });
+        expect(fallback.supportingExcerpt).toBeUndefined();
+        expect(fallback.keyFindings[0]).toContain("12% reduction");
+    });
+
     it("keeps a short excerpt snippet as the only finding", () => {
         const fallback = fallbackPaperExtraction(paper);
         expect(fallback.evidenceType).toBe("other");
@@ -91,7 +101,7 @@ describe("extractPaperFindings", () => {
         expect(result.usedFallback).toBe(false);
         expect(result.extraction.evidenceType).toBe("rct");
         expect(result.extraction.keyFindings).toEqual(["12% reduction"]);
-        expect(result.extraction.supportingExcerpt).toBe(paper.excerpt);
+        expect(result.extraction.supportingExcerpt).toBe(paper.quoteExcerpt);
         expect(SUPPORTING_EXCERPT_CHAR_BUDGET).toBe(600);
 
         const [request] = createPrivateChatCompletion.mock.calls[0];

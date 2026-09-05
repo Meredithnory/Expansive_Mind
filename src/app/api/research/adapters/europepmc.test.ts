@@ -20,8 +20,22 @@ describe("parseEuropePmcRecord", () => {
             producer: "europepmc",
             pmcid: "111",
             licenseHint: null,
+            licenseUrl: null,
             citation: { doi: "10.1000/epmc", authors: ["Ada Lovelace"] },
             abstract: "Events fell.",
+        });
+    });
+
+    it("persists a canonical license URI from Europe PMC license text", () => {
+        const lead = parseEuropePmcRecord({
+            title: "A licensed work",
+            pmcid: "PMC111",
+            doi: "10.1000/epmc",
+            license: "cc-by-sa",
+        });
+        expect(lead).toMatchObject({
+            licenseHint: "cc-by-sa",
+            licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
         });
     });
 });

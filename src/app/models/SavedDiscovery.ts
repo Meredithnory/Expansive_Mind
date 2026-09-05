@@ -19,6 +19,7 @@ const discoverPaperSchema = new Schema(
         sourceUrl: { type: String, default: "" },
         href: { type: String, required: true },
         doi: { type: String },
+        licenseUrl: { type: String },
     },
     {
         _id: false,

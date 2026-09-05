@@ -19,17 +19,24 @@ describe("normalizeLicense", () => {
         ["https://creativecommons.org/licenses/by/4.0/", "CC-BY"],
         ["CC BY 4.0", "CC-BY"],
         ["Creative Commons Attribution 4.0 International", "CC-BY"],
+        ["https://creativecommons.org/licenses/by-sa/4.0/", "CC-BY-SA"],
+        ["CC BY-SA 4.0", "CC-BY-SA"],
+        ["https://creativecommons.org/licenses/by-nd/4.0/", "CC-BY-ND"],
+        ["CC BY-ND 4.0", "CC-BY-ND"],
         ["https://creativecommons.org/publicdomain/zero/1.0/", "CC0"],
         ["CC0", "CC0"],
-    ])("allows exact permissive license %s", (raw, expected) => {
+        ["cc-by", "CC-BY"],
+    ])("allows commercial-friendly license %s", (raw, expected) => {
         expect(normalizeLicense(raw).normalizedLicense).toBe(expected);
+        expect(normalizeLicense(raw).licenseUrl).toMatch(
+            /^https:\/\/creativecommons\.org\//,
+        );
     });
 
     it.each([
         "CC BY-NC 4.0",
-        "CC BY-ND 4.0",
-        "CC BY-SA 4.0",
         "CC BY-NC-ND 4.0",
+        "CC BY-NC-SA 4.0",
         "All rights reserved",
         "Open access",
     ])("does not allow restricted or ambiguous license %s", (raw) => {
@@ -42,17 +49,30 @@ describe("normalizeLicense", () => {
 });
 
 describe("evaluateContentAccess", () => {
-    it("allows full text and AI only for CC0 or CC BY", () => {
+    it("allows full text and AI for commercial-friendly licenses", () => {
+        for (const raw of ["CC BY 4.0", "CC BY-SA 4.0", "CC BY-ND 4.0", "CC0"]) {
+            const access = evaluateContentAccess({
+                source: "nih",
+                rawLicense: raw,
+                attribution,
+                mode: "strict",
+            });
+            expect(access.canDisplayFullText).toBe(true);
+            expect(access.canSendToAI).toBe(true);
+            expect(access.canPersistContent).toBe(true);
+            expect(access.canUseImages).toBe(true);
+        }
+    });
+
+    it("denies NC licenses in strict mode", () => {
         const access = evaluateContentAccess({
             source: "nih",
-            rawLicense: "CC BY 4.0",
+            rawLicense: "CC BY-NC 4.0",
             attribution,
             mode: "strict",
         });
-        expect(access.canDisplayFullText).toBe(true);
-        expect(access.canSendToAI).toBe(true);
-        expect(access.canPersistContent).toBe(true);
-        expect(access.canUseImages).toBe(true);
+        expect(access.canDisplayFullText).toBe(false);
+        expect(access.policyReasonCode).toBe("license_not_permitted");
     });
 
     it("denies conflicting rights data", () => {

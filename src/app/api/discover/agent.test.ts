@@ -64,6 +64,7 @@ vi.mock("../paper/utils", () => ({
 }));
 vi.mock("../../lib/paper-context", () => ({
     selectPaperContext: vi.fn(() => "Licensed excerpt from the paper."),
+    selectQuotableExcerpt: vi.fn(() => "Licensed excerpt from the paper."),
 }));
 
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";

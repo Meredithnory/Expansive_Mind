@@ -1,4 +1,5 @@
 import "server-only";
+import { normalizeLicense } from "../../../lib/content-access-policy";
 import {
     normalizeCitation,
     normalizeDoi,
@@ -73,6 +74,7 @@ export function parseOpenAlexWork(raw: unknown): WorkLead | null {
             ? (work.primary_location as Record<string, unknown>)
             : {};
     const licenseHint = asString(primary.license);
+    const licenseUrl = normalizeLicense(licenseHint, licenseHint).licenseUrl;
     const citation = normalizeCitation({
         title: asString(work.display_name) || asString(work.title),
         authors,
@@ -86,7 +88,7 @@ export function parseOpenAlexWork(raw: unknown): WorkLead | null {
         abstract: reconstructInvertedAbstract(work.abstract_inverted_index),
         ...(pmcid ? { pmcid } : {}),
         licenseHint: licenseHint || null,
-        licenseUrl: null,
+        licenseUrl,
     };
 }
 

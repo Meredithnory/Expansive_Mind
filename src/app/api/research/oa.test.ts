@@ -37,6 +37,18 @@ describe("oaConflictsWithHome", () => {
         ).toBe(true);
     });
 
+    it("flags a CC-BY-SA home against an NC Unpaywall license", () => {
+        expect(
+            oaConflictsWithHome(
+                { doi: "10.1000/x", rawLicense: "cc-by-nc" },
+                home({
+                    normalizedLicense: "CC-BY-SA",
+                    policyReasonCode: "allowed_cc_by_sa",
+                }),
+            ),
+        ).toBe(true);
+    });
+
     it("does not widen UNKNOWN home from a CC-BY Unpaywall record", () => {
         expect(
             oaConflictsWithHome(

@@ -1,6 +1,13 @@
 import { rankSearchResults } from "../search/semantic-rank";
 import { loadCachedPaperBySource } from "../paper/load-paper";
-import { selectPaperContext } from "../../lib/paper-context";
+import {
+    selectPaperContext,
+    selectQuotableExcerpt,
+} from "../../lib/paper-context";
+import {
+    evaluateQuoteEligibility,
+    paperHasFullTextBody,
+} from "../../lib/quote-eligibility";
 import {
     PAPER_SOURCES,
     buildPaperPath,
@@ -193,6 +200,17 @@ async function readPaperExcerpts(
 
             const loaded = mergeLoadedCitation(candidate, paper);
             const excerpt = selectPaperContext(paper, question);
+            const quote = evaluateQuoteEligibility({
+                source: paper.source || loaded.locator.database,
+                database: loaded.locator.database,
+                contentLabel: paper.contentLabel,
+                hasFullTextBody: paperHasFullTextBody(paper),
+                rawLicense: paper.access.rawLicense || oa?.rawLicense,
+                licenseUrl: paper.access.licenseUrl || oa?.licenseUrl,
+            });
+            const quoteExcerpt = quote.allowed
+                ? selectQuotableExcerpt(paper, question)
+                : "";
             const card: DiscoverPaperCard = {
                 index: index + 1,
                 database: loaded.locator.database,
@@ -214,6 +232,9 @@ async function readPaperExcerpts(
                 ...(loaded.citation.doi
                     ? { doi: loaded.citation.doi }
                     : {}),
+                ...(quote.allowed && quote.licenseUrl
+                    ? { licenseUrl: quote.licenseUrl }
+                    : {}),
             };
 
             const synthesisPaper: PaperExcerptForSynthesis = {
@@ -223,6 +244,7 @@ async function readPaperExcerpts(
                 authors: card.authors,
                 publicationDate: card.date || undefined,
                 excerpt,
+                ...(quoteExcerpt ? { quoteExcerpt } : {}),
             };
 
             return { card, synthesisPaper };

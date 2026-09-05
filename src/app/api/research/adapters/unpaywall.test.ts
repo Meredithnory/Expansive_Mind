@@ -24,7 +24,7 @@ describe("parseUnpaywallRecord", () => {
             bestUrl: "https://example.org/article",
             pdfUrl: "https://example.org/article.pdf",
             rawLicense: "cc-by",
-            licenseUrl: "cc-by",
+            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
             version: "publishedVersion",
             hostType: "publisher",
         });

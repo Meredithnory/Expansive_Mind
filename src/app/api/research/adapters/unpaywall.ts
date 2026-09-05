@@ -1,4 +1,5 @@
 import "server-only";
+import { normalizeLicense } from "../../../lib/content-access-policy";
 import { normalizeDoi } from "../../../lib/research-citation";
 import { providerFetchJson } from "../http";
 import type { OaEvidence, OpenAccessLocator } from "../types";
@@ -24,12 +25,14 @@ export function parseUnpaywallRecord(
     if (!best) {
         return { doi };
     }
+    const rawLicense = asString(best.license) || null;
+    const normalized = normalizeLicense(rawLicense, rawLicense);
     return {
         doi,
         bestUrl: asString(best.url),
         pdfUrl: asString(best.url_for_pdf),
-        rawLicense: asString(best.license),
-        licenseUrl: asString(best.license),
+        rawLicense,
+        licenseUrl: normalized.licenseUrl,
         version: asString(best.version),
         hostType: asString(best.host_type),
     };

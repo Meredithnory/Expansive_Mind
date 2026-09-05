@@ -15,7 +15,7 @@ Home tagline in code: “Evidence, made actionable.”
 - Answers can be wrong. **Not medical advice.**
 - Do not store article bodies in Mongo. Saved papers store identifiers + metadata.
 - AI goes through OpenRouter with **Zero Data Retention** (`src/app/lib/openrouter-policy.ts`).
-- Full text / figures only when `content-access-policy` allows it (CC0 / CC BY, or `CONTENT_ACCESS_MODE=legacy`).
+- Full text / figures only when `content-access-policy` allows it (CC0 / CC BY / CC BY-SA / CC BY-ND, or `CONTENT_ACCESS_MODE=legacy`). Share and claim-ledger quotes always use the strict commercial-friendly gate: OA full text only — not NC licenses, null licenses, abstracts, or Scholar snippets.
 - Independent — not affiliated with NIH, Springer Nature, Google Scholar, SerpApi, or OpenRouter.
 - Guest / Free / Pro quotas are real product limits, not UI decoration. Admin emails bypass quotas.
 - Scholar search is an explicit **Pro** source, not a default for guests.

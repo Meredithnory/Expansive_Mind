@@ -1,3 +1,5 @@
+import type { SourceDatabase } from "../../lib/paper-sources";
+import { isCommercialFriendlyLicenseUri } from "../../lib/quote-eligibility";
 import type {
     ClaimLedger,
     ClaimLedgerKind,
@@ -17,6 +19,8 @@ export type LedgerPaper = Pick<
     "index" | "paperId" | "href"
 > & {
     doi?: string;
+    licenseUrl?: string;
+    database?: SourceDatabase;
 };
 
 export type LedgerExtraction = Pick<PaperExtraction, "index"> & {
@@ -76,7 +80,11 @@ export function hasResolvableCitation(row: Pick<
 }
 
 export function isClaimLedgerRowComplete(row: ClaimLedgerRow): boolean {
-    return trimmed(row.quote).length > 0 && hasResolvableCitation(row);
+    return (
+        trimmed(row.quote).length > 0 &&
+        hasResolvableCitation(row) &&
+        isCommercialFriendlyLicenseUri(row.licenseUrl)
+    );
 }
 
 function rowForCitation(
@@ -92,6 +100,11 @@ function rowForCitation(
     const doi = trimmed(paper?.doi) || undefined;
     const paperId = trimmed(paper?.paperId) || undefined;
     const href = trimmed(paper?.href) || undefined;
+    const scholar = paper?.database === "scholar";
+    const licenseUrl =
+        !scholar && isCommercialFriendlyLicenseUri(paper?.licenseUrl)
+            ? trimmed(paper?.licenseUrl)
+            : "";
     return {
         id: `${kind}-${ordinal}-p${paperIndex}`,
         kind,
@@ -100,7 +113,8 @@ function rowForCitation(
         ...(paperId ? { paperId } : {}),
         ...(doi ? { doi } : {}),
         ...(href ? { href } : {}),
-        quote: excerptByIndex(extractions, paperIndex),
+        quote: scholar ? "" : excerptByIndex(extractions, paperIndex),
+        ...(licenseUrl ? { licenseUrl } : {}),
         ...(confidence ? { confidence } : {}),
     };
 }
@@ -181,6 +195,14 @@ export function toLedgerPapers(papers: unknown): LedgerPaper[] {
                 href: typeof value.href === "string" ? value.href : "",
                 ...(typeof value.doi === "string" && value.doi
                     ? { doi: value.doi }
+                    : {}),
+                ...(typeof value.licenseUrl === "string" && value.licenseUrl
+                    ? { licenseUrl: value.licenseUrl }
+                    : {}),
+                ...(value.database === "nih" ||
+                value.database === "springer" ||
+                value.database === "scholar"
+                    ? { database: value.database }
                     : {}),
             },
         ];
@@ -319,8 +341,8 @@ export function shareLockDetail(gate: ClaimLedgerGate): string {
     if (gate.reason === "incomplete_rows") {
         const n = gate.incompleteCount;
         return n === 1
-            ? `${SHARE_LOCKED_ERROR} 1 still needs a quote or paper link.`
-            : `${SHARE_LOCKED_ERROR} ${n} still need a quote or paper link.`;
+            ? `${SHARE_LOCKED_ERROR} 1 still needs a licensed excerpt, paper link, or commercial-friendly license.`
+            : `${SHARE_LOCKED_ERROR} ${n} still need a licensed excerpt, paper link, or commercial-friendly license.`;
     }
     return "Share stays locked until this brief has sourced claims.";
 }

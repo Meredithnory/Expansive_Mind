@@ -18,7 +18,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `AI_API_KEY` | OpenRouter |
 | `FIGURE_VISION_MODEL` | Figure chat model (default `openai/gpt-4.1-mini`) |
 | `APP_URL` | Public origin; **required https in production** |
-| `CONTENT_ACCESS_MODE` | `legacy` (default) or `strict` license gating |
+| `CONTENT_ACCESS_MODE` | `legacy` (default, reader/AI live access) or `strict`. Share / claim-ledger quotes always use the strict commercial-friendly gate |
 | `STRIPE_SECRET_KEY` | Stripe SDK |
 | `STRIPE_WEBHOOK_SECRET` | Webhook signature |
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Initial Researcher Pro prices |
