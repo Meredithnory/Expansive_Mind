@@ -13,7 +13,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
 | `contact.ts` | both | Contact form parse / mailto |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
-| `quote-eligibility.ts` | both | Share/claim-ledger quote gate: OA full text + commercial-friendly license |
+| `quote-eligibility.ts` | both | Share/claim-ledger quote gate: home full text + commercial-friendly home license (Unpaywall does not widen) |
 | `entitlements.ts` | server | Quota consume / refund / snapshot |
 | `evidence-type.ts` | both | Evidence labels on extractions |
 | `figure-capture.ts` | both | Crop + rights attestation |

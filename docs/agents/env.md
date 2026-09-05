@@ -13,7 +13,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `SERPAPI_KEY` | Google Scholar via SerpApi (Pro) |
 | `OPENALEX_API_KEY` | Optional OpenAlex key. Unset + no mailto skips the adapter |
 | `OPENALEX_MAILTO` | OpenAlex polite-pool contact when no API key |
-| `UNPAYWALL_EMAIL` | Unpaywall DOI OA lookup. Unset skips the locator |
+| `UNPAYWALL_EMAIL` | Unpaywall DOI OA lookup (URL / conflict check). Unset skips the locator. Does not authorize Share quotes |
 | `EUROPEPMC_EMAIL` | Enables Europe PMC search + NIH full-text XML fallback |
 | `AI_API_KEY` | OpenRouter |
 | `FIGURE_VISION_MODEL` | Figure chat model (default `openai/gpt-4.1-mini`) |

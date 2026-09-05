@@ -67,6 +67,7 @@ vi.mock("../../lib/paper-context", () => ({
     selectQuotableExcerpt: vi.fn(() => "Licensed excerpt from the paper."),
 }));
 
+import { selectPaperContext } from "../../lib/paper-context";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
 import { NO_RESULTS_COPY } from "./question-quality";
 
@@ -310,6 +311,73 @@ describe("runDiscoverAgent", () => {
         expect(result.papers[0]?.href).toBe("/paperchatbot/nih/1234567");
         expect(result.papers[0]?.database).toBe("nih");
         expect(result.papers[0]?.doi).toBe("10.1000/from-jats");
+        expect(selectPaperContext).toHaveBeenCalled();
+        expect(extractPaperFindings).toHaveBeenCalled();
+    });
+
+    it("never sends unresolved Scholar snippets into extract or synthesize", async () => {
+        const question =
+            "How does GLP-1 receptor agonism affect cardiovascular outcomes?";
+        const previousMode = process.env.CONTENT_ACCESS_MODE;
+        process.env.CONTENT_ACCESS_MODE = "legacy";
+        process.env.SERPAPI_KEY = "test";
+        judgeResearchQuestion.mockResolvedValue("research");
+        searchGoogleScholarPapers.mockResolvedValue({
+            results: [
+                {
+                    clusterId: "cluster-1",
+                    title: "Scholar-only snippet",
+                    authors: ["A. Author"],
+                    date: "2024",
+                    abstract: "A SerpApi snippet.",
+                    access: aiEligibleAccess,
+                },
+            ],
+        });
+        loadCachedPaperBySource.mockResolvedValue({
+            value: {
+                paperId: "cluster-1",
+                idName: "cluster_id",
+                source: "scholar",
+                contentLabel: "Search snippet",
+                title: "Scholar-only snippet",
+                authors: ["A. Author"],
+                publicationDate: "2024",
+                primarySource: "Google Scholar",
+                paper: [
+                    {
+                        title: "Search snippet",
+                        content: "A SerpApi snippet.",
+                        subSections: [],
+                    },
+                ],
+                access: {
+                    ...aiEligibleAccess,
+                    rawLicense: null,
+                    licenseUrl: null,
+                    canonicalUrl:
+                        "https://scholar.google.com/scholar?cluster=cluster-1",
+                },
+            },
+        });
+
+        try {
+            await expect(runDiscoverAgent(question)).rejects.toMatchObject({
+                name: "DiscoverAgentError",
+                status: 404,
+                message: expect.stringContaining("none could be read"),
+            });
+        } finally {
+            if (previousMode === undefined) {
+                delete process.env.CONTENT_ACCESS_MODE;
+            } else {
+                process.env.CONTENT_ACCESS_MODE = previousMode;
+            }
+        }
+
+        expect(selectPaperContext).not.toHaveBeenCalled();
+        expect(extractPaperFindings).not.toHaveBeenCalled();
+        expect(synthesizeOpportunityReport).not.toHaveBeenCalled();
     });
 
     it("still runs discovery when the cheap classifier is unsure", async () => {

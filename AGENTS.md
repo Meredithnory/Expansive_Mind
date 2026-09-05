@@ -63,6 +63,6 @@ npm run lint
 
 ## Product bar (locked)
 
-- **No share without claim ledger** once built: every Discover opportunity-brief claim needs a source (DOI + quote/excerpt) before Share synthesis.
+- **No share without claim ledger** once built: every Discover opportunity-brief claim needs a quote from verified home full text, a resolvable citation, and a commercial-friendly home license URI before Share synthesis. Unpaywall does not authorize quotes.
 - Until the ledger ships, treat share as incomplete vs the product bar.
 - First-50: mix of ECR personal pay and PI/lab — learn in validation (concierge test). Do not invent a single ICP.

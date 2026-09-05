@@ -57,6 +57,18 @@ export function paperHasFullTextBody(paper: {
     });
 }
 
+/** Home JATS/JSON license only. Unpaywall/OpenAlex OA records never fill a null home license. */
+export function quoteLicenseFromHome(
+    home: { rawLicense?: string | null; licenseUrl?: string | null },
+    _oa?: { rawLicense?: string | null; licenseUrl?: string | null } | null,
+): { rawLicense: string | null; licenseUrl: string | null } {
+    void _oa;
+    return {
+        rawLicense: home.rawLicense?.trim() || null,
+        licenseUrl: home.licenseUrl?.trim() || null,
+    };
+}
+
 export function isCommercialFriendlyLicenseUri(
     licenseUrl: string | null | undefined,
 ): boolean {

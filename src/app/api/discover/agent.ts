@@ -6,7 +6,9 @@ import {
 } from "../../lib/paper-context";
 import {
     evaluateQuoteEligibility,
+    isScholarSnippetSource,
     paperHasFullTextBody,
+    quoteLicenseFromHome,
 } from "../../lib/quote-eligibility";
 import {
     PAPER_SOURCES,
@@ -187,6 +189,16 @@ async function readPaperExcerpts(
             if (!paper) {
                 throw new Error("Paper not found");
             }
+            const loaded = mergeLoadedCitation(candidate, paper);
+            if (
+                isScholarSnippetSource({
+                    source: paper.source,
+                    database: loaded.locator.database,
+                    contentLabel: paper.contentLabel,
+                })
+            ) {
+                throw new Error("Scholar snippets are discovery-only");
+            }
             if (!paper.access.canSendToAI) {
                 throw new Error("Paper not approved for AI processing");
             }
@@ -198,15 +210,15 @@ async function readPaperExcerpts(
                 throw new Error("Conflicting license records");
             }
 
-            const loaded = mergeLoadedCitation(candidate, paper);
             const excerpt = selectPaperContext(paper, question);
+            const quoteLicenses = quoteLicenseFromHome(paper.access, oa);
             const quote = evaluateQuoteEligibility({
                 source: paper.source || loaded.locator.database,
                 database: loaded.locator.database,
                 contentLabel: paper.contentLabel,
                 hasFullTextBody: paperHasFullTextBody(paper),
-                rawLicense: paper.access.rawLicense || oa?.rawLicense,
-                licenseUrl: paper.access.licenseUrl || oa?.licenseUrl,
+                rawLicense: quoteLicenses.rawLicense,
+                licenseUrl: quoteLicenses.licenseUrl,
             });
             const quoteExcerpt = quote.allowed
                 ? selectQuotableExcerpt(paper, question)

@@ -37,7 +37,7 @@ UI DiscoverClient
     → persist SavedDiscovery (signed-in) or guest cache
   ← papers + brief + OpportunityReport (includes claimLedger)
 UI may open /paperchatbot/... or seed /api/projects
-Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote from OA full text, a resolvable paper citation, and a commercial-friendly license URI (CC0, CC BY, CC BY-SA, or CC BY-ND). The Share path evaluates that license gate in `strict` mode even when `CONTENT_ACCESS_MODE=legacy`. Public `/brief/{slug}` carries that structured ledger.
+Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote from **home** OA full text, a resolvable paper citation, and a commercial-friendly **home** license URI (CC0, CC BY, CC BY-SA, or CC BY-ND). Unpaywall may locate OA URLs or flag a conflict; it must not fill a null home license for quotes. The Share path evaluates that license gate in `strict` mode even when `CONTENT_ACCESS_MODE=legacy`. Scholar/SerpApi is discovery/ranking only unless the hit remaps to NIH/Springer full text. Public `/brief/{slug}` carries that structured ledger.
 ```
 
 ## Auth & session

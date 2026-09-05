@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+    evaluateShareGate,
+} from "../api/discover/claim-ledger";
+import type { OpportunityReport } from "../api/discover/report-types";
+import {
     evaluateQuoteEligibility,
     isCommercialFriendlyLicenseUri,
     isScholarSnippetSource,
     paperHasFullTextBody,
+    quoteLicenseFromHome,
 } from "./quote-eligibility";
 
 describe("isScholarSnippetSource", () => {
@@ -103,6 +108,69 @@ describe("evaluateQuoteEligibility", () => {
             if (previous === undefined) delete process.env.CONTENT_ACCESS_MODE;
             else process.env.CONTENT_ACCESS_MODE = previous;
         }
+    });
+});
+
+describe("quoteLicenseFromHome", () => {
+    it("does not let Unpaywall authorize a quote when the home license is null", () => {
+        const home = { rawLicense: null, licenseUrl: null };
+        const oa = {
+            rawLicense: "cc-by",
+            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        };
+        const licenses = quoteLicenseFromHome(home, oa);
+        const quote = evaluateQuoteEligibility({
+            source: "nih",
+            hasFullTextBody: true,
+            rawLicense: licenses.rawLicense,
+            licenseUrl: licenses.licenseUrl,
+        });
+        expect(quote.allowed).toBe(false);
+        expect(quote.reason).toBe("null_license");
+        const quoteExcerpt = quote.allowed ? "Events fell by 12%." : "";
+        expect(quoteExcerpt).toBe("");
+
+        const report: OpportunityReport = {
+            sections: {
+                stateOfScience: "Events fell.",
+                gaps: [
+                    {
+                        title: "Durability unknown",
+                        description: "No long follow-up.",
+                        whyItMatters: "",
+                        citations: [1],
+                        confidence: "suggested",
+                    },
+                ],
+                problems: [],
+                venturePotential: [],
+                couldNotVerify: [],
+                projectSeeds: [],
+            },
+        };
+        const gate = evaluateShareGate(
+            report,
+            [
+                {
+                    index: 1,
+                    paperId: "PMC1",
+                    href: "/paperchatbot/nih/PMC1",
+                    ...(quote.allowed && quote.licenseUrl
+                        ? { licenseUrl: quote.licenseUrl }
+                        : {}),
+                },
+            ],
+            [
+                {
+                    index: 1,
+                    ...(quoteExcerpt
+                        ? { supportingExcerpt: quoteExcerpt }
+                        : {}),
+                },
+            ],
+        );
+        expect(gate.ok).toBe(false);
+        expect(gate.reason).toBe("incomplete_rows");
     });
 });
 

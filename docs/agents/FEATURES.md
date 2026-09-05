@@ -23,7 +23,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | — | restyle without OWNER-EDIT |
 | Agent verification | `.cursor/skills/verify-expansive-mind/SKILL.md` | doctor script in that skill | feature map next to the skill | — | product runtime |
 
-**Next Discover trust work:** claim ledger — reshape existing gaps + citations into ledger rows (DOI + quote/excerpt per claim). Must-have before share. See [product-intent.md](product-intent.md).
+**Share bar:** claim ledger rows need a home-full-text quote, a resolvable citation, and a commercial-friendly home license URI. Unpaywall does not widen quotes. See [product-intent.md](product-intent.md).
 
 ## God files (do not load for orientation)
 
