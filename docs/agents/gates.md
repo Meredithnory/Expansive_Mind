@@ -11,12 +11,15 @@ EM Builder implements
 
 Agents do **not** merge. Wait for the GitHub Actions **CI** check (`.github/workflows/ci.yml`) to be green before merge. Reviewer still runs this checklist; local `npm test` / `npm run lint` are not a substitute for the PR check.
 
+- Non-trivial work uses poteto-mode.
+- Before claiming Discover or shareable brief done, run [verify-expansive-mind](../../.cursor/skills/verify-expansive-mind/SKILL.md).
+
 ## Reviewer checklist
 
 1. Intent matches [product-intent.md](product-intent.md). No new marketing claims.
 2. Files touched match [FEATURES.md](FEATURES.md). No god-file rewrite unless scoped.
 3. Auth / quota / license / Stripe paths still go through the existing helpers.
-4. Tests cover the new branch. `npm test` and `npm run lint` pass.
+4. Tests cover the new branch. `npm test` and `npm run lint` pass. Discover or brief claims also have verify-expansive-mind evidence.
 5. `.env.example` updated if a new variable appeared. No secrets in the diff.
 6. Agent docs still true. If a path moved, update FEATURES / architecture / lib-index.
 

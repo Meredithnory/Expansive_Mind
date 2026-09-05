@@ -20,6 +20,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Contact | `src/app/contact/page.tsx` | `src/app/api/contact/route.ts` | `src/app/lib/contact.ts` | `src/app/lib/contact.test.ts` | — |
 | Analytics | `instrumentation-client.ts` | — | PostHog in Discover/Search/pricing/signup/`use-session` | — | — |
 | Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | — | restyle without OWNER-EDIT |
+| Agent verification | `.cursor/skills/verify-expansive-mind/SKILL.md` | doctor script in that skill | feature map next to the skill | — | product runtime |
 
 ## God files (do not load for orientation)
 
