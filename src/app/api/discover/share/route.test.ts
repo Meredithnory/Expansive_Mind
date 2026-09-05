@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     generateShareSlug: vi.fn(() => "shareSlug12ab"),
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("../../authMiddleware", () => ({
     withAuth: (handler: unknown) => handler,
 }));
