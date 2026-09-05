@@ -37,6 +37,11 @@ import {
     yearRangeLabel,
 } from "../lib/evidence-type";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import {
+    attachClaimLedger,
+    evaluateClaimLedger,
+    shareLockDetail,
+} from "../api/discover/claim-ledger";
 
 const Markdown = dynamic(() => import("react-markdown"), {
     loading: () => <div className="loading-skeleton" aria-hidden="true" />,
@@ -382,12 +387,29 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         setPreviewPaperIndex(null);
     }, [result?.id]);
 
-    const canShareResult = Boolean(
+    const hasSavedDiscoveryId = Boolean(
         isLoggedIn && result && /^[a-f0-9]{24}$/i.test(result.id),
     );
 
+    const structuredReport = useMemo(() => {
+        const parsed =
+            parseGuestOpportunityReport(result?.report) ??
+            parseGuestOpportunityReport(result?.brief);
+        if (!parsed || !result) return parsed;
+        return attachClaimLedger(
+            parsed,
+            result.papers,
+            result.extractions ?? [],
+        );
+    }, [result]);
+
+    const shareGate = evaluateClaimLedger(
+        structuredReport?.claimLedger ?? { rows: [] },
+    );
+    const canShareResult = hasSavedDiscoveryId && shareGate.ok;
+
     const handleShareResult = useCallback(async () => {
-        if (!result || shareStatus === "loading") return;
+        if (!result || shareStatus === "loading" || !shareGate.ok) return;
         setShareStatus("loading");
         try {
             const res = await fetch("/api/discover/share", {
@@ -408,19 +430,12 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             setShareStatus("error");
             window.setTimeout(() => setShareStatus("idle"), 2_500);
         }
-    }, [result, shareStatus]);
+    }, [result, shareGate.ok, shareStatus]);
 
     const statusLabel = useMemo(() => {
         if (step === "idle" || step === "done") return null;
         return STEP_COPY[step];
     }, [step]);
-
-    const structuredReport = useMemo(
-        () =>
-            parseGuestOpportunityReport(result?.report) ??
-            parseGuestOpportunityReport(result?.brief),
-        [result],
-    );
 
     const briefSections = useMemo(
         () =>
@@ -916,21 +931,39 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             </h2>
                         </div>
                         <div className={styles.reportHeaderActions}>
-                            {canShareResult && (
-                                <button
-                                    type="button"
-                                    className={styles.shareButton}
-                                    onClick={handleShareResult}
-                                    disabled={shareStatus === "loading"}
-                                >
-                                    {shareStatus === "copied"
-                                        ? "Link copied!"
-                                        : shareStatus === "error"
-                                          ? "Share failed"
-                                          : shareStatus === "loading"
-                                            ? "Sharing…"
-                                            : "Share synthesis"}
-                                </button>
+                            {hasSavedDiscoveryId && (
+                                <div className={styles.shareControl}>
+                                    <button
+                                        type="button"
+                                        className={styles.shareButton}
+                                        onClick={handleShareResult}
+                                        disabled={
+                                            !canShareResult ||
+                                            shareStatus === "loading"
+                                        }
+                                        aria-describedby={
+                                            canShareResult
+                                                ? undefined
+                                                : "discover-share-lock"
+                                        }
+                                    >
+                                        {shareStatus === "copied"
+                                            ? "Link copied!"
+                                            : shareStatus === "error"
+                                              ? "Share failed"
+                                              : shareStatus === "loading"
+                                                ? "Sharing…"
+                                                : "Share synthesis"}
+                                    </button>
+                                    {!canShareResult ? (
+                                        <p
+                                            id="discover-share-lock"
+                                            className={styles.shareLock}
+                                        >
+                                            {shareLockDetail(shareGate)}
+                                        </p>
+                                    ) : null}
+                                </div>
                             )}
                             <span className={styles.completeBadge}>
                                 <span aria-hidden="true">✓</span>{" "}
@@ -991,7 +1024,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                     paperCount={result.papers.length}
                                     isLoggedIn={isLoggedIn}
                                     sourceDiscoveryId={
-                                        canShareResult ? result.id : undefined
+                                        hasSavedDiscoveryId
+                                            ? result.id
+                                            : undefined
                                     }
                                     activePaperIndex={previewPaperIndex}
                                     onCitePaper={openPaperPreview}
