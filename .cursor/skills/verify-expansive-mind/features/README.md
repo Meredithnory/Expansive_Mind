@@ -4,7 +4,7 @@ This directory is the maintained source for verifying user-facing behavior. Read
 
 ## Baseline preconditions
 
-- Target `$EM_VERIFY_BASE_URL` (local `http://127.0.0.1:3000` from `npm run dev`, or `https://expansivemind.ai` for read-only checks).
+- Target `$EM_VERIFY_BASE_URL` (local `http://127.0.0.1:3000` from `npm run dev`, or `https://www.expansivemind.ai` for read-only checks). The apex host 307s to www.
 - Run `.cursor/skills/verify-expansive-mind/scripts/doctor` and require a pass.
 - Use a disposable browser profile. A leftover `auth_token` fails anonymous doctor.
 - Never `POST` Discover, share, or brief against production.

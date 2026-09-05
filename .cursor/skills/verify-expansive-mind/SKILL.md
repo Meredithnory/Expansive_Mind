@@ -32,7 +32,7 @@ PORT="$EM_VERIFY_PORT" npm run dev
 
 Copy env from `.env.example` into a gitignored `.env.local`. Discover, paper load, and brief generation need Mongo plus provider keys (`MONGODB_URI`, `API_KEY`, `SPRINGER_API_KEY`, `AI_API_KEY`, `JWT_SECRET`). Doctor and the Discover page HTML do not.
 
-Production read-only target: `https://expansivemind.ai`. Set `EM_VERIFY_BASE_URL` to that origin for doctor and public GETs only. Never `POST /api/discover`, `POST /api/discover/share`, or `POST /api/brief` against production.
+Production read-only target: `https://www.expansivemind.ai`. The apex host `https://expansivemind.ai` 307s there. Set `EM_VERIFY_BASE_URL` to the www origin for doctor and public GETs. Never `POST /api/discover`, `POST /api/discover/share`, or `POST /api/brief` against production.
 
 Teardown is in Cleanup. Evidence stays in `$EVIDENCE_DIR`.
 
