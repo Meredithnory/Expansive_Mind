@@ -28,6 +28,8 @@ Do **not** grep the whole repo to orient. Do **not** open the god files unless y
 | [gates.md](docs/agents/gates.md) | Builder → Reviewer → approve → merge |
 | [token-efficiency.md](docs/agents/token-efficiency.md) | What to read / skip |
 | [env.md](docs/agents/env.md) | Env vars (source: `.env.example`) |
+| [verify-expansive-mind](.cursor/skills/verify-expansive-mind/SKILL.md) | Drive Discover, brief, and paper reader before claiming those done |
+| [pstack-models](.cursor/rules/pstack-models.mdc) | Per-role models for poteto-mode `Task` calls |
 
 ## Roles
 
@@ -47,6 +49,9 @@ npm run lint
 ```
 
 `npm test` includes the agent-docs path check. GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `test`, and `check:agent-docs` on pull requests and on push to `master`. Builder/Reviewer must wait for the green check before merge.
+
+- Non-trivial work uses poteto-mode (pstack feature playbook). Read `.cursor/rules/pstack-models.mdc` for `Task` models.
+- Before claiming Discover or shareable brief done, run [verify-expansive-mind](.cursor/skills/verify-expansive-mind/SKILL.md). `npm test` is not that proof.
 
 ## Hard stops (Meredith / e.m. only)
 

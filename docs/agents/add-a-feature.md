@@ -40,6 +40,7 @@ Use this checklist. e.m. assistant scopes which boxes apply before Builder start
 - [ ] Colocated `*.test.ts` for logic you added or branched.
 - [ ] `npm test` (includes agent-docs path check).
 - [ ] `npm run lint`.
+- [ ] Discover / brief / paper-reader work: run verify-expansive-mind before claiming done.
 - [ ] If you touched FEATURES / architecture paths, the checker still passes.
 - [ ] No `.env.local` values committed. New env vars: add to `.env.example` + [env.md](env.md).
 
