@@ -1,10 +1,10 @@
 import { FormattedPaper } from "../general-interfaces";
-import { getPaperDetails, getSpringerPaperDetails, getScholarPaperDetails } from "./utils";
 import {
     getSourceByDatabase,
-    PAPER_SOURCES,
+    makePaperLocator,
     SourceDatabase,
 } from "../../lib/paper-sources";
+import { loadDocument } from "../research/registry";
 
 export {
     buildPaperPath,
@@ -29,29 +29,8 @@ export async function fetchPaperBySource(
     const config = getSourceByDatabase(database);
     if (!config) return null;
 
-    const resolvedIdName = idName || config.defaultIdName;
-
-    if (database === PAPER_SOURCES.nih.database) {
-        return getPaperDetails(paperId, config.label, resolvedIdName);
-    }
-
-    if (database === PAPER_SOURCES.springer.database) {
-        return getSpringerPaperDetails(
-            paperId,
-            config.label,
-            resolvedIdName,
-            fallback,
-        );
-    }
-
-    if (database === PAPER_SOURCES.scholar.database) {
-        return getScholarPaperDetails(
-            paperId,
-            config.label,
-            resolvedIdName,
-            fallback,
-        );
-    }
-
-    return null;
+    return loadDocument({
+        locator: makePaperLocator(database, paperId, idName),
+        fallback,
+    });
 }

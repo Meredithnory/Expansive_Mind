@@ -28,7 +28,7 @@ UI DiscoverClient
     → runDiscoverAgent
         1. judgeResearchQuestion
         2. expandDiscoveryQueries
-        3. search Springer + NIH + Scholar in parallel
+        3. search via ResearchSource registry (Springer + NIH + Scholar; OpenAlex + Europe PMC when env is set)
         4. rank + select-candidates (AI-eligible only)
         5. load excerpts (content-access-policy)
         6. extractPaperFindings
@@ -68,6 +68,7 @@ User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, 
 | Rate limit | `src/app/lib/rate-limit.ts` |
 | License / AI-send | `src/app/lib/content-access-policy.ts` |
 | Paper IDs / paths | `src/app/lib/paper-sources.ts` |
+| Source registry | `src/app/api/research/registry.ts` |
 | OpenRouter client | `src/app/api/openrouter.ts` |
 | Mongo connect | `src/app/db/connectDB.ts` |
 

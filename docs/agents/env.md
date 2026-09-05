@@ -11,6 +11,10 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `NCBI_EMAIL`, `NCBI_TOOL` | NCBI request identity (`NCBI_TOOL` defaults to `ExpansiveMind`) |
 | `SPRINGER_API_KEY` | Springer Nature |
 | `SERPAPI_KEY` | Google Scholar via SerpApi (Pro) |
+| `OPENALEX_API_KEY` | Optional OpenAlex key. Unset + no mailto skips the adapter |
+| `OPENALEX_MAILTO` | OpenAlex polite-pool contact when no API key |
+| `UNPAYWALL_EMAIL` | Unpaywall DOI OA lookup. Unset skips the locator |
+| `EUROPEPMC_EMAIL` | Enables Europe PMC search + NIH full-text XML fallback |
 | `AI_API_KEY` | OpenRouter |
 | `FIGURE_VISION_MODEL` | Figure chat model (default `openai/gpt-4.1-mini`) |
 | `APP_URL` | Public origin; **required https in production** |

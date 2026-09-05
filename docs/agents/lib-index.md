@@ -27,7 +27,8 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
 | `paper-highlights.ts` | server | Highlight CRUD |
-| `paper-sources.ts` | both | `nih \| springer \| scholar` IDs and paths |
+| `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
+| `research-citation.ts` | both | DOI/PMCID normalize + citation merge keys for the source registry |
 | `plan-config.ts` | server | Default + DB plan/price config |
 | `pmc-media.ts` | both | PMC figure URL resolve |
 | `project-types.ts` | both | Serialized research-plan types |

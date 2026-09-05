@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-    searchNIHPaperIds,
-    getNIHPaperResults,
-    searchSpringerNaturePapers,
-    searchGoogleScholarPapers,
-    mergeResultsByTier,
-    isNihApiConfigured,
-} from "./utils";
+import { mergeResultsByTier } from "./utils";
 import { rankSearchResults } from "./semantic-rank";
+import { searchHomed } from "../research/registry";
+import type { SourceDatabase } from "../../lib/paper-sources";
 import { withOptionalAuth } from "../authMiddleware";
-import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
     consumeQuota,
@@ -41,95 +35,22 @@ async function runSearch(
     const { includeNih, includeSpringer, includeScholar } =
         getSourceFlags(sourceFilter);
     const lightweight = options?.lightweight ?? false;
+    const databases: SourceDatabase[] = [
+        ...(includeNih ? (["nih"] as const) : []),
+        ...(includeSpringer ? (["springer"] as const) : []),
+        ...(includeScholar ? (["scholar"] as const) : []),
+    ];
 
-    const [nihSearch, springerSearch, scholarSearch] = await Promise.all([
-        includeNih
-            ? searchNIHPaperIds(searchValue, page)
-            : Promise.resolve({
-                  ids: [],
-                  totalCount: 0,
-                  totalPages: 0,
-                  page,
-              }),
-        includeSpringer
-            ? searchSpringerNaturePapers(searchValue, page)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-        includeScholar
-            ? searchGoogleScholarPapers(searchValue, page)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-    ]);
-
-    const { ids, totalCount: nihTotalCount, totalPages: nihTotalPages } =
-        nihSearch;
-
-    const nihPaperResults =
-        lightweight || ids.length === 0
-            ? []
-            : await getNIHPaperResults(ids, searchValue);
-
-    const formattedNIHResults = nihPaperResults.map((paper: any) => {
-        const sourceUrl = `https://pmc.ncbi.nlm.nih.gov/articles/PMC${paper.pmcid}/`;
-        return {
-            sourceId: paper.pmcid,
-            title: paper.title,
-            authors: paper.authors,
-            date: paper.date,
-            abstract: paper.abstract,
-            matchTier: paper.matchTier,
-            source: "nih",
-            sourceLabel: "NIH PubMed Central",
-            sourceUrl,
-            contentLabel: "Abstract",
-            access: evaluateContentAccess({
-                source: "nih",
-                rawLicense: null,
-                attribution: {
-                    title: paper.title || "Untitled",
-                    authors: paper.authors || [],
-                    sourceLabel: "NIH PubMed Central",
-                    canonicalUrl: sourceUrl,
-                    paperId: paper.pmcid,
-                    idName: "pmcid",
-                    publicationDate: paper.date || undefined,
-                },
-            }),
-        };
+    const found = await searchHomed({
+        query: searchValue,
+        page,
+        databases,
+        hydrate: !lightweight,
     });
 
-    const sourceResults: any[][] = [];
-    let totalCount = 0;
-    let totalPages = 0;
-
-    if (includeNih) {
-        sourceResults.push(formattedNIHResults);
-        totalCount += nihTotalCount;
-        totalPages = Math.max(totalPages, nihTotalPages);
-    }
-
-    if (includeSpringer) {
-        sourceResults.push(springerSearch.results);
-        totalCount += springerSearch.totalCount;
-        totalPages = Math.max(totalPages, springerSearch.totalPages);
-    }
-
-    if (includeScholar) {
-        sourceResults.push(scholarSearch.results);
-        totalCount += scholarSearch.totalCount;
-        totalPages = Math.max(totalPages, scholarSearch.totalPages);
-    }
-
+    const groups = found.byDatabase.map((group) => group.hits);
     const mergedResults =
-        sourceResults.length > 1
-            ? mergeResultsByTier(...sourceResults)
-            : sourceResults[0] || [];
+        groups.length > 1 ? mergeResultsByTier(...groups) : groups[0] || [];
     const paperResults = lightweight
         ? mergedResults
         : await rankSearchResults(
@@ -140,14 +61,10 @@ async function runSearch(
 
     return {
         results: paperResults,
-        totalCount,
-        totalPages,
-        warnings:
-            includeNih && !isNihApiConfigured()
-                ? [
-                      "NIH PubMed Central search is unavailable until NCBI_EMAIL is configured.",
-                  ]
-                : [],
+        totalCount: found.totalCount,
+        totalPages: found.totalPages,
+        warnings: found.warnings,
+        callCount: found.callCount,
     };
 }
 
@@ -297,12 +214,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                         ? "serpapi"
                         : "literature_apis",
                 operation: "search",
-                callCount:
-                    sourceFilter === "all"
-                        ? 3
-                        : sourceFilter === "nih"
-                          ? 2
-                          : 1,
+                callCount: search.callCount || 1,
                 metadata: { page },
             });
         }
