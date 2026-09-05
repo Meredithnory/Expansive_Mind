@@ -52,10 +52,25 @@ _Meredith: logo rules, color tokens (today: dark shell, Manrope, `#000` theme), 
 
 <!-- OWNER-EDIT:start north-star -->
 **Locked 2026-09-05 (Meredith).** Discover to shareable brief for biomedical researchers: fuzzy question → cited opportunity report → shareable brief. Other surfaces (search, reader chat, projects/plans) serve that wedge and must not compete with it this launch.
+
+**Claim ledger is Must-have before share.** A Discover opportunity brief is not shareable until every claim sits on a claim ledger (source DOI + quote/excerpt). Done (from the phone): open a brief → every claim links to a paper → Share synthesis is allowed. Missing a source link means share stays blocked.
+
+**Build framing:** reshape existing gaps + citations into ledger rows — not a full report rewrite. REFINE Discover→Brief vs Elicit/Undermind.
+
+**First-50 validation:** mix of ECR personal pay and PI/lab. Learn which mix holds in a concierge test. Do not assume a single buyer.
 <!-- OWNER-EDIT:end north-star -->
 
 ## OWNER-EDIT: Money & security exceptions
 
 <!-- OWNER-EDIT:start money-security -->
-_Meredith: complimentary Pro policy, refund rules, who may be in `ADMIN_EMAILS`, when to flip `CONTENT_ACCESS_MODE=strict`._
+**First-50 customers:** mix of ECR personal pay and PI/lab — learn in validation (concierge test). Do not lock a single ICP or invent a first-50 discount / complimentary-Pro path from this mix.
+
+Complimentary Pro, refunds, who may be in `ADMIN_EMAILS`, and when to flip `CONTENT_ACCESS_MODE=strict` remain owner decisions — do not invent them.
 <!-- OWNER-EDIT:end money-security -->
+
+## Product rules (locked)
+
+- **Claim ledger is Must-have before share.** Every claim on a Discover opportunity brief must link to a source (DOI + quote/excerpt) before Share synthesis is allowed.
+- Once the ledger is built, do not enable or ship Share synthesis without it.
+- Until the ledger ships, treat current share as **incomplete vs the product bar** — not a finished Discover trust surface.
+- Next Discover trust work is the ledger: reshape existing gaps + citations into rows. Do not rewrite the opportunity report to get there.
