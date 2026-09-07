@@ -42,4 +42,5 @@ Preconditions:
 - Discover share only accepts a Mongo ObjectId whose stored report has a complete claim ledger. Guest ids `guest-*` and empty ids `empty-*` cannot share. An existing `shareSlug` is still withheld if the ledger is incomplete.
 - Regenerating a paper summary spends another `chat` quota. Prefer the existing brief when `GET /api/brief` already returns one.
 - Invalid slugs 404 before Mongo. Missing valid slugs 404 after Mongo. A local 500 on a well-formed slug usually means `MONGODB_URI` is unset, not a brief bug.
+- Existing public topic links also return 404 when their stored report no longer passes the claim-ledger gate.
 - The public page is the proof. Clipboard success alone is not.
