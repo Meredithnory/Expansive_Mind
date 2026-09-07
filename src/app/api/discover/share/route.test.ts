@@ -94,6 +94,20 @@ describe("POST /api/discover/share", () => {
         expect(doc.save).toHaveBeenCalled();
     });
 
+    it("withholds an existing slug when one of the citations is missing", async () => {
+        const report = structuredClone(completeReport);
+        report.sections.gaps[0].citations = [1, 99];
+        const doc = discoveryDoc({ report, shareSlug: "alreadyShared1" });
+        mocks.findOne.mockResolvedValue(doc);
+        const response = await POST(requestWithUser(DISCOVERY_ID));
+        expect(response.status).toBe(400);
+        expect(await response.json()).toMatchObject({
+            code: "CLAIM_LEDGER_INCOMPLETE", incompleteCount: 1,
+        });
+        expect(doc.save).not.toHaveBeenCalled();
+        expect(mocks.generateShareSlug).not.toHaveBeenCalled();
+    });
+
     it("rejects share when a claim has no commercial-friendly license", async () => {
         mocks.findOne.mockResolvedValue(
             discoveryDoc({
