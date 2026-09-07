@@ -62,13 +62,12 @@ function paperByIndex(
     return papers.find((paper) => paper.index === index);
 }
 
-/** Keep assertions in the row identity: changing prose invalidates old evidence. */
-export function ledgerClaimText(...parts: string[]): string {
-    return parts.map((part) => part.trim()).filter(Boolean).join("\n\n");
-}
-
-function normalizeQuote(value: string): string {
-    return value.replace(/\s+/g, " ").trim();
+function excerptByIndex(
+    extractions: LedgerExtraction[],
+    index: number,
+): string {
+    const extraction = extractions.find((item) => item.index === index);
+    return trimmed(extraction?.supportingExcerpt);
 }
 
 export function hasResolvableCitation(row: Pick<
@@ -114,7 +113,7 @@ function rowForCitation(
         ...(paperId ? { paperId } : {}),
         ...(doi ? { doi } : {}),
         ...(href ? { href } : {}),
-        quote: "",
+        quote: scholar ? "" : excerptByIndex(extractions, paperIndex),
         ...(licenseUrl ? { licenseUrl } : {}),
         ...(confidence ? { confidence } : {}),
     };
@@ -135,14 +134,14 @@ function unresolvedRow(
     };
 }
 
-function citationIndexes(citations: number[]): number[] {
-    // Preserve missing references so they remain visible blockers at share time.
-    return [...new Set(citations)];
+function citationIndexes(citations: number[], papers: LedgerPaper[]): number[] {
+    const known = new Set(papers.map((paper) => paper.index));
+    return [...new Set(citations.filter((index) => known.has(index)))];
 }
 
-function gapCitations(gap: ReportGap | undefined): number[] {
+function gapCitations(gap: ReportGap | undefined, papers: LedgerPaper[]): number[] {
     if (!gap) return [];
-    return citationIndexes(gap.citations);
+    return citationIndexes(gap.citations, papers);
 }
 
 function pushClaimRows(
@@ -155,7 +154,7 @@ function pushClaimRows(
     extractions: LedgerExtraction[],
     confidence?: ReportConfidence,
 ) {
-    const resolved = citationIndexes(citations);
+    const resolved = citationIndexes(citations, papers);
     if (resolved.length === 0) {
         rows.push(unresolvedRow(kind, ordinal, claim, confidence));
         return;
@@ -242,7 +241,7 @@ export function buildClaimLedger(
             rows,
             "gap",
             ordinal,
-            ledgerClaimText(claimText(gap.title, gap.description), gap.description, gap.whyItMatters),
+            claimText(gap.title, gap.description),
             gap.citations,
             papers,
             extractions,
@@ -253,13 +252,13 @@ export function buildClaimLedger(
     problems.forEach((problem, index) => {
         const ordinal = index + 1;
         const citations = problem.gapRefs.flatMap((gapRef) =>
-            gapCitations(gaps[gapRef - 1]),
+            gapCitations(gaps[gapRef - 1], papers),
         );
         pushClaimRows(
             rows,
             "problem",
             ordinal,
-            ledgerClaimText(claimText(problem.title, problem.description), problem.description),
+            claimText(problem.title, problem.description),
             citations,
             papers,
             extractions,
@@ -272,30 +271,13 @@ export function buildClaimLedger(
             rows,
             "venture",
             ordinal,
-            ledgerClaimText(claimText(item.title, item.thesis), item.thesis, item.feasibilitySignals, item.risks),
+            claimText(item.title, item.thesis),
             item.citations,
             papers,
             extractions,
         );
     });
 
-    // A paper-level snippet is a verification corpus, never a fallback quote.
-    const evidence = report.claimEvidence ?? [];
-    for (const row of rows) {
-        const matches = evidence.filter((item) =>
-            item.rowId === row.id && item.claim === row.claim);
-        if (matches.length !== 1 || !row.licenseUrl) continue;
-        const quote = normalizeQuote(matches[0].quote);
-        const corpus = normalizeQuote(extractions.find((item) =>
-            item.index === row.paperIndex)?.supportingExcerpt ?? "");
-        if (!quote || quote.length > 1200 || !corpus.includes(quote)) continue;
-        row.quote = quote;
-    }
-    // Fail closed on blanket reuse across distinct claims to the same source.
-    const reused = new Set(rows.filter((row) => row.quote && rows.some((other) =>
-        other.paperIndex === row.paperIndex && other.claim !== row.claim &&
-        other.quote === row.quote)).map((row) => row.id));
-    for (const row of rows) if (reused.has(row.id)) row.quote = "";
     return { rows };
 }
 

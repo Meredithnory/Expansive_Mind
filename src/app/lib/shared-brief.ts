@@ -5,7 +5,7 @@ import SavedDiscovery from "../models/SavedDiscovery";
 import { isValidShareSlug } from "./share-slug";
 import { buildPaperPath, type SourceDatabase } from "./paper-sources";
 import {
-    evaluateShareGate,
+    attachClaimLedger,
     toLedgerExtractions,
     toLedgerPapers,
 } from "../api/discover/claim-ledger";
@@ -95,14 +95,13 @@ export async function findSharedBrief(
     } | null>();
     if (discovery) {
         const report = parseOpportunityReport(discovery.report);
-        const gate = evaluateShareGate(
-            report,
-            toLedgerPapers(discovery.papers),
-            toLedgerExtractions(discovery.extractions),
-        );
-        // Old links must meet the same evidence bar as newly created links.
-        if (!gate.ok) return null;
-        const claimLedger = gate.ledger;
+        const claimLedger = report
+            ? attachClaimLedger(
+                  report,
+                  toLedgerPapers(discovery.papers),
+                  toLedgerExtractions(discovery.extractions),
+              ).claimLedger
+            : undefined;
         return {
             kind: "discovery",
             title: discovery.question,

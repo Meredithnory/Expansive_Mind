@@ -116,6 +116,4 @@ export interface ClaimLedger {
 export interface OpportunityReport {
     sections: OpportunityReportSections;
     claimLedger?: ClaimLedger;
-    /** Explicit synthesis selections, revalidated against licensed extraction snippets. */
-    claimEvidence?: Array<{ rowId: string; claim: string; quote: string }>;
 }
