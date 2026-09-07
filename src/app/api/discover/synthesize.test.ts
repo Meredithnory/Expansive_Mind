@@ -15,6 +15,7 @@ import { parseJsonFromLlm } from "./parse-llm-json";
 import type { OpportunityReport, PaperExtraction } from "./report-types";
 
 const report: OpportunityReport = {
+    claimEvidence: [{ rowId: "gap-1-p1", claim: "Specific claim", quote: "Specific source excerpt." }],
     sections: {
         stateOfScience:
             "GLP-1 agonists reduce major events in high-risk adults [Paper 1].",
