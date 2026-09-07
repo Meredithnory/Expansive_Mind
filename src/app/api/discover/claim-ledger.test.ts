@@ -102,6 +102,15 @@ describe("buildClaimLedger", () => {
         expect(ledger.rows.every(isClaimLedgerRowComplete)).toBe(true);
     });
 
+    it("keeps missing citations blocked even when another citation is complete", () => {
+        const report = structuredClone(completeReport);
+        report.sections.gaps[0].citations = [1, 99];
+        const gate = evaluateShareGate(report, papers, extractions);
+        expect(gate.ok).toBe(false);
+        expect(gate.ledger.rows.find((row) => row.id === "gap-1-p99"))
+            .toMatchObject({ paperIndex: 99, quote: "" });
+    });
+
     it("does not invent a quote when the extraction has no excerpt", () => {
         const ledger = buildClaimLedger(completeReport, papers, [
             { index: 1, supportingExcerpt: "Events fell by 12% in the treatment arm." },
