@@ -393,4 +393,15 @@ describe("runDiscoverAgent", () => {
         expect(searchSpringerNaturePapers).toHaveBeenCalled();
         expect(synthesizeOpportunityReport).toHaveBeenCalled();
     });
+
+    it("returns a retryable error when report composition is exhausted", async () => {
+        mockPaperHit();
+        synthesizeOpportunityReport.mockResolvedValue(null);
+        await expect(runDiscoverAgent(
+            "How does GLP-1 receptor agonism affect cardiovascular outcomes?",
+        )).rejects.toMatchObject({
+            status: 502,
+            message: "The report could not be composed. Please retry your research question.",
+        });
+    });
 });

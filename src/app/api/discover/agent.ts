@@ -419,7 +419,7 @@ export async function runDiscoverAgent(
     );
     if (!synthesis?.brief) {
         throw new DiscoverAgentError(
-            "The research agent did not return a synthesis.",
+            "The report could not be composed. Please retry your research question.",
             502,
         );
     }
