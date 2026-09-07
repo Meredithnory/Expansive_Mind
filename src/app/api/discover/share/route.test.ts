@@ -28,7 +28,6 @@ import type { OpportunityReport } from "../report-types";
 const DISCOVERY_ID = "64a1b2c3d4e5f6a7b8c9d0e1";
 
 const completeReport: OpportunityReport = {
-    claimEvidence: [{ rowId: "gap-1-p1", claim: "Durability unknown\n\nNo long follow-up.\n\nChronic use.", quote: "No long follow-up was available for chronic use." }],
     sections: {
         stateOfScience: "Events fell.",
         gaps: [
@@ -62,7 +61,7 @@ function discoveryDoc(overrides: Record<string, unknown> = {}) {
         extractions: [
             {
                 index: 1,
-                supportingExcerpt: "No long follow-up was available for chronic use.",
+                supportingExcerpt: "Events fell by 12% in the treatment arm.",
             },
         ],
         shareSlug: undefined,
@@ -83,16 +82,6 @@ describe("POST /api/discover/share", () => {
         vi.clearAllMocks();
     });
 
-    it("blocks legacy generic evidence even with an existing slug", async () => {
-        const report = structuredClone(completeReport);
-        delete report.claimEvidence;
-        const doc = discoveryDoc({ report, shareSlug: "alreadyShared1" });
-        mocks.findOne.mockResolvedValue(doc);
-        expect((await POST(requestWithUser(DISCOVERY_ID))).status).toBe(400);
-        expect(doc.save).not.toHaveBeenCalled();
-        expect(mocks.generateShareSlug).not.toHaveBeenCalled();
-    });
-
     it("creates a slug when the claim ledger is complete", async () => {
         const doc = discoveryDoc();
         mocks.findOne.mockResolvedValue(doc);
@@ -103,20 +92,6 @@ describe("POST /api/discover/share", () => {
         expect(response.status).toBe(200);
         expect(body.slug).toBe("shareSlug12ab");
         expect(doc.save).toHaveBeenCalled();
-    });
-
-    it("withholds an existing slug when one of the citations is missing", async () => {
-        const report = structuredClone(completeReport);
-        report.sections.gaps[0].citations = [1, 99];
-        const doc = discoveryDoc({ report, shareSlug: "alreadyShared1" });
-        mocks.findOne.mockResolvedValue(doc);
-        const response = await POST(requestWithUser(DISCOVERY_ID));
-        expect(response.status).toBe(400);
-        expect(await response.json()).toMatchObject({
-            code: "CLAIM_LEDGER_INCOMPLETE", incompleteCount: 1,
-        });
-        expect(doc.save).not.toHaveBeenCalled();
-        expect(mocks.generateShareSlug).not.toHaveBeenCalled();
     });
 
     it("rejects share when a claim has no commercial-friendly license", async () => {

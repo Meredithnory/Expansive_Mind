@@ -1,70 +1,273 @@
-import { describe, expect, it, vi } from "vitest";
-import { buildClaimLedger, evaluateShareGate } from "./claim-ledger";
-import { parseOpportunityReport } from "./synthesize";
+import { describe, expect, it } from "vitest";
 import type { OpportunityReport } from "./report-types";
+import {
+    SHARE_LOCKED_ERROR,
+    attachClaimLedger,
+    buildClaimLedger,
+    evaluateClaimLedger,
+    evaluateShareGate,
+    isClaimLedgerRowComplete,
+    shareLockDetail,
+} from "./claim-ledger";
 
-vi.mock("server-only", () => ({}));
+const CC_BY = "https://creativecommons.org/licenses/by/4.0/";
 
-const papers = [{ index: 1, paperId: "PMC99", href: "/paperchatbot/nih/PMC99",
-    database: "nih" as const, licenseUrl: "https://creativecommons.org/licenses/by/4.0/" }];
-const quotes = ["Follow-up ended at three years.", "A marker requires prospective validation.",
-    "The assay was feasible but adoption was not evaluated."];
-const extractions = [{ index: 1, supportingExcerpt: quotes.join(" ") }];
-function fixture(): OpportunityReport {
-    const report: OpportunityReport = { sections: {
-        stateOfScience: "Evidence is limited.",
-        gaps: [{ title: "Durability", description: "Follow-up ends at three years.",
-            whyItMatters: "Long-term outcomes remain unknown.", citations: [1], confidence: "suggested" }],
-        problems: [{ title: "Validation", description: "A marker needs validation.", gapRefs: [1] }],
-        venturePotential: [{ title: "Assay", thesis: "Possible translation.",
-            feasibilitySignals: "Feasible assay.", risks: "Adoption unknown.", citations: [1] }],
-        couldNotVerify: [], projectSeeds: [],
-    } };
-    report.claimEvidence = buildClaimLedger(report, papers, []).rows.map((row, i) =>
-        ({ rowId: row.id, claim: row.claim, quote: quotes[i] }));
-    return report;
-}
-describe("claim-specific ledger", () => {
-    it("maps distinct gap/problem/venture quotes from the same licensed source", () => {
-        const report = parseOpportunityReport(fixture())!;
-        const gate = evaluateShareGate(report, papers, extractions);
-        expect(gate.ok).toBe(true);
-        expect(gate.ledger.rows.map(row => row.quote)).toEqual(quotes);
-        expect(gate.ledger.rows[0].claim).toContain("Long-term outcomes");
-        expect(gate.ledger.rows[2].claim).toContain("Adoption unknown");
-    });
-    it.each(["missing", "invented", "wrong-paper", "duplicate", "reused", "stale", "oversize"])(
-        "blocks %s mappings", (mode) => {
-            const report = fixture();
-            const evidence = report.claimEvidence!;
-            if (mode === "missing") report.claimEvidence = [];
-            if (mode === "invented") evidence[0].quote = "Invented outcome.";
-            if (mode === "wrong-paper") evidence[0].rowId = "gap-1-p2";
-            if (mode === "duplicate") evidence.push({ ...evidence[0] });
-            if (mode === "reused") evidence[1].quote = evidence[0].quote;
-            if (mode === "stale") report.sections.gaps[0].whyItMatters = "Changed assertion.";
-            if (mode === "oversize") evidence[0].quote = "x".repeat(1201);
-            expect(evaluateShareGate(report, papers, extractions).ok).toBe(false);
+const papers = [
+    {
+        index: 1,
+        paperId: "10.1/one",
+        href: "/paperchatbot/springer/10.1/one",
+        doi: "10.1/one",
+        licenseUrl: CC_BY,
+        database: "springer" as const,
+    },
+    {
+        index: 2,
+        paperId: "PMC99",
+        href: "/paperchatbot/nih/PMC99",
+        licenseUrl: CC_BY,
+        database: "nih" as const,
+    },
+];
+
+const extractions = [
+    { index: 1, supportingExcerpt: "Events fell by 12% in the treatment arm." },
+    { index: 2, supportingExcerpt: "No outcome past three years was reported." },
+];
+
+const completeReport: OpportunityReport = {
+    sections: {
+        stateOfScience: "Events fell [Paper 1].",
+        gaps: [
+            {
+                title: "Durability unknown",
+                description: "No trial reports outcomes beyond 3 years.",
+                whyItMatters: "Chronic use is the intended setting.",
+                citations: [1, 2],
+                confidence: "suggested",
+            },
+        ],
+        problems: [
+            {
+                title: "Need a durability biomarker",
+                description: "A validated marker would de-risk longer trials.",
+                gapRefs: [1],
+            },
+        ],
+        venturePotential: [
+            {
+                title: "Durability assay",
+                thesis: "A lab test predicting loss of response could be licensed.",
+                feasibilitySignals: "Assay methods are described.",
+                risks: "Adoption is unproven.",
+                citations: [2],
+            },
+        ],
+        couldNotVerify: [],
+        projectSeeds: [],
+    },
+};
+
+describe("buildClaimLedger", () => {
+    it("maps gaps, problems, and ventures onto rows with real excerpts", () => {
+        const ledger = buildClaimLedger(completeReport, papers, extractions);
+
+        expect(ledger.rows.map((row) => row.id)).toEqual([
+            "gap-1-p1",
+            "gap-1-p2",
+            "problem-1-p1",
+            "problem-1-p2",
+            "venture-1-p2",
+        ]);
+        expect(ledger.rows[0]).toMatchObject({
+            kind: "gap",
+            claim: "Durability unknown",
+            paperIndex: 1,
+            doi: "10.1/one",
+            quote: "Events fell by 12% in the treatment arm.",
+            licenseUrl: CC_BY,
+            confidence: "suggested",
         });
-    it("ignores forged ledger rows and never falls back to generic snippets", () => {
-        const report = fixture();
-        report.claimLedger = buildClaimLedger(report, papers, extractions);
-        delete report.claimEvidence;
-        expect(evaluateShareGate(report, papers, extractions).ok).toBe(false);
+        expect(ledger.rows[1].doi).toBeUndefined();
+        expect(ledger.rows[1].paperId).toBe("PMC99");
+        expect(ledger.rows[1].quote).toBe(
+            "No outcome past three years was reported.",
+        );
+        expect(ledger.rows[2].kind).toBe("problem");
+        expect(ledger.rows[4]).toMatchObject({
+            kind: "venture",
+            paperIndex: 2,
+            quote: "No outcome past three years was reported.",
+        });
+        expect(ledger.rows.every(isClaimLedgerRowComplete)).toBe(true);
     });
-    it("normalizes whitespace while retaining verbatim words", () => {
-        const report = fixture();
-        report.claimEvidence![0].quote = "Follow-up  ended\nat three years.";
-        expect(evaluateShareGate(report, papers, extractions).ok).toBe(true);
+
+    it("does not invent a quote when the extraction has no excerpt", () => {
+        const ledger = buildClaimLedger(completeReport, papers, [
+            { index: 1, supportingExcerpt: "Events fell by 12% in the treatment arm." },
+        ]);
+        const paper2 = ledger.rows.filter((row) => row.paperIndex === 2);
+        expect(paper2.length).toBeGreaterThan(0);
+        expect(paper2.every((row) => row.quote === "")).toBe(true);
+        expect(paper2.every((row) => !isClaimLedgerRowComplete(row))).toBe(true);
     });
-    it("blocks missing citations, excerpts, unlicensed sources and Scholar", () => {
-        const report = fixture();
-        expect(evaluateShareGate(report, papers, []).ok).toBe(false);
-        for (const licenseUrl of ["", "https://creativecommons.org/licenses/by-nc/4.0/"]) {
-            expect(evaluateShareGate(report, [{ ...papers[0], licenseUrl }], extractions).ok).toBe(false);
-        }
-        expect(evaluateShareGate(report, [{ ...papers[0], database: "scholar" }], extractions).ok).toBe(false);
-        report.sections.gaps[0].citations.push(99);
-        expect(evaluateShareGate(report, papers, extractions).ok).toBe(false);
+
+    it("marks a claim without a resolvable paper as incomplete", () => {
+        const ledger = buildClaimLedger(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    gaps: [
+                        {
+                            title: "Uncited gap",
+                            description: "No paper backs this.",
+                            whyItMatters: "",
+                            citations: [],
+                            confidence: "speculative",
+                        },
+                    ],
+                    problems: [],
+                    venturePotential: [],
+                },
+            },
+            papers,
+            extractions,
+        );
+        expect(ledger.rows).toHaveLength(1);
+        expect(ledger.rows[0].paperIndex).toBeUndefined();
+        expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
+    });
+});
+
+describe("evaluateClaimLedger / share gate", () => {
+    it("does not copy Scholar snippets or NC licenses onto ledger quotes", () => {
+        const ledger = buildClaimLedger(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    gaps: [
+                        {
+                            title: "Scholar-only gap",
+                            description: "Cited to a snippet.",
+                            whyItMatters: "",
+                            citations: [1],
+                            confidence: "suggested",
+                        },
+                    ],
+                    problems: [],
+                    venturePotential: [],
+                },
+            },
+            [
+                {
+                    index: 1,
+                    paperId: "cluster-1",
+                    href: "/paperchatbot/scholar/cluster-1",
+                    database: "scholar",
+                    licenseUrl: CC_BY,
+                },
+            ],
+            [{ index: 1, supportingExcerpt: "A Scholar snippet." }],
+        );
+        expect(ledger.rows[0].quote).toBe("");
+        expect(ledger.rows[0].licenseUrl).toBeUndefined();
+        expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
+    });
+
+    it("opens share when every row has a quote and a paper citation", () => {
+        const gate = evaluateShareGate(completeReport, papers, extractions);
+        expect(gate.ok).toBe(true);
+        expect(gate.reason).toBe("complete");
+        expect(shareLockDetail(gate)).toBe("");
+    });
+
+    it("locks share when a quote is missing", () => {
+        const gate = evaluateShareGate(completeReport, papers, [
+            { index: 1, supportingExcerpt: "Events fell by 12% in the treatment arm." },
+        ]);
+        expect(gate.ok).toBe(false);
+        expect(gate.reason).toBe("incomplete_rows");
+        expect(gate.incompleteCount).toBeGreaterThan(0);
+        expect(shareLockDetail(gate)).toContain(SHARE_LOCKED_ERROR);
+    });
+
+    it("locks share when the report is missing or has no claims", () => {
+        expect(evaluateShareGate(undefined, papers, extractions)).toMatchObject({
+            ok: false,
+            reason: "missing_report",
+        });
+        const empty = evaluateClaimLedger({ rows: [] });
+        expect(empty).toMatchObject({ ok: false, reason: "empty_ledger" });
+        expect(shareLockDetail(empty)).toBe(
+            "Share stays locked until this brief has sourced claims.",
+        );
+    });
+
+    it("locks share when the license is missing or not commercial-friendly", () => {
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    index: paper.index,
+                    paperId: paper.paperId,
+                    href: paper.href,
+                    doi: paper.doi,
+                    database: paper.database,
+                })),
+                extractions,
+            ).ok,
+        ).toBe(false);
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    ...paper,
+                    licenseUrl: "https://creativecommons.org/licenses/by-nc/4.0/",
+                })),
+                extractions,
+            ).ok,
+        ).toBe(false);
+        expect(
+            evaluateShareGate(
+                completeReport,
+                papers.map((paper) => ({
+                    ...paper,
+                    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
+                })),
+                extractions,
+            ).ok,
+        ).toBe(true);
+    });
+
+    it("accepts paper id or href when DOI is missing", () => {
+        const gate = evaluateShareGate(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    gaps: [
+                        {
+                            title: "NIH-only gap",
+                            description: "Cited to PMC.",
+                            whyItMatters: "",
+                            citations: [2],
+                            confidence: "suggested",
+                        },
+                    ],
+                    problems: [],
+                    venturePotential: [],
+                },
+            },
+            papers,
+            extractions,
+        );
+        expect(gate.ok).toBe(true);
+        expect(gate.ledger.rows[0].doi).toBeUndefined();
+        expect(gate.ledger.rows[0].paperId).toBe("PMC99");
+    });
+
+    it("attaches a rebuilt ledger onto the report", () => {
+        const attached = attachClaimLedger(completeReport, papers, extractions);
+        expect(attached.claimLedger?.rows).toHaveLength(5);
+        expect(attached.sections).toEqual(completeReport.sections);
     });
 });

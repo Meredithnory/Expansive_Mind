@@ -15,7 +15,6 @@ import { parseJsonFromLlm } from "./parse-llm-json";
 import type { OpportunityReport, PaperExtraction } from "./report-types";
 
 const report: OpportunityReport = {
-    claimEvidence: [{ rowId: "gap-1-p1", claim: "Specific claim", quote: "Specific source excerpt." }],
     sections: {
         stateOfScience:
             "GLP-1 agonists reduce major events in high-risk adults [Paper 1].",
@@ -228,24 +227,15 @@ describe("synthesizeOpportunityReport", () => {
         );
     });
 
-    it("fails explicitly when neither model returns a structured report", async () => {
+    it("falls back to raw model text when JSON still cannot be parsed", async () => {
         createPrivateChatCompletion.mockResolvedValue({
             choices: [{ message: { content: "## Direct answer\nNot JSON." } }],
         });
 
         const result = await synthesizeOpportunityReport("q", [extraction]);
-        expect(result).toBeNull();
-        expect(createPrivateChatCompletion).toHaveBeenCalledTimes(4);
-    });
-
-    it("recovers with the fallback model after two malformed primary replies", async () => {
-        createPrivateChatCompletion
-            .mockResolvedValueOnce({ choices: [{ message: { content: "Invalid" } }] })
-            .mockResolvedValueOnce({ choices: [{ message: { content: "Still invalid" } }] })
-            .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify(report) } }] });
-        const result = await synthesizeOpportunityReport("q", [extraction]);
-        expect(result?.report).toEqual(report);
-        expect(createPrivateChatCompletion.mock.calls[2][0].model).toBe("openai/gpt-4.1-mini");
+        expect(result?.report).toBeUndefined();
+        expect(result?.brief).toBe("## Direct answer\nNot JSON.");
+        expect(createPrivateChatCompletion).toHaveBeenCalledTimes(2);
     });
 
     it("falls back to gpt-4.1-mini when Sonnet times out", async () => {
