@@ -134,14 +134,14 @@ function unresolvedRow(
     };
 }
 
-function citationIndexes(citations: number[], papers: LedgerPaper[]): number[] {
-    const known = new Set(papers.map((paper) => paper.index));
-    return [...new Set(citations.filter((index) => known.has(index)))];
+function citationIndexes(citations: number[]): number[] {
+    // Preserve missing references so they remain visible blockers at share time.
+    return [...new Set(citations)];
 }
 
-function gapCitations(gap: ReportGap | undefined, papers: LedgerPaper[]): number[] {
+function gapCitations(gap: ReportGap | undefined): number[] {
     if (!gap) return [];
-    return citationIndexes(gap.citations, papers);
+    return citationIndexes(gap.citations);
 }
 
 function pushClaimRows(
@@ -154,7 +154,7 @@ function pushClaimRows(
     extractions: LedgerExtraction[],
     confidence?: ReportConfidence,
 ) {
-    const resolved = citationIndexes(citations, papers);
+    const resolved = citationIndexes(citations);
     if (resolved.length === 0) {
         rows.push(unresolvedRow(kind, ordinal, claim, confidence));
         return;
@@ -252,7 +252,7 @@ export function buildClaimLedger(
     problems.forEach((problem, index) => {
         const ordinal = index + 1;
         const citations = problem.gapRefs.flatMap((gapRef) =>
-            gapCitations(gaps[gapRef - 1], papers),
+            gapCitations(gaps[gapRef - 1]),
         );
         pushClaimRows(
             rows,
