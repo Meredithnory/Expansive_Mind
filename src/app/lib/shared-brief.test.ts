@@ -12,7 +12,7 @@ import { findSharedBrief } from "./shared-brief";
 function discovery() {
     return {
         question: "Research question", brief: "Report", createdAt: new Date(),
-        report: { sections: {
+        report: { claimEvidence: [{ rowId: "gap-1-p1", claim: "Gap\n\nUnknown", quote: "Source excerpt." }], sections: {
             stateOfScience: "Evidence [Paper 1]",
             gaps: [{ title: "Gap", description: "Unknown", citations: [1] }],
         } },
@@ -31,9 +31,10 @@ describe("public discovery brief evidence gate", () => {
         expect(result?.claimLedger?.rows[0].quote).toBe("Source excerpt.");
         expect(result?.title).toBe("Research question");
     });
-    it.each(["report", "quote", "license", "citation"])("withholds an existing link with missing %s", async (missing) => {
+    it.each(["report", "quote", "license", "citation", "mapping"])("withholds an existing link with missing %s", async (missing) => {
         const value = discovery();
         if (missing === "report") Object.assign(value, { report: undefined });
+        if (missing === "mapping") value.report.claimEvidence = [];
         if (missing === "quote") value.extractions = [];
         if (missing === "license") value.papers[0].licenseUrl = "";
         if (missing === "citation") value.report.sections.gaps[0].citations = [1, 99];
