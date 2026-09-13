@@ -5,6 +5,8 @@ import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import { hasValidMutationOrigin } from "../../lib/request-security";
 import SavedDiscovery from "../../models/SavedDiscovery";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
+import { UNCLEAR_QUESTION_ERROR } from "./assess-query";
+import { looksLikeUnclearResearchQuestion } from "../../lib/query-quality";
 import {
     consumeQuota,
     getQuotaSnapshot,
@@ -19,8 +21,10 @@ import {
 } from "../../lib/provider-cache";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { retrieveFounderSources, buildFounderReport } from "./founder-diligence";
+import { founderReportMarkdown } from "../../lib/founder-report";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export const GET = withOptionalAuth(async (request: NextRequest) => {
     try {
@@ -119,10 +123,23 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         const data = await request.json();
         const question =
             typeof data.question === "string" ? data.question.trim() : "";
+        const founderScope = typeof data.founderScope === "string" ? data.founderScope.trim() : "";
+        if (founderScope.length > 500) {
+            return NextResponse.json({ error: "Optional research context must be 500 characters or fewer." }, { status: 400 });
+        }
 
         if (!question || question.length > 2_000) {
             return NextResponse.json(
                 { error: "A research question of 1–2000 characters is required." },
+                { status: 400 },
+            );
+        }
+        if (looksLikeUnclearResearchQuestion(question)) {
+            return NextResponse.json(
+                {
+                    error: UNCLEAR_QUESTION_ERROR,
+                    code: "UNCLEAR_QUESTION",
+                },
                 { status: 400 },
             );
         }
@@ -156,13 +173,23 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             userID,
             anonymousId: userID ? undefined : identity,
         };
+        // Commercial retrieval runs alongside the existing literature pipeline.
+        const commercialPromise = retrieveFounderSources(question, founderScope, usageContext).catch(() => ({ sources: [], limitations: ["Commercial retrieval failed. Commercial conclusions remain unverified."] }));
         const discovery = await cached({
-            namespace: "discovery-v4",
+            namespace: "discovery-v5-expanded-indexes",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),
         });
-        const result = discovery.value;
+        let result = discovery.value;
+        {
+            const founder = await buildFounderReport({ question, scope: founderScope,
+                commercial: await commercialPromise, extractions: result.extractions || [], papers: result.papers, usageContext });
+            result = { ...result,
+                report: { sections: result.report?.sections || { stateOfScience: result.brief, gaps: [], problems: [], venturePotential: [], couldNotVerify: [], projectSeeds: [] }, founder },
+                brief: `${result.brief}\n\n${founderReportMarkdown(founder)}`,
+            };
+        }
         if (!discovery.cacheHit) {
             deferUsageRecording({
                 context: usageContext,
@@ -197,7 +224,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                     : createdAt,
             plan,
             quota,
-            cacheHit: discovery.cacheHit,
+            cacheHit: false,
         };
         if (!request.user) {
             await setCachedValue(
@@ -224,7 +251,12 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         }
         if (error instanceof DiscoverAgentError) {
             return NextResponse.json(
-                { error: error.message },
+                {
+                    error: error.message,
+                    ...(error.message === UNCLEAR_QUESTION_ERROR
+                        ? { code: "UNCLEAR_QUESTION" }
+                        : {}),
+                },
                 { status: error.status },
             );
         }

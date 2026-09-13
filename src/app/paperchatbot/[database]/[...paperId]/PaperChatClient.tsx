@@ -51,6 +51,10 @@ const BriefModal = dynamic(
     },
 );
 
+const SharePaperModal = dynamic(
+    () => import("../../../components/paperchatbot/SharePaperModal"),
+);
+
 const REDIRECT_DELAY_SECONDS = 15;
 
 const NOTICE_COPY: Record<RelatedResearchArticle["noticeType"], string> = {
@@ -62,9 +66,14 @@ const NOTICE_COPY: Record<RelatedResearchArticle["noticeType"], string> = {
         "This page is an expression of concern notice.",
 };
 
-const LeftArrowSVG = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" {...props}>
-        <path d="m0 13.453 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894L0 13.452Zm10.91 0 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894-11.987 12.7Z" />
+const BackArrowIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        {...props}
+    >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
 );
 
@@ -116,6 +125,7 @@ const PaperChatClient = ({
         null,
     );
     const [briefOpen, setBriefOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
 
     const fetchPaperInfo = useCallback(async () => {
         setLoading(true);
@@ -225,6 +235,8 @@ const PaperChatClient = ({
             researchPaper &&
                 (researchPaper.access.canSendToAI || canAnalyzeFigures),
         );
+    const canSharePaper =
+        authenticated && Boolean(researchPaper?.access.canPersistContent);
     const persistHighlights =
         authenticated && researchPaper?.access.canPersistContent
             ? {
@@ -269,6 +281,13 @@ const PaperChatClient = ({
                     onClose={() => setBriefOpen(false)}
                 />
             )}
+            {researchPaper && shareOpen && (
+                <SharePaperModal
+                    paper={researchPaper}
+                    open={shareOpen}
+                    onClose={() => setShareOpen(false)}
+                />
+            )}
             {showNoticePrompt && (
                 <div className={styles.redirectOverlay}>
                     <div className={styles.redirectCard}>
@@ -308,38 +327,50 @@ const PaperChatClient = ({
             <div className={styles.toolsbox}>
                 <div className={styles.searcharea}>
                     <button
+                        type="button"
                         className={styles.searchbutton}
                         onClick={() => router.back()}
                     >
-                        <LeftArrowSVG />
-                        <div className={styles.text}>Back to research</div>
+                        <BackArrowIcon />
+                        <span className={styles.text}>Back to research</span>
                     </button>
                 </div>
-                {canUseChatTools && (
+                {(canUseChatTools || canSharePaper) && (
                     <div className={styles.paperTools} role="toolbar" aria-label="Paper tools">
-                        <button
-                            type="button"
-                            className={`${styles.toolButton} ${
-                                activeTool === "highlight" ? styles.toolButtonActive : ""
-                            }`}
-                            onClick={() => toggleTool("highlight")}
-                            aria-pressed={activeTool === "highlight"}
-                        >
-                            <Image
-                                src="/highlighticon.svg"
-                                alt=""
-                                width={16}
-                                height={16}
-                            />
-                            Highlight
-                        </button>
+                        {canUseChatTools && (
+                            <button
+                                type="button"
+                                className={`${styles.toolButton} ${
+                                    activeTool === "highlight" ? styles.toolButtonActive : ""
+                                }`}
+                                onClick={() => toggleTool("highlight")}
+                                aria-pressed={activeTool === "highlight"}
+                            >
+                                <Image
+                                    src="/highlighticon.svg"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                />
+                                Highlight
+                            </button>
+                        )}
+                        {canSharePaper && (
+                            <button
+                                type="button"
+                                className={styles.toolButtonPrimary}
+                                onClick={() => setShareOpen(true)}
+                            >
+                                Share paper
+                            </button>
+                        )}
                         {researchPaper?.access.canSendToAI && (
                             <button
                                 type="button"
                                 className={styles.toolButton}
                                 onClick={() => setBriefOpen(true)}
                             >
-                                Share summary
+                                AI summary
                             </button>
                         )}
                     </div>

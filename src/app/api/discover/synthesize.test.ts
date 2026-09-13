@@ -162,9 +162,15 @@ describe("renderOpportunityReport", () => {
         expect(markdown).toContain("## State of the science");
         expect(markdown).toContain("## Gaps in the science");
         expect(markdown).toContain("## Problems these gaps could solve");
-        expect(markdown).toContain("## Translation notes");
-        expect(markdown).toContain("## What we could not verify");
         expect(markdown).toContain("## Next experiments");
+        expect(markdown).toContain("## Translational potential");
+        expect(markdown).toContain("## Limits of this analysis");
+        expect(markdown.indexOf("## Next experiments")).toBeLessThan(
+            markdown.indexOf("## Translational potential"),
+        );
+        expect(markdown.indexOf("## Translational potential")).toBeLessThan(
+            markdown.indexOf("## Limits of this analysis"),
+        );
         expect(markdown).toContain("[Paper 1]");
         expect(markdown).toContain("[Paper 2]");
         expect(markdown).toContain("Confidence: suggested");

@@ -33,13 +33,21 @@ const LoginPage = () => {
 
             if (response.ok && data.success) {
                 await refresh();
-                router.push("/discover");
+                const requestedPath = new URLSearchParams(
+                    window.location.search,
+                ).get("next");
+                const nextPath =
+                    requestedPath?.startsWith("/") &&
+                    !requestedPath.startsWith("//")
+                        ? requestedPath
+                        : "/discover";
+                router.push(nextPath);
                 router.refresh();
             } else {
                 //Login failed
                 setError(data.message || "Login failed");
             }
-        } catch (error) {
+        } catch {
             setError("Network error. Please try again.");
         } finally {
             setLoading(false);

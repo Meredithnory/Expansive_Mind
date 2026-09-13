@@ -23,12 +23,15 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
                 savedParam={first(query.saved)}
                 hero={
                     <>
-                        <p className={styles.eyebrow}>Cross-database research agent</p>
-                        <h1 className={styles.title}>Discover across papers</h1>
+                        <p className={styles.eyebrow}>Evidence-grounded research agent</p>
+                        <h1 className={styles.title}>
+                            Explore biomedical research and startup opportunities
+                        </h1>
                         <p className={styles.subtitle}>
-                            Ask a biomedical question. Deep analysis reads up to 10 papers and can
-                            take a minute or two, then returns a cited opportunity report: what the
-                            science says, where the gaps are, and what those gaps could become.
+                            Ask one research question. Get cited scientific findings,
+                            research gaps, ranked startup opportunities, and revenue
+                            and funding scenarios together. Financial estimates use
+                            explicit assumptions; missing evidence stays visible.
                         </p>
                     </>
                 }

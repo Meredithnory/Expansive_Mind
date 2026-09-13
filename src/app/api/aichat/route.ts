@@ -11,7 +11,7 @@ import {
 import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import { consumeRateLimit } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import { hasValidMutationOrigin, readBoundedJson, InvalidJsonRequest } from "../../lib/request-security";
 import { consumeQuota, resolvePlan } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
 
@@ -23,11 +23,12 @@ export const POST = withAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
-        const data = await request.json();
+        const data = await readBoundedJson(request);
         const messageForAI =
             typeof data.userResponse === "string"
                 ? data.userResponse.trim()
                 : "";
+        const researchContext = typeof data.researchContext === "string" ? data.researchContext.trim().slice(0, 3500) : "";
         const displayMessage =
             typeof data.displayMessage === "string"
                 ? data.displayMessage.trim().slice(0, 8_000)
@@ -158,6 +159,7 @@ export const POST = withAuth(async (request: NextRequest) => {
             serverPaper,
             chatHistory,
             { feature: "chat", userID: userID.toString() },
+            researchContext,
         );
 
         if (!messageBackFromAI) {
@@ -215,6 +217,7 @@ export const POST = withAuth(async (request: NextRequest) => {
             },
         );
     } catch (error) {
+        if (error instanceof InvalidJsonRequest) return NextResponse.json({error:error.message}, {status:error.status});
         console.error("AI chat request failed", error);
         return NextResponse.json(
             { error: "The research assistant is unavailable." },

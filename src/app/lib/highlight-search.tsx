@@ -66,10 +66,7 @@ export const HighlightSearchTitle = ({
                 }
 
                 return (
-                    <span
-                        key={index}
-                        dangerouslySetInnerHTML={{ __html: part }}
-                    />
+                    <span key={index}>{part}</span>
                 );
             })}
         </span>

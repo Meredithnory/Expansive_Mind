@@ -23,6 +23,7 @@ interface SearchProps {
     onAcceptGhost?: () => void;
     inputId?: string;
     accentSource?: SearchAccentSource;
+    searching?: boolean;
 }
 
 const SearchBar = ({
@@ -34,14 +35,23 @@ const SearchBar = ({
     onAcceptGhost,
     inputId,
     accentSource = "all",
+    searching = false,
 }: SearchProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const ghostSuffix = getGhostCompletionSuffix(searchValue, ghostCompletion);
+    const canAcceptGhost =
+        Boolean(ghostCompletion) &&
+        !searchQueriesMatch(searchValue, ghostCompletion ?? "");
+    const hasReplacement = canAcceptGhost && !ghostSuffix;
 
-    const acceptGhost = () => {
+    const acceptGhost = (submit = false) => {
         if (!ghostCompletion) return;
         setSearchValue(ghostCompletion);
         onAcceptGhost?.();
+        if (submit) {
+            handleSubmit(ghostCompletion);
+            return;
+        }
         inputRef.current?.focus();
     };
 
@@ -53,11 +63,9 @@ const SearchBar = ({
             input &&
             input.selectionStart === input.value.length &&
             input.selectionEnd === input.value.length;
-
         if (
-            ghostCompletion &&
-            !searchQueriesMatch(searchValue, ghostCompletion) &&
-            ((event.key === "Tab" && ghostSuffix) ||
+            canAcceptGhost &&
+            ((event.key === "Tab" && (ghostSuffix || hasReplacement)) ||
                 (event.key === "ArrowRight" && atEnd && ghostSuffix))
         ) {
             event.preventDefault();
@@ -67,6 +75,10 @@ const SearchBar = ({
 
         if (event.key === "Enter") {
             event.preventDefault();
+            if (canAcceptGhost) {
+                acceptGhost(true);
+                return;
+            }
             handleSubmit();
         }
     };
@@ -95,15 +107,32 @@ const SearchBar = ({
                     placeholder="Search papers"
                     aria-label="Search papers"
                     autoComplete="off"
-                    spellCheck={false}
+                    spellCheck
                 />
+                {hasReplacement && ghostCompletion ? (
+                    <button
+                        type="button"
+                        className={styles.didYouMean}
+                        onClick={() => acceptGhost()}
+                    >
+                        Did you mean <strong>{ghostCompletion}</strong>
+                    </button>
+                ) : null}
             </div>
             <div className={styles.vertline} />
             <button
                 type="button"
-                onClick={() => handleSubmit()}
-                className={styles.button}
-                aria-label="Search"
+                onClick={() =>
+                    canAcceptGhost
+                        ? acceptGhost(true)
+                        : handleSubmit()
+                }
+                className={clsx(
+                    styles.button,
+                    searching && styles.buttonSearching,
+                )}
+                aria-label={searching ? "Searching" : "Search"}
+                disabled={searching}
             >
                 <svg
                     className={styles.icon}

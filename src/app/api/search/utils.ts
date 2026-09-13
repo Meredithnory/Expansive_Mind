@@ -147,10 +147,16 @@ export const mergeResultsByTier = <T>(...sourceResults: T[][]) => {
     return merged;
 };
 
+export type PublicationDateRange = {
+    fromYear: number;
+    toYear: number;
+};
+
 //Pass in a search Value or keywords to this function to handle the search of the paper IDs that match that keyword/search value
 export const searchNIHPaperIds = async (
     searchValue: string,
     page: number = 0,
+    dateRange?: PublicationDateRange,
 ) => {
     if (!isNihApiConfigured()) {
         return {
@@ -162,8 +168,11 @@ export const searchNIHPaperIds = async (
     }
 
     const trimmed = searchValue.trim();
+    const datedQuery = dateRange
+        ? `(${trimmed}) AND ("${dateRange.fromYear}/01/01"[PDAT] : "${dateRange.toYear}/12/31"[PDAT])`
+        : trimmed;
     const { ids, count: totalCount } = await runNIHEsearch(
-        trimmed,
+        datedQuery,
         page * RETMAX,
         RETMAX,
     );
@@ -280,6 +289,7 @@ const fetchSpringerSearchPage = async (
 export const searchSpringerNaturePapers = async (
     searchValue: string,
     page: number = 0,
+    dateRange?: PublicationDateRange,
 ) => {
     // Match NIH page size so pagination feels consistent.
     const PAGE_SIZE = 10;
@@ -294,7 +304,10 @@ export const searchSpringerNaturePapers = async (
     }
 
     try {
-        const query = buildSpringerSearchQuery(searchValue);
+        const dateQuery = dateRange
+            ? ` onlinedatefrom:${dateRange.fromYear}-01-01 onlinedateto:${dateRange.toYear}-12-31`
+            : "";
+        const query = `${buildSpringerSearchQuery(searchValue)}${dateQuery}`.trim();
         if (!query) {
             return {
                 results: [],
@@ -307,7 +320,8 @@ export const searchSpringerNaturePapers = async (
         let records = Array.isArray(data?.records) ? data.records : [];
 
         if (!data || records.length === 0) {
-            const fallbackQuery = buildSpringerFallbackQuery(searchValue);
+            const fallbackQuery =
+                `${buildSpringerFallbackQuery(searchValue)}${dateQuery}`.trim();
             if (fallbackQuery && fallbackQuery !== query) {
                 data = await fetchSpringerSearchPage(
                     fallbackQuery,
@@ -491,6 +505,7 @@ const fetchScholarSearchPage = async (
     searchValue: string,
     page: number,
     pageSize: number,
+    dateRange?: PublicationDateRange,
 ) => {
     const params = new URLSearchParams();
     params.append("engine", "google_scholar");
@@ -500,6 +515,10 @@ const fetchScholarSearchPage = async (
     params.append("start", (page * pageSize).toString());
     params.append("as_sdt", "0");
     params.append("hl", "en");
+    if (dateRange) {
+        params.append("as_ylo", String(dateRange.fromYear));
+        params.append("as_yhi", String(dateRange.toYear));
+    }
 
     await enforceOutboundLimit("serpapi", 60, 60_000);
     const res = await fetch(`${SERPAPI_URL}?${params.toString()}`);
@@ -513,6 +532,7 @@ const fetchScholarSearchPage = async (
 export const searchGoogleScholarPapers = async (
     searchValue: string,
     page: number = 0,
+    dateRange?: PublicationDateRange,
 ) => {
     const PAGE_SIZE = 10;
 
@@ -529,6 +549,7 @@ export const searchGoogleScholarPapers = async (
             searchValue,
             page,
             PAGE_SIZE,
+            dateRange,
         );
         const records = Array.isArray(data?.organic_results)
             ? data.organic_results

@@ -9,6 +9,7 @@ import type {
 } from "../api/discover/report-types";
 import { parseJsonFromLlm } from "../api/discover/parse-llm-json";
 import { parseStoredPaperExtractions } from "./evidence-type";
+import { parseFounderReport } from "./founder-report";
 
 export const GUEST_DISCOVERY_STORAGE_KEY = "guest-discovery-last-result";
 export const GUEST_UPGRADE_PROMPTED_KEY = "guest-discovery-upgrade-prompted";
@@ -177,6 +178,7 @@ export function parseGuestOpportunityReport(
     }
 
     return {
+        ...(parseFounderReport(raw.founder) ? { founder: parseFounderReport(raw.founder) } : {}),
         sections: {
             stateOfScience,
             gaps,
@@ -245,6 +247,15 @@ export function writeGuestDiscoveryResult(result: GuestDiscoveryResult) {
         );
     } catch {
         // Ignore private-mode / quota failures; the in-memory result still shows.
+    }
+}
+
+export function clearGuestDiscoveryResult() {
+    if (typeof window === "undefined") return;
+    try {
+        window.sessionStorage.removeItem(GUEST_DISCOVERY_STORAGE_KEY);
+    } catch {
+        // Ignore private-mode failures.
     }
 }
 

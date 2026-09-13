@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import SafeAssistantMarkdown from "../../components/SafeAssistantMarkdown";
 import {
     briefPreviewText,
     findSharedBrief,
@@ -74,7 +74,7 @@ const SharedBriefPage = async ({
                 </p>
 
                 <div className={styles.brief}>
-                    <ReactMarkdown>{shared.brief}</ReactMarkdown>
+                    <SafeAssistantMarkdown>{shared.brief}</SafeAssistantMarkdown>
                 </div>
 
                 {shared.canonicalUrl && (

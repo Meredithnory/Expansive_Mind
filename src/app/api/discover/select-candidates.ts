@@ -16,6 +16,7 @@ export interface DiscoverCandidate {
     sourceLabel: string;
     sourceUrl: string;
     doi?: string;
+    indexedBy?: string[];
     access: ContentAccessPolicy;
 }
 
@@ -26,7 +27,7 @@ export function filterAiEligible(
 }
 
 export function candidateKey(candidate: DiscoverCandidate): string {
-    const doi = candidate.doi?.trim().toLowerCase();
+    const doi = candidate.doi?.trim().toLowerCase().replace(/^https?:\/\/(?:dx\.)?doi\.org\//, "").replace(/^doi:\s*/, "");
     if (doi) return `doi:${doi}`;
     return `${candidate.database}:${candidate.paperId.trim().toLowerCase()}`;
 }
@@ -34,15 +35,23 @@ export function candidateKey(candidate: DiscoverCandidate): string {
 export function dedupeDiscoverCandidates(
     candidates: DiscoverCandidate[],
 ): DiscoverCandidate[] {
-    const seen = new Set<string>();
-    const unique: DiscoverCandidate[] = [];
+    const groups: { candidate: DiscoverCandidate; keys: Set<string> }[] = [];
     for (const candidate of candidates) {
-        const key = candidateKey(candidate);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        unique.push(candidate);
+        const id = candidate.database === "nih" ? candidate.paperId.trim().toLowerCase().replace(/^pmc/, "") : candidate.paperId.trim().toLowerCase();
+        const keys = new Set([candidateKey(candidate), `${candidate.database}:${id}`]);
+        const matches = groups.filter(group => [...keys].some(key => group.keys.has(key)));
+        if (!matches.length) { groups.push({ candidate: { ...candidate }, keys }); continue; }
+        // A DOI-bearing record can bridge two earlier records that shared no identifiers.
+        const group = [...matches.map(entry => entry.candidate), candidate];
+        const preferred = group.find(entry => entry.access.canSendToAI) || group[0];
+        const indexedBy = [...new Set(group.flatMap(entry => entry.indexedBy || []))];
+        const doi = preferred.doi || group.find(entry => entry.doi)?.doi;
+        const combined = { ...preferred, ...(doi ? { doi } : {}), ...(indexedBy.length ? { indexedBy } : {}) };
+        const position = groups.indexOf(matches[0]);
+        for (const entry of matches) { entry.keys.forEach(key => keys.add(key)); groups.splice(groups.indexOf(entry), 1); }
+        groups.splice(position, 0, { candidate: combined, keys });
     }
-    return unique;
+    return groups.map(group => group.candidate);
 }
 
 /**

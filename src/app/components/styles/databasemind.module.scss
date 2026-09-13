@@ -6,9 +6,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 40px;
+    gap: 30px;
     width: 100%;
-    max-width: 640px;
+    max-width: 600px;
 }
 
 /* ---------------------------------- scene ---------------------------------- */
@@ -59,15 +59,23 @@
 }
 
 .angleNih {
-    transform: rotate(28deg);
+    transform: rotate(18deg);
 }
 
 .angleSpringer {
-    transform: rotate(148deg);
+    transform: rotate(90deg);
 }
 
 .angleScholar {
-    transform: rotate(268deg);
+    transform: rotate(162deg);
+}
+
+.angleEuropePmc {
+    transform: rotate(234deg);
+}
+
+.angleCrossref {
+    transform: rotate(306deg);
 }
 
 .satellite {
@@ -107,6 +115,14 @@
 
 .scholar .absorbDot {
     animation-delay: 2.6s;
+}
+
+.europePmc .absorbDot {
+    animation-delay: 3.7s;
+}
+
+.crossref .absorbDot {
+    animation-delay: 4.8s;
 }
 
 .headGlow {
@@ -170,11 +186,94 @@
 
 /* ---------------------------------- chips ---------------------------------- */
 
+.carousel {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    align-items: center;
+    gap: 8px 6px;
+    width: 100%;
+}
+
 .chips {
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 6px;
+    border: 1px solid rgba(215, 235, 255, 0.08);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 15% 50%, rgba(255, 0, 132, 0.06), transparent 36%),
+        rgba(7, 7, 9, 0.82);
+    box-shadow:
+        0 16px 38px rgba(0, 0, 0, 0.3),
+        inset 0 1px rgba(255, 255, 255, 0.025);
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.chipTrack {
     display: flex;
     gap: 10px;
-    width: 100%;
+    width: max-content;
+}
+
+.arrow {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0 0 2px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 50%;
+    background: rgba(215, 235, 255, 0.03);
+    color: rgba(215, 235, 255, 0.62);
+    font: inherit;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.45);
+        color: #ff76b8;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+    }
+}
+
+.carouselDots {
+    grid-column: 1 / -1;
+    display: flex;
     justify-content: center;
+    gap: 6px;
+}
+
+.carouselDot {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.18);
+    cursor: pointer;
+    transition:
+        width 180ms ease,
+        background-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.carouselDotActive {
+    width: 22px;
+    background: #ff1682;
+    box-shadow: 0 0 10px rgba(255, 22, 130, 0.45);
 }
 
 .nih {
@@ -195,16 +294,27 @@
     --mind-color-faint: rgba(10, 177, 255, 0.1);
 }
 
+.europePmc {
+    --mind-color: #a78bfa;
+    --mind-color-soft: rgba(167, 139, 250, 0.4);
+    --mind-color-faint: rgba(167, 139, 250, 0.1);
+}
+
+.crossref {
+    --mind-color: #65d6ad;
+    --mind-color-soft: rgba(101, 214, 173, 0.4);
+    --mind-color-faint: rgba(101, 214, 173, 0.1);
+}
+
 .chip {
-    flex: 1 1 0;
-    max-width: 212px;
     display: flex;
     align-items: center;
-    gap: 11px;
-    min-height: 58px;
-    padding: 10px 14px;
-    border-radius: 17px;
-    border: 1px solid var(--mind-color-soft);
+    gap: 12px;
+    flex: 0 0 292px;
+    min-height: 70px;
+    padding: 11px 13px;
+    border: 1px solid rgba(215, 235, 255, 0.075);
+    border-radius: 14px;
     background: linear-gradient(
         180deg,
         rgba(255, 255, 255, 0.035),
@@ -213,13 +323,17 @@
     color: #f4f8ff;
     font-family: inherit;
     text-align: left;
+    scroll-snap-align: start;
     cursor: pointer;
+    opacity: 0.56;
+    transform: scale(0.975);
     transition:
         border-color 200ms ease,
         background-color 200ms ease,
         box-shadow 200ms ease,
         transform 200ms ease,
         opacity 260ms ease;
+    animation: source-reveal 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 
     &:hover {
         border-color: var(--mind-color);
@@ -234,13 +348,89 @@
     }
 }
 
-.chipDot {
-    width: 10px;
-    height: 10px;
-    flex-shrink: 0;
-    border-radius: 999px;
-    background: var(--mind-color);
-    box-shadow: 0 0 0 4px var(--mind-color-faint);
+.chipCarouselActive {
+    border-color: var(--mind-color-soft);
+    background:
+        radial-gradient(
+            circle at 8% 50%,
+            var(--mind-color-faint),
+            transparent 42%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.055),
+            rgba(255, 255, 255, 0.012)
+        );
+    box-shadow:
+        inset 3px 0 var(--mind-color),
+        0 12px 26px rgba(0, 0, 0, 0.24);
+    opacity: 1;
+    transform: scale(1);
+}
+
+.chip:nth-child(1) {
+    animation-delay: 80ms;
+}
+
+.chip:nth-child(2) {
+    animation-delay: 150ms;
+}
+
+.chip:nth-child(3) {
+    animation-delay: 220ms;
+}
+
+.chip:nth-child(4) {
+    animation-delay: 290ms;
+}
+
+.chip:nth-child(5) {
+    animation-delay: 360ms;
+}
+
+.indexChip {
+    cursor: default;
+
+    &::after {
+        display: none;
+    }
+
+    &:hover {
+        border-color: var(--mind-color-soft);
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.035),
+            rgba(255, 255, 255, 0.008)
+        );
+        box-shadow: none;
+        transform: none;
+    }
+}
+
+.logoFrame {
+    display: grid;
+    place-items: center;
+    flex: 0 0 58px;
+    width: 58px;
+    height: 42px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.logoFrameLight {
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.sourceLogo {
+    width: 31px;
+    height: 31px;
+    object-fit: contain;
+}
+
+.sourceLogoWide {
+    width: 50px;
+    height: 25px;
 }
 
 .chipText {
@@ -251,15 +441,21 @@
 }
 
 .chipName {
-    font-size: 13.5px;
+    overflow: hidden;
+    font-size: 14px;
     font-weight: 650;
     line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chipDetail {
-    font-size: 11.5px;
+    overflow: hidden;
+    color: rgba(215, 235, 255, 0.46);
+    font-size: 11px;
     line-height: 1.3;
-    color: rgba(215, 235, 255, 0.58);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chipActive {
@@ -298,6 +494,20 @@
 @keyframes ring-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes source-reveal {
+    from {
+        opacity: 0;
+        filter: blur(5px);
+        transform: translateY(-11px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -366,18 +576,15 @@
         --scene: 232px;
         --head: 120px;
 
-        gap: 34px;
+        gap: 26px;
     }
 
-    .chips {
-        flex-direction: column;
-        align-items: stretch;
-        max-width: 340px;
+    .carousel {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .chip {
-        max-width: none;
-        min-height: 54px;
+    .arrow {
+        display: none;
     }
 }
 
@@ -393,7 +600,8 @@
     .ringInner,
     .headGlow,
     .headFloat,
-    .headShadow {
+    .headShadow,
+    .chip {
         animation: none;
     }
 

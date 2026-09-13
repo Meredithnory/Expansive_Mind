@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import ReactMarkdown from "react-markdown";
+import SafeAssistantMarkdown from "../SafeAssistantMarkdown";
 import styles from "../styles/briefmodal.module.scss";
 import type { FormattedPaper } from "../../api/general-interfaces";
 import { useSession } from "../../lib/use-session";
@@ -165,7 +165,7 @@ const BriefModal = ({ paper, open, onClose }: BriefModalProps) => {
                 {brief ? (
                     <>
                         <div className={styles.briefBody}>
-                            <ReactMarkdown>{brief.brief}</ReactMarkdown>
+                            <SafeAssistantMarkdown>{brief.brief}</SafeAssistantMarkdown>
                         </div>
                         <footer className={styles.actions}>
                             <button

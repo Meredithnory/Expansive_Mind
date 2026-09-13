@@ -1,4 +1,5 @@
 import "server-only";
+import { AI_SECURITY_POLICY } from "../lib/ai-security";
 import OpenAI from "openai";
 import { OPENROUTER_PROVIDER_POLICY } from "../lib/openrouter-policy";
 import {
@@ -34,8 +35,12 @@ export async function createPrivateChatCompletion(
     usageContext?: UsageContext,
     options?: { timeoutMs?: number },
 ) {
+    if (request.tools?.length || request.functions?.length) {
+        throw new Error("Model tool execution is not enabled for this application.");
+    }
     const payload = {
         ...request,
+        messages: [{ role: "system", content: AI_SECURITY_POLICY }, ...request.messages],
         stream: false,
         provider: OPENROUTER_PROVIDER_POLICY,
     } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & {

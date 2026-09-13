@@ -24,6 +24,25 @@ import {
 import { isAdminUser } from "../../lib/admin";
 
 type SourceFilter = "all" | "nih" | "springer" | "scholar";
+type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
+
+const DATE_FILTERS = new Set<DateFilter>([
+    "any",
+    "this-year",
+    "2-years",
+    "5-years",
+    "10-years",
+]);
+
+const getDateRange = (filter: DateFilter) => {
+    if (filter === "any") return undefined;
+    const toYear = new Date().getUTCFullYear();
+    const years =
+        filter === "this-year"
+            ? 1
+            : Number.parseInt(filter.replace("-years", ""), 10);
+    return { fromYear: toYear - years + 1, toYear };
+};
 
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
@@ -35,15 +54,17 @@ async function runSearch(
     searchValue: string,
     page: number,
     sourceFilter: string,
+    dateFilter: DateFilter,
     options?: { lightweight?: boolean; usageContext?: UsageContext },
 ) {
     const { includeNih, includeSpringer, includeScholar } =
         getSourceFlags(sourceFilter);
     const lightweight = options?.lightweight ?? false;
+    const dateRange = getDateRange(dateFilter);
 
     const [nihSearch, springerSearch, scholarSearch] = await Promise.all([
         includeNih
-            ? searchNIHPaperIds(searchValue, page)
+            ? searchNIHPaperIds(searchValue, page, dateRange)
             : Promise.resolve({
                   ids: [],
                   totalCount: 0,
@@ -51,14 +72,14 @@ async function runSearch(
                   page,
               }),
         includeSpringer
-            ? searchSpringerNaturePapers(searchValue, page)
+            ? searchSpringerNaturePapers(searchValue, page, dateRange)
             : Promise.resolve({
                   results: [],
                   totalCount: 0,
                   totalPages: 0,
               }),
         includeScholar
-            ? searchGoogleScholarPapers(searchValue, page)
+            ? searchGoogleScholarPapers(searchValue, page, dateRange)
             : Promise.resolve({
                   results: [],
                   totalCount: 0,
@@ -177,6 +198,8 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         const page = parseInt(req.nextUrl.searchParams.get("page") || "0", 10);
         const sourceFilter =
             (req.nextUrl.searchParams.get("source") as SourceFilter) || "all";
+        const requestedDate =
+            (req.nextUrl.searchParams.get("date") as DateFilter) || "any";
 
         if (!searchValue || searchValue.trim().length > 300) {
             throw Error("Invalid search value.");
@@ -184,6 +207,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
 
         if (
             !["all", "nih", "springer", "scholar"].includes(sourceFilter) ||
+            !DATE_FILTERS.has(requestedDate) ||
             page < 0 ||
             page > 100
         ) {
@@ -242,14 +266,14 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 sourceFilter === "scholar" ? "scholar_search" : "search",
             userID,
             anonymousId: userID ? undefined : identity,
-            metadata: { source: sourceFilter },
+            metadata: { source: sourceFilter, date: requestedDate },
         };
         const cachedSearch = await cached({
             namespace: "paper-search-v1",
-            key: `${normalizedQuery}:${page}:${sourceFilter}:${plan === "guest" ? "lexical" : "semantic"}`,
+            key: `${normalizedQuery}:${page}:${sourceFilter}:${requestedDate}:${plan === "guest" ? "lexical" : "semantic"}`,
             ttlSeconds: sourceFilter === "scholar" ? 3_600 : 6 * 60 * 60,
             load: () =>
-                runSearch(searchValue, page, sourceFilter, {
+                runSearch(searchValue, page, sourceFilter, requestedDate, {
                     lightweight: plan === "guest",
                     usageContext,
                 }),
@@ -280,6 +304,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 totalPages: search.totalPages,
                 page,
                 source: sourceFilter,
+                date: requestedDate,
                 query: searchValue,
                 warnings: search.warnings,
                 plan,

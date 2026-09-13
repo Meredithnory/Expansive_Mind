@@ -12,7 +12,6 @@ import {
 import { LoadingOverlay } from "../../components/Loading";
 import { useSession } from "../../lib/use-session";
 import {
-    STEP_STATUSES,
     type ProjectStepStatus,
     type SerializedProject,
 } from "../../lib/project-types";
@@ -20,18 +19,6 @@ import { buildPaperFocusHref } from "../../lib/paper-sources";
 import styles from "./project-detail.module.scss";
 
 const NOTES_DEBOUNCE_MS = 700;
-
-function nextStatus(status: ProjectStepStatus): ProjectStepStatus {
-    if (status === "pending") return "in-progress";
-    if (status === "in-progress") return "done";
-    return "pending";
-}
-
-function statusLabel(status: ProjectStepStatus) {
-    if (status === "in-progress") return "In progress";
-    if (status === "done") return "Done";
-    return "Pending";
-}
 
 function formatCreatedAt(value: string) {
     if (!value) return "";
@@ -244,7 +231,7 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
         if (!project) return;
         if (
             !window.confirm(
-                `Delete “${project.title}”? This cannot be undone.`,
+                `Cancel “${project.title}”? This removes it from your library and cannot be undone.`,
             )
         ) {
             return;
@@ -265,9 +252,15 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
         }
     }
 
+    const completedSteps =
+        project?.plan.filter((step) => step.status === "done").length ?? 0;
     const progress = project
-        ? `${project.plan.filter((step) => step.status === "done").length}/${project.plan.length} steps done`
+        ? `${completedSteps}/${project.plan.length} steps complete`
         : "";
+    const progressPercent =
+        project && project.plan.length > 0
+            ? Math.round((completedSteps / project.plan.length) * 100)
+            : 0;
 
     if (!sessionLoading && !isLoggedIn) {
         return (
@@ -303,15 +296,27 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
             ) : project ? (
                 <div className={styles.content}>
                     <header className={styles.header}>
-                        <div>
+                        <div className={styles.headerCopy}>
                             <Link href="/savedpapers?tab=projects" className={styles.backLink}>
-                                ← Research Library
+                                <span aria-hidden="true">‹</span>
+                                Research Library
                             </Link>
+                            <p className={styles.eyebrow}>Research plan</p>
                             <h1 className={styles.title}>{project.title}</h1>
                             <p className={styles.meta}>
                                 {formatCreatedAt(project.createdAt)}
                                 {progress ? ` · ${progress}` : ""}
                             </p>
+                            <div
+                                className={styles.progressTrack}
+                                role="progressbar"
+                                aria-label="Research plan progress"
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={progressPercent}
+                            >
+                                <span style={{ width: `${progressPercent}%` }} />
+                            </div>
                         </div>
                         <button
                             type="button"
@@ -319,11 +324,11 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
                             onClick={() => void deleteProject()}
                             disabled={deleting}
                         >
-                            Delete
+                            {deleting ? "Canceling…" : "Cancel project"}
                         </button>
                     </header>
 
-                    <section className={styles.card}>
+                    <section className={`${styles.card} ${styles.gapCard}`}>
                         <h2 className={styles.sectionTitle}>Gap</h2>
                         <h3 className={styles.gapTitle}>{project.gap.title}</h3>
                         <p className={styles.prose}>{project.gap.description}</p>
@@ -346,7 +351,7 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
                         </div>
                     </section>
 
-                    <section className={styles.card}>
+                    <section className={`${styles.card} ${styles.evidenceCard}`}>
                         <div className={styles.sectionHeading}>
                             <h2 className={styles.sectionTitle}>
                                 Research already done
@@ -505,90 +510,95 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
                         )}
                     </section>
 
-                    <section className={styles.card}>
-                        <h2 className={styles.sectionTitle}>Research roadmap</h2>
+                    <section className={`${styles.card} ${styles.roadmapCard}`}>
+                        <div className={styles.roadmapHeading}>
+                            <div>
+                                <p className={styles.sectionKicker}>Execution</p>
+                                <h2 className={styles.sectionTitle}>Research roadmap</h2>
+                            </div>
+                            <span>{progress}</span>
+                        </div>
                         <ol className={styles.stepList}>
                             {project.plan.map((step, index) => (
-                                <li key={`${step.title}-${index}`} className={styles.step}>
-                                    <div className={styles.stepHeader}>
-                                        <h3 className={styles.stepTitle}>
+                                <li
+                                    key={`${step.title}-${index}`}
+                                    className={`${styles.step}${
+                                        step.status === "done"
+                                            ? ` ${styles.stepDone}`
+                                            : ""
+                                    }`}
+                                >
+                                    <button
+                                        type="button"
+                                        className={styles.stepCheck}
+                                        aria-label={
+                                            step.status === "done"
+                                                ? `Mark step ${index + 1} incomplete`
+                                                : `Mark step ${index + 1} complete`
+                                        }
+                                        aria-pressed={step.status === "done"}
+                                        onClick={() =>
+                                            void updateStepStatus(
+                                                index,
+                                                step.status === "done"
+                                                    ? "pending"
+                                                    : "done",
+                                            )
+                                        }
+                                    >
+                                        <svg
+                                            viewBox="0 0 16 16"
+                                            aria-hidden="true"
+                                        >
+                                            <path d="m4 8.25 2.45 2.4L12.2 5" />
+                                        </svg>
+                                    </button>
+                                    <div className={styles.stepBody}>
+                                        <div className={styles.stepHeader}>
                                             <span className={styles.stepIndex}>
-                                                {index + 1}.
+                                                Step {index + 1}
                                             </span>
+                                        </div>
+                                        <h3 className={styles.stepTitle}>
                                             {step.title}
                                         </h3>
-                                        <div className={styles.stepControls}>
-                                            <button
-                                                type="button"
-                                                className={styles.statusButton}
-                                                onClick={() =>
-                                                    void updateStepStatus(
-                                                        index,
-                                                        nextStatus(step.status),
-                                                    )
-                                                }
-                                            >
-                                                {statusLabel(step.status)}
-                                            </button>
-                                            <select
-                                                className={styles.statusSelect}
-                                                value={step.status}
-                                                aria-label={`Status for step ${index + 1}`}
-                                                onChange={(event) =>
-                                                    void updateStepStatus(
-                                                        index,
-                                                        event.target
-                                                            .value as ProjectStepStatus,
-                                                    )
-                                                }
-                                            >
-                                                {STEP_STATUSES.map((status) => (
-                                                    <option
-                                                        key={status}
-                                                        value={status}
-                                                    >
-                                                        {statusLabel(status)}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    {step.description ? (
-                                        <p className={styles.prose}>
-                                            {step.description}
-                                        </p>
-                                    ) : null}
-                                    {step.paperRefs.length > 0 ? (
-                                        <div className={styles.paperLinks}>
-                                            {step.paperRefs.map((ref) => {
-                                                const paper =
-                                                    papersByIndex.get(ref);
-                                                const label = `Paper ${ref}`;
-                                                if (!paper?.href) {
+                                        {step.description ? (
+                                            <p className={styles.prose}>
+                                                {step.description}
+                                            </p>
+                                        ) : null}
+                                        {step.paperRefs.length > 0 ? (
+                                            <div className={styles.paperLinks}>
+                                                {step.paperRefs.map((ref) => {
+                                                    const paper =
+                                                        papersByIndex.get(ref);
+                                                    const label = `Paper ${ref}`;
+                                                    if (!paper?.href) {
+                                                        return (
+                                                            <span key={ref}>
+                                                                {label}
+                                                            </span>
+                                                        );
+                                                    }
                                                     return (
-                                                        <span key={ref}>
-                                                            {label}
-                                                        </span>
+                                                        <PaperAnchor
+                                                            key={ref}
+                                                            href={paperHref(paper)}
+                                                        >
+                                                            {label}: {paper.title}
+                                                        </PaperAnchor>
                                                     );
-                                                }
-                                                return (
-                                                    <PaperAnchor
-                                                        key={ref}
-                                                        href={paperHref(paper)}
-                                                    >
-                                                        {label}: {paper.title}
-                                                    </PaperAnchor>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : null}
+                                                })}
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 </li>
                             ))}
                         </ol>
                     </section>
 
                     {project.papers.length > 0 ? (
-                        <section className={styles.card}>
+                        <section className={`${styles.card} ${styles.sourcesCard}`}>
                             <h2 className={styles.sectionTitle}>Linked papers</h2>
                             <div className={styles.paperLinks}>
                                 {project.papers.map((paper) => (
@@ -603,7 +613,7 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
                         </section>
                     ) : null}
 
-                    <section className={styles.card}>
+                    <section className={`${styles.card} ${styles.notesCard}`}>
                         <h2 className={styles.sectionTitle}>Notes</h2>
                         <textarea
                             className={styles.notes}

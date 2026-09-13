@@ -11,7 +11,7 @@ import SearchBar from "../components/SearchBar";
 import { useRouter } from "next/navigation";
 import styles from "./searchpaper.module.scss";
 import SearchResults from "../components/SearchResults";
-import { LoadingOverlay } from "../components/Loading";
+import { SearchLoadingOverlay } from "../components/Loading";
 import { searchQueriesMatch } from "../lib/search-suggest";
 import { useInlineSearchSuggestion } from "../lib/use-inline-search-suggestion";
 import Image from "next/image";
@@ -23,6 +23,7 @@ import posthog from "posthog-js";
 import DatabaseMind from "../components/DatabaseMind";
 
 export type SourceFilter = "all" | "nih" | "springer" | "scholar";
+type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
 
 const SOURCE_FILTERS: {
     value: SourceFilter;
@@ -63,6 +64,14 @@ const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
     scholar: styles.filterOptionScholar,
 };
 
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+    { value: "any", label: "Any time" },
+    { value: "this-year", label: "This year" },
+    { value: "2-years", label: "Last 2 years" },
+    { value: "5-years", label: "Last 5 years" },
+    { value: "10-years", label: "Last 10 years" },
+];
+
 interface SearchResult {
     sourceId: string;
     doi?: string;
@@ -85,10 +94,23 @@ const parseSourceFilter = (value: string | null): SourceFilter => {
     return "all";
 };
 
+const parseDateFilter = (value: string | null): DateFilter => {
+    if (
+        value === "this-year" ||
+        value === "2-years" ||
+        value === "5-years" ||
+        value === "10-years"
+    ) {
+        return value;
+    }
+    return "any";
+};
+
 type SearchPaperClientProps = {
     initialQuery: string;
     initialPage: string;
     initialSource: string;
+    initialDate: string;
     landingIntro: ReactNode;
 };
 
@@ -96,11 +118,13 @@ const SearchPaperClient = ({
     initialQuery,
     initialPage,
     initialSource,
+    initialDate,
     landingIntro,
 }: SearchPaperClientProps) => {
     const qParam = initialQuery || null;
     const pageParam = initialPage || null;
     const sourceParam = parseSourceFilter(initialSource);
+    const dateParam = parseDateFilter(initialDate);
     const router = useRouter();
     const { isLoggedIn, refresh } = useSession();
 
@@ -114,11 +138,16 @@ const SearchPaperClient = ({
     const [error, setError] = useState("");
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
+    const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
     const previousPageRef = useRef<number | null>(null);
+    const searchTransitionStartedAtRef = useRef<number | null>(null);
+    const searchTransitionTimerRef =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const activePage = Math.max(Number.parseInt(pageParam || "0", 10) || 0, 0);
     const activeSource = sourceParam;
+    const activeDate = dateParam;
     const committedQuery = (pastSearchValue || qParam || "").trim();
     const hasCommittedSearch = Boolean(committedQuery);
     const displayError = error
@@ -151,6 +180,7 @@ const SearchPaperClient = ({
         query: string,
         page: number,
         source: SourceFilter = activeSource,
+        date: DateFilter = activeDate,
     ) => {
         const params = new URLSearchParams({
             q: query,
@@ -160,13 +190,45 @@ const SearchPaperClient = ({
         if (source !== "all") {
             params.set("source", source);
         }
+        if (date !== "any") {
+            params.set("date", date);
+        }
 
         router.push(`${window.location.pathname}?${params}`, { scroll: false });
     };
 
+    const beginSearchTransition = useCallback(() => {
+        if (searchTransitionTimerRef.current) {
+            clearTimeout(searchTransitionTimerRef.current);
+        }
+        searchTransitionStartedAtRef.current = performance.now();
+        setSearchTransitionActive(true);
+    }, []);
+
+    const finishSearchTransition = useCallback(() => {
+        const startedAt = searchTransitionStartedAtRef.current;
+        if (startedAt === null) return;
+        const remaining = Math.max(0, 850 - (performance.now() - startedAt));
+        searchTransitionTimerRef.current = setTimeout(() => {
+            setSearchTransitionActive(false);
+            searchTransitionStartedAtRef.current = null;
+            searchTransitionTimerRef.current = null;
+        }, remaining);
+    }, []);
+
+    useEffect(
+        () => () => {
+            if (searchTransitionTimerRef.current) {
+                clearTimeout(searchTransitionTimerRef.current);
+            }
+        },
+        [],
+    );
+
     const handleSubmit = (queryOverride?: string): void => {
         const query = (queryOverride ?? searchValue).trim();
         if (!query) return;
+        beginSearchTransition();
 
         if (
             queryOverride &&
@@ -198,6 +260,9 @@ const SearchPaperClient = ({
             if (source !== "all") {
                 params.set("source", source);
             }
+            if (activeDate !== "any") {
+                params.set("date", activeDate);
+            }
             const next = params.toString();
             router.push(
                 next
@@ -218,12 +283,35 @@ const SearchPaperClient = ({
         scrollToTop();
     };
 
+    const handleDateChange = (date: DateFilter) => {
+        const query = (pastSearchValue || qParam || searchValue).trim();
+        if (!query) return;
+        pushSearchParams(query, 0, activeSource, date);
+        if (window.matchMedia("(max-width: 720px)").matches) {
+            setFiltersExpanded(false);
+        }
+        scrollToTop();
+    };
+
     const doSearch = useCallback(
         async (
             query: string,
             page: number = 0,
             source: SourceFilter = "all",
+            date: DateFilter = "any",
         ): Promise<void> => {
+            const searchStartedAt = performance.now();
+            const completeVisualTransition = async () => {
+                const remaining = Math.max(
+                    0,
+                    850 - (performance.now() - searchStartedAt),
+                );
+                if (remaining > 0) {
+                    await new Promise((resolve) =>
+                        window.setTimeout(resolve, remaining),
+                    );
+                }
+            };
             setLoading(true);
             setError("");
             const params = new URLSearchParams({
@@ -234,6 +322,9 @@ const SearchPaperClient = ({
             if (source !== "all") {
                 params.set("source", source);
             }
+            if (date !== "any") {
+                params.set("date", date);
+            }
 
             const res = await fetch(`/api/search?${params}`);
             const data = await res.json();
@@ -243,12 +334,14 @@ const SearchPaperClient = ({
                 setSearchResults([]);
                 setError(data.error || "Search is temporarily unavailable.");
                 setQuotaRemaining(data.quota?.remaining ?? null);
+                await completeVisualTransition();
                 setLoading(false);
                 posthog.capture("search_blocked", {
                     status: res.status,
                     code: data.code,
                     source,
                 });
+                finishSearchTransition();
                 return;
             }
 
@@ -257,7 +350,9 @@ const SearchPaperClient = ({
             setTotalPages(data.totalPages);
             setCurrentPage(page);
             setQuotaRemaining(data.quota?.remaining ?? null);
+            await completeVisualTransition();
             setLoading(false);
+            finishSearchTransition();
             posthog.capture("search_completed", {
                 source,
                 result_count: Array.isArray(data.results)
@@ -266,13 +361,13 @@ const SearchPaperClient = ({
                 cache_hit: Boolean(data.cacheHit),
             });
         },
-        [refresh],
+        [finishSearchTransition, refresh],
     );
 
     useEffect(() => {
         setSearchValue(qParam ?? "");
         if (qParam) {
-            doSearch(qParam, activePage, activeSource);
+            doSearch(qParam, activePage, activeSource, activeDate);
         } else {
             setSearchResults([]);
             setPastSearchValue("");
@@ -280,7 +375,7 @@ const SearchPaperClient = ({
             setCurrentPage(0);
             setLoading(false);
         }
-    }, [qParam, activePage, activeSource, doSearch]);
+    }, [qParam, activePage, activeSource, activeDate, doSearch]);
 
     useEffect(() => {
         if (loading || !qParam) return;
@@ -326,10 +421,14 @@ const SearchPaperClient = ({
             className={clsx(styles.page, {
                 [styles.pageLanding]: !hasCommittedSearch,
             })}
+            data-search-paper-page
             data-page-scroll
             ref={pageRef}
         >
-            <LoadingOverlay visible={loading} label="Finding research papers…" />
+            <SearchLoadingOverlay
+                visible={loading || searchTransitionActive}
+                label="Scanning research databases…"
+            />
             {showScrollTop && (
                 <button
                     type="button"
@@ -367,6 +466,7 @@ const SearchPaperClient = ({
                     onAcceptGhost={handleAcceptGhost}
                     inputId="paper-search-input"
                     accentSource={activeSource}
+                    searching={loading || searchTransitionActive}
                 />
                 <div
                     className={clsx(styles.databaseCatalog, {
@@ -405,9 +505,9 @@ const SearchPaperClient = ({
                     >
                         <div className={styles.filterHeader}>
                             <div className={styles.filterHeaderTop}>
-                                <h2 className={styles.filterTitle}>Sources</h2>
+                                <h2 className={styles.filterTitle}>Filters</h2>
                                 <span className={styles.filterCountDesktop}>
-                                    {SOURCE_FILTERS.length}
+                                    2
                                 </span>
                                 <button
                                     type="button"
@@ -436,7 +536,7 @@ const SearchPaperClient = ({
                                         !filtersExpanded,
                                 })}
                             >
-                                Filter results by database
+                                Source and publication date
                             </p>
                         </div>
                         <div
@@ -494,6 +594,32 @@ const SearchPaperClient = ({
                                     </button>
                                 );
                             })}
+                            <div className={styles.dateFilter}>
+                                <span className={styles.dateFilterTitle}>
+                                    Published
+                                </span>
+                                <div className={styles.dateOptions}>
+                                    {DATE_FILTERS.map((filter) => (
+                                        <button
+                                            key={filter.value}
+                                            type="button"
+                                            className={clsx(
+                                                styles.dateOption,
+                                                activeDate === filter.value &&
+                                                    styles.dateOptionActive,
+                                            )}
+                                            onClick={() =>
+                                                handleDateChange(filter.value)
+                                            }
+                                            aria-pressed={
+                                                activeDate === filter.value
+                                            }
+                                        >
+                                            {filter.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </aside>
 
@@ -533,6 +659,18 @@ const SearchPaperClient = ({
                                                 (filter) =>
                                                     filter.value ===
                                                     activeSource,
+                                            )?.label
+                                        }
+                                    </span>
+                                )}
+                                {activeDate !== "any" && (
+                                    <span className={styles.activeFilterLabel}>
+                                        {" "}
+                                        ·{" "}
+                                        {
+                                            DATE_FILTERS.find(
+                                                (filter) =>
+                                                    filter.value === activeDate,
                                             )?.label
                                         }
                                     </span>

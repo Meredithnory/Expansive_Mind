@@ -22,6 +22,7 @@ export default async function SearchPaperPage({ searchParams }: SearchPageProps)
                 initialQuery={first(query.q)}
                 initialPage={first(query.page)}
                 initialSource={first(query.source)}
+                initialDate={first(query.date)}
                 landingIntro={
                     <>
                         <p className={styles.landingEyebrow}>Research belongs to everyone</p>

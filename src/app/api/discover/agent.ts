@@ -3,7 +3,6 @@ import {
     getNIHPaperResults,
     searchSpringerNaturePapers,
     searchGoogleScholarPapers,
-    isNihApiConfigured,
 } from "../search/utils";
 import { rankSearchResults } from "../search/semantic-rank";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
@@ -32,11 +31,9 @@ import type {
     PaperExtraction,
 } from "./report-types";
 import type { UsageContext } from "../../lib/usage-meter";
-import { suggestSearchQueryNihOnly } from "../search/spell-suggest";
-import {
-    applyDiscoverySpellingSuggestion,
-    buildNihDiscoveryQuery,
-} from "./discovery-query";
+import { assessDiscoveryQuestion, UNCLEAR_QUESTION_ERROR } from "./assess-query";
+import { buildNihDiscoveryQuery } from "./discovery-query";
+import { searchEuropePmc, searchCrossref, type IndexSearchStatus } from "./additional-indexes";
 
 export interface DiscoverPaperCard {
     index: number;
@@ -50,6 +47,7 @@ export interface DiscoverPaperCard {
     sourceUrl: string;
     href: string;
     doi?: string;
+    indexedBy?: string[];
 }
 
 export interface DiscoverAgentResult {
@@ -72,6 +70,7 @@ export interface DiscoverAgentResult {
         correctedQuery?: string;
         subQueriesUsed: string[];
         extractionFailureCount: number;
+        additionalIndexes?: IndexSearchStatus[];
     };
 }
 
@@ -120,6 +119,7 @@ function mapSpringerResults(results: any[]): DiscoverCandidate[] {
             sourceLabel: PAPER_SOURCES.springer.label,
             sourceUrl,
             doi: doi || undefined,
+            indexedBy: ["Springer Nature"],
             access,
         };
     });
@@ -155,6 +155,8 @@ function mapNihResults(results: any[]): DiscoverCandidate[] {
             abstract: abstractToText(paper.abstract) || "",
             sourceLabel: PAPER_SOURCES.nih.label,
             sourceUrl,
+            doi: typeof paper.doi === "string" ? paper.doi : undefined,
+            indexedBy: ["NIH PMC"],
             access,
         };
     });
@@ -195,6 +197,7 @@ function mapScholarResults(results: any[]): DiscoverCandidate[] {
             sourceLabel: PAPER_SOURCES.scholar.label,
             sourceUrl,
             doi: result.doi ? String(result.doi).trim() : undefined,
+            indexedBy: ["Google Scholar"],
             access,
         };
     });
@@ -269,7 +272,7 @@ async function rankMergedCandidates(
     const ranked = await rankSearchResults(
         question,
         candidates.map((candidate) => ({
-            sourceId: candidate.paperId,
+            sourceId: `${candidate.database}:${candidate.paperId}`,
             doi: candidate.doi,
             title: candidate.title,
             abstract: candidate.abstract,
@@ -279,7 +282,7 @@ async function rankMergedCandidates(
         usageContext,
     );
     const byId = new Map(
-        candidates.map((candidate) => [candidate.paperId, candidate]),
+        candidates.map((candidate) => [`${candidate.database}:${candidate.paperId}`, candidate]),
     );
     return ranked
         .map((result) => byId.get(result.sourceId))
@@ -300,18 +303,23 @@ async function retrieveCandidates(
     nihEligibleCount: number;
     scholarCandidateCount: number;
     scholarEligibleCount: number;
+    additionalIndexes: IndexSearchStatus[];
 }> {
     const searchQueries = queries.length > 0 ? queries : [question];
-    const [springerMapped, nihMapped, scholarMapped] = await Promise.all([
+    const [springerMapped, nihMapped, scholarMapped, europe, crossref] = await Promise.all([
         searchSpringerForQueries(searchQueries),
         searchNihForQueries(searchQueries),
         searchScholarForQuestion(question),
+        searchEuropePmc(searchQueries.length > 1 ? searchQueries.slice(1, 3) : searchQueries),
+        searchCrossref(question),
     ]);
 
     const merged = dedupeDiscoverCandidates([
         ...springerMapped,
         ...nihMapped,
         ...scholarMapped,
+        ...europe.candidates,
+        ...crossref.candidates,
     ]);
     const ranked = await rankMergedCandidates(
         question,
@@ -322,6 +330,7 @@ async function retrieveCandidates(
 
     return {
         selected,
+        additionalIndexes: [europe.coverage, crossref.coverage],
         springerCandidateCount: springerMapped.length,
         springerEligibleCount: springerMapped.filter(
             (candidate) => candidate.access.canSendToAI,
@@ -362,6 +371,7 @@ async function readPaperExcerpts(
             if (!paper.access.canSendToAI) {
                 throw new Error("Paper not approved for AI processing");
             }
+            if (paper.status?.isRetracted) throw new Error("Retracted paper excluded from synthesis");
 
             const excerpt = selectPaperContext(paper, question);
             const card: DiscoverPaperCard = {
@@ -383,6 +393,7 @@ async function readPaperExcerpts(
                     paper.idName || candidate.idName,
                 ),
                 doi: candidate.doi,
+                indexedBy: candidate.indexedBy,
             };
 
             const synthesisPaper: PaperExcerptForSynthesis = {
@@ -445,45 +456,25 @@ export async function runDiscoverAgent(
     question: string,
     usageContext?: UsageContext,
 ): Promise<DiscoverAgentResult> {
-    if (
-        !process.env.SPRINGER_API_KEY &&
-        !isNihApiConfigured() &&
-        !process.env.SERPAPI_KEY
-    ) {
-        throw new DiscoverAgentError(
-            "No literature sources are configured. Add SPRINGER_API_KEY, NIH (API_KEY and NCBI_EMAIL), or SERPAPI_KEY to enable discovery.",
-            503,
-        );
+    const assessment = await assessDiscoveryQuestion(question).catch(() => ({
+        status: "ok" as const,
+        suggestion: null,
+    }));
+    if (assessment.status === "unclear") {
+        throw new DiscoverAgentError(UNCLEAR_QUESTION_ERROR, 400);
     }
+    const correctedQuery =
+        assessment.status === "corrected" && assessment.suggestion
+            ? assessment.suggestion
+            : undefined;
+    const searchQuestion = correctedQuery ?? question;
 
-    let queries = await expandDiscoveryQueries(question, usageContext);
-    let candidateResult = await retrieveCandidates(
-        question,
+    const queries = await expandDiscoveryQueries(searchQuestion, usageContext);
+    const candidateResult = await retrieveCandidates(
+        searchQuestion,
         queries,
         usageContext,
     );
-    let correctedQuery: string | undefined;
-
-    if (candidateResult.selected.length === 0) {
-        const suggestion = await suggestSearchQueryNihOnly(question).catch(
-            () => null,
-        );
-        if (suggestion && suggestion.toLowerCase() !== question.toLowerCase()) {
-            correctedQuery = applyDiscoverySpellingSuggestion(
-                question,
-                suggestion,
-            );
-            queries = await expandDiscoveryQueries(
-                correctedQuery,
-                usageContext,
-            );
-            candidateResult = await retrieveCandidates(
-                correctedQuery,
-                queries,
-                usageContext,
-            );
-        }
-    }
 
     const {
         selected,
@@ -493,6 +484,7 @@ export async function runDiscoverAgent(
         nihEligibleCount,
         scholarCandidateCount,
         scholarEligibleCount,
+        additionalIndexes,
     } = candidateResult;
 
     if (selected.length === 0) {
@@ -502,7 +494,10 @@ export async function runDiscoverAgent(
         );
     }
 
-    const { cards, excerpts } = await readPaperExcerpts(question, selected);
+    const { cards, excerpts } = await readPaperExcerpts(
+        searchQuestion,
+        selected,
+    );
 
     if (excerpts.length === 0) {
         throw new DiscoverAgentError(
@@ -520,7 +515,7 @@ export async function runDiscoverAgent(
     );
 
     const synthesis = await synthesizeOpportunityReport(
-        question,
+        searchQuestion,
         extractions,
         usageContext,
     );
@@ -559,6 +554,7 @@ export async function runDiscoverAgent(
             correctedQuery,
             subQueriesUsed,
             extractionFailureCount,
+            additionalIndexes,
         },
     };
 }

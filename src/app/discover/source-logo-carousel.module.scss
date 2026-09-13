@@ -1,0 +1,257 @@
+@use "../variables" as *;
+
+.carousel {
+    position: relative;
+    width: min(100%, 680px);
+    padding-bottom: 11px;
+}
+
+.viewport {
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
+    mask-image: linear-gradient(
+        90deg,
+        transparent,
+        #000 46px,
+        #000 calc(100% - 46px),
+        transparent
+    );
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.track {
+    display: flex;
+    gap: 9px;
+    width: max-content;
+    padding: 3px 42px;
+}
+
+.sourceCard {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 176px;
+    min-height: 54px;
+    padding: 7px 10px 7px 8px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 13px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 70%),
+        rgba(9, 13, 18, 0.68);
+    color: rgba(215, 235, 255, 0.6);
+    font: inherit;
+    text-align: left;
+    scroll-snap-align: center;
+    cursor: pointer;
+    opacity: 0.72;
+    transform: scale(0.97);
+    transition:
+        opacity 240ms ease,
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 220ms ease,
+        background-color 220ms ease,
+        box-shadow 220ms ease;
+
+    &[data-active="true"] {
+        border-color: rgba(10, 177, 255, 0.34);
+        background:
+            linear-gradient(
+                135deg,
+                rgba(10, 177, 255, 0.09),
+                rgba(255, 0, 132, 0.035) 68%,
+                transparent
+            ),
+            rgba(9, 13, 18, 0.88);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 8px 24px rgba(0, 0, 0, 0.18);
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.32);
+        opacity: 1;
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(10, 177, 255, 0.7);
+        outline-offset: 2px;
+    }
+}
+
+.logoFrame {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 36px;
+    overflow: hidden;
+    border: 1px solid rgba(215, 235, 255, 0.07);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.logoMark {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
+.logoWide,
+.logoWideLight {
+    width: 38px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.logoWideLight {
+    padding: 2px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.sourceCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong {
+        overflow: hidden;
+        color: rgba(236, 246, 255, 0.88);
+        font-size: 0.7rem;
+        font-weight: 680;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    small {
+        overflow: hidden;
+        color: rgba(215, 235, 255, 0.38);
+        font-size: 0.58rem;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.arrow {
+    position: absolute;
+    top: 13px;
+    z-index: 3;
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid rgba(215, 235, 255, 0.13);
+    border-radius: 50%;
+    background: rgba(10, 14, 20, 0.88);
+    color: rgba(215, 235, 255, 0.68);
+    font: inherit;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition:
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.42);
+        color: #ff76b8;
+        transform: scale(1.06);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+    }
+}
+
+.arrowPrevious {
+    left: 2px;
+}
+
+.arrowNext {
+    right: 2px;
+}
+
+.progress {
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    display: flex;
+    gap: 4px;
+    transform: translateX(-50%);
+
+    span {
+        width: 4px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(215, 235, 255, 0.18);
+        transition:
+            width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            background-color 220ms ease;
+
+        &[data-active="true"] {
+            width: 15px;
+            background: linear-gradient(90deg, $highlight-blue, $main-pink);
+        }
+    }
+}
+
+@media (max-width: 600px) {
+    .carousel {
+        width: 100%;
+    }
+
+    .arrow {
+        display: none;
+    }
+
+    .sourceCard {
+        width: min(72vw, 184px);
+    }
+
+    .track {
+        padding-inline: 12px 30px;
+    }
+
+    .viewport {
+        mask-image: linear-gradient(
+            90deg,
+            #000 0,
+            #000 calc(100% - 26px),
+            transparent
+        );
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .viewport {
+        scroll-behavior: auto;
+    }
+}

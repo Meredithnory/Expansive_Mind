@@ -72,4 +72,5 @@ export interface OpportunityReportSections {
 
 export interface OpportunityReport {
     sections: OpportunityReportSections;
+    founder?: import("../../lib/founder-report").FounderReport;
 }

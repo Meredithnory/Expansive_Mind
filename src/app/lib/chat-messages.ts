@@ -27,7 +27,7 @@ export interface PendingChatAttachment {
 }
 
 export const WELCOME_COPY =
-    "Ask where a method, readout, or limitation lives — I will point to it in the paper. I assume you already know the field.";
+    "Tell me what you want to understand or test. I’ll explain the evidence, point to the paper, and use your replies to help narrow the next question.";
 
 export const WELCOME_MESSAGE: ChatMessage = {
     id: "welcome",

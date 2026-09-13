@@ -61,4 +61,59 @@ export const LoadingOverlay = ({
     );
 };
 
+/**
+ * Search-specific transition: the small submit lens expands into a large
+ * scanning lens with the existing DNA loader inside it, then yields to the
+ * paper list when the request finishes.
+ */
+export const SearchLoadingOverlay = ({
+    visible,
+    label = "Searching across research databases…",
+}: {
+    visible: boolean;
+    label?: string;
+}) => {
+    const [mounted, setMounted] = useState(false);
+    const [active, setActive] = useState(false);
+
+    useEffect(() => {
+        let hideTimer: ReturnType<typeof setTimeout> | undefined;
+        let frame: number | undefined;
+
+        if (visible) {
+            setMounted(true);
+            frame = requestAnimationFrame(() => setActive(true));
+        } else {
+            setActive(false);
+            hideTimer = setTimeout(() => setMounted(false), 380);
+        }
+
+        return () => {
+            if (hideTimer) clearTimeout(hideTimer);
+            if (frame) cancelAnimationFrame(frame);
+        };
+    }, [visible]);
+
+    if (!mounted) return null;
+
+    return (
+        <div
+            className={`search-loading-overlay${
+                active ? " search-loading-overlay--active" : ""
+            }`}
+            role="status"
+            aria-live="polite"
+            aria-label={label}
+        >
+            <div className="search-loading-lens" aria-hidden="true">
+                <span className="search-loading-lens__glass">
+                    <Loading />
+                </span>
+                <span className="search-loading-lens__handle" />
+            </div>
+            <span className="search-loading-label">{label}</span>
+        </div>
+    );
+};
+
 export default Loading;

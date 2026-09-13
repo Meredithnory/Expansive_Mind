@@ -19,6 +19,7 @@ const discoverPaperSchema = new Schema(
         sourceUrl: { type: String, default: "" },
         href: { type: String, required: true },
         doi: { type: String },
+        indexedBy: { type: [String], default: undefined },
     },
     {
         _id: false,
@@ -104,6 +105,14 @@ const savedDiscoverySchema = new Schema(
             correctedQuery: { type: String },
             subQueriesUsed: { type: [String] },
             extractionFailureCount: { type: Number, min: 0 },
+            additionalIndexes: { type: [new Schema({
+                name: String,
+                status: { type: String, enum: ["ok", "partial", "unavailable"] },
+                metadataCount: Number,
+                candidateCount: Number,
+                eligibleCount: Number,
+                note: String,
+            }, { _id: false, strict: "throw" })], default: undefined },
         },
     },
     {
