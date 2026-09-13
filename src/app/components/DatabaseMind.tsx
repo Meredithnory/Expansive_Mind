@@ -98,13 +98,37 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
     const goTo = useCallback((index: number) => {
         const viewport = viewportRef.current;
         if (!viewport) return;
-        const card = viewport.querySelector<HTMLElement>(`.${styles.chip}`);
+        const cards = viewport.querySelectorAll<HTMLElement>(`.${styles.chip}`);
         const normalized = (index + SOURCES.length) % SOURCES.length;
+        const card = cards[normalized];
+        if (!card) return;
         setActiveIndex(normalized);
         viewport.scrollTo({
-            left: normalized * ((card?.offsetWidth ?? 292) + 10),
+            left:
+                card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2,
             behavior: "smooth",
         });
+    }, []);
+
+    const syncActiveSource = useCallback(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        const center = viewport.scrollLeft + viewport.clientWidth / 2;
+        const cards = Array.from(
+            viewport.querySelectorAll<HTMLElement>(`.${styles.chip}`),
+        );
+        let closestIndex = 0;
+        let closestDistance = Number.POSITIVE_INFINITY;
+        cards.forEach((card, index) => {
+            const distance = Math.abs(
+                center - (card.offsetLeft + card.offsetWidth / 2),
+            );
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = index;
+            }
+        });
+        setActiveIndex(closestIndex);
     }, []);
 
     const move = useCallback(
@@ -112,29 +136,30 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
         [activeIndex, goTo],
     );
 
+    /* Center the chosen database, then hold still so the choice stays readable. */
+    useEffect(() => {
+        if (activeSource === "all") return;
+        const index = SOURCES.findIndex(
+            (source) => source.value === activeSource,
+        );
+        if (index >= 0) goTo(index);
+    }, [activeSource, goTo]);
+
     useEffect(() => {
         const viewport = viewportRef.current;
         if (
             !viewport ||
             paused ||
+            hasFocus ||
             window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ) {
             return;
         }
 
-        const timer = window.setInterval(() => {
-            const reachedEnd =
-                viewport.scrollLeft + viewport.clientWidth >=
-                viewport.scrollWidth - 8;
-            if (reachedEnd) {
-                viewport.scrollTo({ left: 0, behavior: "smooth" });
-            } else {
-                move(1);
-            }
-        }, 3_200);
+        const timer = window.setInterval(() => move(1), 3_600);
 
         return () => window.clearInterval(timer);
-    }, [move, paused]);
+    }, [hasFocus, move, paused]);
 
     return (
         <div
@@ -159,30 +184,20 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
             >
                 <button
                     type="button"
-                    className={styles.arrow}
+                    className={clsx(styles.arrow, styles.arrowPrevious)}
                     onClick={() => move(-1)}
                     aria-label="Previous research databases"
                 >
-                    ‹
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="m10 3-5 5 5 5" />
+                    </svg>
                 </button>
                 <div
                     ref={viewportRef}
                     className={styles.chips}
                     onPointerDown={() => setPaused(true)}
                     onPointerUp={() => setPaused(false)}
-                    onScroll={(event) => {
-                        const card =
-                            event.currentTarget.querySelector<HTMLElement>(
-                                `.${styles.chip}`,
-                            );
-                        const step = (card?.offsetWidth ?? 292) + 10;
-                        const index = Math.round(
-                            event.currentTarget.scrollLeft / step,
-                        );
-                        setActiveIndex(
-                            Math.max(0, Math.min(SOURCES.length - 1, index)),
-                        );
-                    }}
+                    onScroll={syncActiveSource}
                 >
                     <div className={styles.chipTrack}>
                         {SOURCES.map((source, index) => {
@@ -231,11 +246,12 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                                         isCarouselActive &&
                                             styles.chipCarouselActive,
                                     )}
-                                    onClick={() =>
+                                    onClick={() => {
+                                        goTo(index);
                                         onSelect(
                                             source.value as SearchableMindSource,
-                                        )
-                                    }
+                                        );
+                                    }}
                                     aria-pressed={isActive}
                                 >
                                     {content}
@@ -260,11 +276,13 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                 </div>
                 <button
                     type="button"
-                    className={styles.arrow}
+                    className={clsx(styles.arrow, styles.arrowNext)}
                     onClick={() => move(1)}
                     aria-label="Next research databases"
                 >
-                    ›
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="m6 3 5 5-5 5" />
+                    </svg>
                 </button>
                 <div
                     className={styles.carouselDots}
