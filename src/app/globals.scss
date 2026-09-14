@@ -95,6 +95,13 @@ body:has([data-search-paper-page]) {
     width: min(calc(100% - 32px), 1500px);
 }
 
+@media (min-width: 901px) {
+    body:has([data-search-paper-page]) [data-app-nav] {
+        width: min(80vw, 1440px);
+        justify-self: center;
+    }
+}
+
 button,
 input,
 select,
