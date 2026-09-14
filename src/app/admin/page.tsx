@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useSession } from "../lib/use-session";
+import { AdminOverview, type OverviewUsage } from "./AdminOverview";
 import styles from "./admin.module.scss";
 
 type Tab = "overview" | "pricing" | "users" | "audit";
@@ -25,19 +26,7 @@ type UserRow = {
     subscriptionCurrentPeriodEnd?: string;
     usage: Record<string, number>;
 };
-type Usage = {
-    rangeDays: number;
-    estimatedCostUsd: number;
-    monthlyListPrice: number;
-    users: Record<string, number>;
-    usage: Array<{
-        feature: string;
-        provider: string;
-        calls: number;
-        estimatedCostUsd: number;
-        failures: number;
-    }>;
-};
+type Usage = OverviewUsage;
 type AuditEntry = {
     _id: string;
     adminEmail: string;
@@ -175,9 +164,6 @@ export default function AdminPage() {
         return <main className={styles.page}>You are not authorized to view this page.</main>;
     }
 
-    const proUsers = usage?.users.pro || 0;
-    const listRevenue = proUsers * (usage?.monthlyListPrice || 0);
-
     return (
         <main className={styles.page}>
             <header className={styles.header}>
@@ -203,27 +189,7 @@ export default function AdminPage() {
             {error && <p className={styles.error}>{error}</p>}
             {message && <p className={styles.success}>{message}</p>}
 
-            {tab === "overview" && (
-                <section className={styles.panel}>
-                    <div className={styles.metrics}>
-                        <div><strong>{usage?.users.free || 0}</strong><span>Free accounts</span></div>
-                        <div><strong>{proUsers}</strong><span>Paid plan records</span></div>
-                        <div><strong>${listRevenue.toFixed(2)}</strong><span>Monthly list value</span></div>
-                        <div><strong>${(usage?.estimatedCostUsd || 0).toFixed(2)}</strong><span>30-day AI cost</span></div>
-                    </div>
-                    <div className={styles.grid}>
-                        {usage?.usage.map((row) => (
-                            <article className={styles.card} key={`${row.feature}-${row.provider}`}>
-                                <strong>{row.calls.toLocaleString()} calls</strong>
-                                <p>{row.feature} · {row.provider}</p>
-                                <span className={styles.muted}>
-                                    ${row.estimatedCostUsd.toFixed(4)} · {row.failures} failures
-                                </span>
-                            </article>
-                        ))}
-                    </div>
-                </section>
-            )}
+            {tab === "overview" && <AdminOverview usage={usage} />}
 
             {tab === "pricing" && pricing && (
                 <section className={styles.panel}>

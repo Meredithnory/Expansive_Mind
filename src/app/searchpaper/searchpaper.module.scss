@@ -89,8 +89,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .page.pageLanding::before,
-    .page.pageLanding::after,
+    .page .landingAura::before,
+    .page .landingAura::after,
     .page .landingEyebrow,
     .page .landingTitle,
     .page .landingSubtitle,
@@ -115,42 +115,19 @@
     overflow-y: auto;
     animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
 
-    &.pageLanding {
-        /*
-         * Keep short layouts centered, but let tall layouts start at the top.
-         * `justify-content: center` clips the beginning of oversized flex
-         * content above the scrollable area on shorter desktop viewports.
-         */
-        justify-content: flex-start;
-
-        .searchbox {
-            position: relative;
-            z-index: 1;
-            gap: 0;
-            padding-top: clamp(24px, 5vh, 56px);
-            padding-bottom: 56px;
-        }
-
-        .landingIntro {
-            margin-bottom: 44px;
-        }
-
-        .landingIntroHidden {
-            margin-bottom: 0;
-        }
-
-        .databaseCatalog {
-            margin-top: 14px;
-        }
+    .landingAura {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
 
         &::before,
         &::after {
             content: "";
             position: absolute;
-            z-index: 0;
             border-radius: 999px;
             filter: blur(90px);
-            pointer-events: none;
         }
 
         &::before {
@@ -177,6 +154,35 @@
                 transparent 65%
             );
             animation: aurora-drift 30s ease-in-out infinite alternate-reverse;
+        }
+    }
+
+    &.pageLanding {
+        /*
+         * Keep short layouts centered, but let tall layouts start at the top.
+         * `justify-content: center` clips the beginning of oversized flex
+         * content above the scrollable area on shorter desktop viewports.
+         */
+        justify-content: flex-start;
+
+        .searchbox {
+            position: relative;
+            z-index: 1;
+            gap: 0;
+            padding-top: clamp(16px, 3.5vh, 36px);
+            padding-bottom: 16px;
+        }
+
+        .landingIntro {
+            margin-bottom: 28px;
+        }
+
+        .landingIntroHidden {
+            margin-bottom: 0;
+        }
+
+        .databaseCatalog {
+            margin-top: 14px;
         }
 
         .landingEyebrow {
@@ -967,7 +973,7 @@
                 gap: 0;
                 margin-block: 0;
                 padding-top: 0;
-                padding-bottom: 92px;
+                padding-bottom: 72px;
             }
 
             .landingIntro {

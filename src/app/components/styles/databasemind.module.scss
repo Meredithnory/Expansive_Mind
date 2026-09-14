@@ -189,7 +189,6 @@
 .carousel {
     position: relative;
     width: 100%;
-    padding-bottom: 13px;
 }
 
 .chips {
@@ -197,15 +196,19 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: none;
     touch-action: pan-x;
     mask-image: linear-gradient(
         90deg,
         transparent,
-        #000 48px,
-        #000 calc(100% - 48px),
+        #000 28px,
+        #000 calc(100% - 28px),
         transparent
     );
+
+    &[data-paused="true"] {
+        scroll-snap-type: x proximity;
+    }
 
     &::-webkit-scrollbar {
         display: none;
@@ -216,7 +219,7 @@
     display: flex;
     gap: 9px;
     width: max-content;
-    padding: 3px 44px;
+    padding: 3px 0;
 }
 
 .arrow {
@@ -235,12 +238,21 @@
     color: rgba(215, 235, 255, 0.68);
     font: inherit;
     cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
     transform: translateY(-50%);
     backdrop-filter: blur(10px);
     transition:
+        opacity 180ms ease,
         border-color 160ms ease,
         color 160ms ease,
         transform 160ms ease;
+
+    .carousel:hover &,
+    .carousel:focus-within & {
+        opacity: 1;
+        pointer-events: auto;
+    }
 
     &:hover,
     &:focus-visible {
@@ -271,33 +283,6 @@
 
 .arrowNext {
     right: 2px;
-}
-
-.carouselDots {
-    position: absolute;
-    bottom: 1px;
-    left: 50%;
-    display: flex;
-    gap: 4px;
-    transform: translateX(-50%);
-}
-
-.carouselDot {
-    width: 4px;
-    height: 3px;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(215, 235, 255, 0.18);
-    cursor: pointer;
-    transition:
-        width 220ms cubic-bezier(0.22, 1, 0.36, 1),
-        background-color 220ms ease;
-}
-
-.carouselDotActive {
-    width: 15px;
-    background: linear-gradient(90deg, #0ab1ff, #ff1682);
 }
 
 .nih {
@@ -356,8 +341,6 @@
         border-color 220ms ease,
         background-color 220ms ease,
         box-shadow 220ms ease;
-    animation: source-reveal 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-
     &:hover {
         border-color: var(--mind-color-soft);
         opacity: 1;
@@ -379,26 +362,6 @@
         0 8px 24px rgba(0, 0, 0, 0.18);
     opacity: 1;
     transform: scale(1);
-}
-
-.chip:nth-child(1) {
-    animation-delay: 80ms;
-}
-
-.chip:nth-child(2) {
-    animation-delay: 150ms;
-}
-
-.chip:nth-child(3) {
-    animation-delay: 220ms;
-}
-
-.chip:nth-child(4) {
-    animation-delay: 290ms;
-}
-
-.chip:nth-child(5) {
-    animation-delay: 360ms;
 }
 
 .indexChip {
@@ -503,20 +466,6 @@
     }
 }
 
-@keyframes source-reveal {
-    from {
-        opacity: 0;
-        filter: blur(5px);
-        transform: translateY(-11px) scale(0.96);
-    }
-
-    to {
-        opacity: 1;
-        filter: blur(0);
-        transform: translateY(0) scale(1);
-    }
-}
-
 @keyframes mind-absorb {
     0% {
         transform: translate(-50%, -50%) scale(1);
@@ -593,15 +542,12 @@
         flex-basis: min(72vw, 208px);
     }
 
-    .chipTrack {
-        padding-inline: 14px 32px;
-    }
-
     .chips {
         mask-image: linear-gradient(
             90deg,
-            #000 0,
-            #000 calc(100% - 28px),
+            transparent,
+            #000 18px,
+            #000 calc(100% - 18px),
             transparent
         );
     }
@@ -619,8 +565,7 @@
     .ringInner,
     .headGlow,
     .headFloat,
-    .headShadow,
-    .chip {
+    .headShadow {
         animation: none;
     }
 

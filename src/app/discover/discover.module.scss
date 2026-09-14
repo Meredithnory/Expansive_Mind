@@ -94,6 +94,7 @@
     width: min(740px, 100%);
     gap: 9px;
     padding: 10px;
+    overflow: hidden;
     border: 1px solid rgba(215, 235, 255, 0.095);
     border-radius: 18px;
     background: #070709;
@@ -762,6 +763,7 @@
     justify-content: space-between;
     gap: 14px 24px;
     flex-wrap: wrap;
+    min-width: 0;
     padding: 2px 3px 0;
     color: rgba(215, 235, 255, 0.44);
     font-size: 0.67rem;
@@ -771,10 +773,13 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 
     &:first-child {
-        flex: 1 1 620px;
+        flex: 1 1 100%;
         min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     > span:not(.metadataLabel) {

@@ -1117,6 +1117,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                         clearAssessment();
                         return;
                     }
+                    speech.stop();
                     void confirmSpellingThenDiscover(event);
                 }}
             >
@@ -1302,13 +1303,18 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                                 styles.voiceListening,
                                         )}
                                         aria-pressed={speech.listening}
+                                        aria-busy={speech.transcribing}
                                         aria-label={
-                                            speech.listening
-                                                ? "Stop voice input"
-                                                : "Start voice input"
+                                            speech.transcribing
+                                                ? "Transcribing voice input"
+                                                : speech.listening
+                                                  ? "Stop voice input"
+                                                  : "Start voice input"
                                         }
                                         onClick={speech.toggle}
-                                        disabled={isRunning}
+                                        disabled={
+                                            isRunning || speech.transcribing
+                                        }
                                     >
                                         <svg
                                             viewBox="0 0 24 24"
@@ -1424,13 +1430,23 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             >
                                 {speech.error}
                             </p>
+                        ) : speech.transcribing ? (
+                            <p
+                                id="discover-voice-status"
+                                className={styles.voiceStatus}
+                                role="status"
+                            >
+                                Transcribing…
+                            </p>
                         ) : speech.listening ? (
                             <p
                                 id="discover-voice-status"
                                 className={styles.voiceStatus}
                                 role="status"
                             >
-                                Listening… speak your question
+                                {speech.mode === "recorder"
+                                    ? "Listening… tap the mic when you’re done"
+                                    : "Listening… speak your question"}
                             </p>
                         ) : (
                             <span id="discover-voice-status" hidden />

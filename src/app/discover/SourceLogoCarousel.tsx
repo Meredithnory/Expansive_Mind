@@ -37,50 +37,77 @@ const SOURCES = [
     },
 ] as const;
 
+const COPIES = 3;
+const LOOP = Array.from({ length: COPIES }, (_, copy) =>
+    SOURCES.map((source) => ({ ...source, copy })),
+).flat();
+
+function loopWidth(viewport: HTMLElement) {
+    return viewport.scrollWidth / COPIES;
+}
+
+function normalizeLoop(viewport: HTMLElement) {
+    const width = loopWidth(viewport);
+    if (width <= 0) return;
+    if (viewport.scrollLeft < width * 0.5) {
+        viewport.scrollLeft += width;
+    } else if (viewport.scrollLeft >= width * 1.5) {
+        viewport.scrollLeft -= width;
+    }
+}
+
 export default function SourceLogoCarousel() {
     const viewportRef = useRef<HTMLDivElement>(null);
     const [paused, setPaused] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(0);
+    const [activeName, setActiveName] = useState<string>(SOURCES[0].name);
 
-    const scrollToSource = useCallback((index: number) => {
+    const syncActiveSource = useCallback(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
-        const cards = viewport.querySelectorAll<HTMLElement>(
-            `.${styles.sourceCard}`,
-        );
-        const targetIndex = (index + SOURCES.length) % SOURCES.length;
-        const card = cards[targetIndex];
-        if (!card) return;
-        viewport.scrollTo({
-            left: card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2,
-            behavior: "smooth",
-        });
-        setActiveIndex(targetIndex);
-    }, []);
-
-    const move = (direction: 1 | -1) => {
-        scrollToSource(activeIndex + direction);
-    };
-
-    const syncActiveSource = () => {
-        const viewport = viewportRef.current;
-        if (!viewport) return;
+        normalizeLoop(viewport);
         const center = viewport.scrollLeft + viewport.clientWidth / 2;
         const cards = Array.from(
             viewport.querySelectorAll<HTMLElement>(`.${styles.sourceCard}`),
         );
-        let closestIndex = 0;
+        let closestName: string = SOURCES[0].name;
         let closestDistance = Number.POSITIVE_INFINITY;
-        cards.forEach((card, index) => {
-            const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-            const distance = Math.abs(center - cardCenter);
+        cards.forEach((card) => {
+            const distance = Math.abs(
+                center - (card.offsetLeft + card.offsetWidth / 2),
+            );
             if (distance < closestDistance) {
                 closestDistance = distance;
-                closestIndex = index;
+                closestName = card.dataset.name ?? closestName;
             }
         });
-        setActiveIndex(closestIndex);
+        setActiveName(closestName);
+    }, []);
+
+    const move = (direction: 1 | -1) => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        const card = viewport.querySelector<HTMLElement>(`.${styles.sourceCard}`);
+        const step = (card?.offsetWidth ?? 176) + 9;
+        viewport.scrollBy({ left: direction * step, behavior: "smooth" });
     };
+
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+
+        const place = () => {
+            if (viewport.scrollLeft === 0) {
+                viewport.scrollLeft = loopWidth(viewport);
+            } else {
+                normalizeLoop(viewport);
+            }
+        };
+
+        place();
+        const observer = new ResizeObserver(place);
+        observer.observe(viewport);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -92,11 +119,15 @@ export default function SourceLogoCarousel() {
             return;
         }
 
-        const timer = window.setInterval(() => {
-            scrollToSource(activeIndex + 1);
-        }, 3_600);
-        return () => window.clearInterval(timer);
-    }, [activeIndex, paused, scrollToSource]);
+        let frame = 0;
+        const tick = () => {
+            viewport.scrollLeft += 0.55;
+            normalizeLoop(viewport);
+            frame = window.requestAnimationFrame(tick);
+        };
+        frame = window.requestAnimationFrame(tick);
+        return () => window.cancelAnimationFrame(frame);
+    }, [paused]);
 
     return (
         <div
@@ -125,19 +156,20 @@ export default function SourceLogoCarousel() {
             <div
                 ref={viewportRef}
                 className={styles.viewport}
+                data-paused={paused}
                 onScroll={syncActiveSource}
                 onPointerDown={() => setPaused(true)}
                 onPointerUp={() => setPaused(false)}
+                onPointerCancel={() => setPaused(false)}
             >
                 <div className={styles.track}>
-                    {SOURCES.map((source, index) => (
-                        <button
-                            type="button"
+                    {LOOP.map((source, index) => (
+                        <div
                             className={styles.sourceCard}
-                            data-active={activeIndex === index}
-                            key={source.name}
-                            onClick={() => scrollToSource(index)}
-                            aria-label={`${source.name}, ${source.role}`}
+                            data-active={activeName === source.name}
+                            data-name={source.name}
+                            key={`${source.copy}-${source.name}-${index}`}
+                            aria-hidden={source.copy !== 1}
                         >
                             <span className={styles.logoFrame}>
                                 <Image
@@ -152,7 +184,7 @@ export default function SourceLogoCarousel() {
                                 <strong>{source.name}</strong>
                                 <small>{source.role}</small>
                             </span>
-                        </button>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -166,14 +198,6 @@ export default function SourceLogoCarousel() {
                     <path d="m6 3 5 5-5 5" />
                 </svg>
             </button>
-            <div className={styles.progress} aria-hidden="true">
-                {SOURCES.map((source, index) => (
-                    <span
-                        key={source.name}
-                        data-active={activeIndex === index}
-                    />
-                ))}
-            </div>
         </div>
     );
 }

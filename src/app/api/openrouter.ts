@@ -113,3 +113,86 @@ export async function createPrivateEmbedding(request: {
         throw error;
     }
 }
+
+const TRANSCRIBE_MODEL =
+    process.env.TRANSCRIBE_MODEL || "openai/whisper-large-v3";
+
+export async function createPrivateTranscription(
+    input: {
+        audioBase64: string;
+        format: string;
+        language?: string;
+    },
+    usageContext?: UsageContext,
+) {
+    if (!apiKey) {
+        throw new Error("AI service is not configured.");
+    }
+
+    try {
+        const response = await fetch(
+            "https://openrouter.ai/api/v1/audio/transcriptions",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                    "X-OpenRouter-Title": "Expansive Mind",
+                    ...(appUrl ? { "HTTP-Referer": appUrl } : {}),
+                },
+                body: JSON.stringify({
+                    model: TRANSCRIBE_MODEL,
+                    language: input.language,
+                    input_audio: {
+                        data: input.audioBase64,
+                        format: input.format,
+                    },
+                    provider: OPENROUTER_PROVIDER_POLICY,
+                }),
+                signal: AbortSignal.timeout(20_000),
+            },
+        );
+        const data = (await response.json().catch(() => ({}))) as {
+            text?: string;
+            error?: { message?: string };
+            usage?: {
+                input_tokens?: number;
+                output_tokens?: number;
+                cost?: number;
+                seconds?: number;
+            };
+        };
+        if (!response.ok || typeof data.text !== "string") {
+            throw new Error(
+                data.error?.message || "Voice transcription failed.",
+            );
+        }
+        if (usageContext) {
+            await recordUsage({
+                context: usageContext,
+                provider: "openrouter",
+                operation: "transcription",
+                model: TRANSCRIBE_MODEL,
+                inputTokens: data.usage?.input_tokens,
+                outputTokens: data.usage?.output_tokens,
+                estimatedCostMicros:
+                    typeof data.usage?.cost === "number"
+                        ? Math.round(data.usage.cost * 1_000_000)
+                        : undefined,
+                metadata: { seconds: data.usage?.seconds },
+            });
+        }
+        return data.text;
+    } catch (error) {
+        if (usageContext) {
+            await recordUsage({
+                context: usageContext,
+                provider: "openrouter",
+                operation: "transcription",
+                model: TRANSCRIBE_MODEL,
+                success: false,
+            });
+        }
+        throw error;
+    }
+}

@@ -425,6 +425,9 @@ const SearchPaperClient = ({
             data-page-scroll
             ref={pageRef}
         >
+            {!hasCommittedSearch ? (
+                <div className={styles.landingAura} aria-hidden="true" />
+            ) : null}
             <SearchLoadingOverlay
                 visible={loading || searchTransitionActive}
                 label="Scanning research databases…"

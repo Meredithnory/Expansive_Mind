@@ -89,77 +89,98 @@ const FOCUS_CLASS: Record<SearchableMindSource, string> = {
     scholar: styles.focusScholar,
 };
 
+const COPIES = 3;
+const LOOP = Array.from({ length: COPIES }, (_, copy) =>
+    SOURCES.map((source) => ({ ...source, copy })),
+).flat();
+
+function loopWidth(viewport: HTMLElement) {
+    return viewport.scrollWidth / COPIES;
+}
+
+function normalizeLoop(viewport: HTMLElement) {
+    const width = loopWidth(viewport);
+    if (width <= 0) return;
+    if (viewport.scrollLeft < width * 0.5) {
+        viewport.scrollLeft += width;
+    } else if (viewport.scrollLeft >= width * 1.5) {
+        viewport.scrollLeft -= width;
+    }
+}
+
 const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
     const hasFocus = activeSource !== "all";
     const viewportRef = useRef<HTMLDivElement>(null);
     const [paused, setPaused] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    const goTo = useCallback((index: number) => {
-        const viewport = viewportRef.current;
-        if (!viewport) return;
-        const cards = viewport.querySelectorAll<HTMLElement>(`.${styles.chip}`);
-        const normalized = (index + SOURCES.length) % SOURCES.length;
-        const card = cards[normalized];
-        if (!card) return;
-        setActiveIndex(normalized);
-        viewport.scrollTo({
-            left:
-                card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2,
-            behavior: "smooth",
-        });
-    }, []);
+    const [activeValue, setActiveValue] = useState<string>(SOURCES[0].value);
 
     const syncActiveSource = useCallback(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
+        normalizeLoop(viewport);
         const center = viewport.scrollLeft + viewport.clientWidth / 2;
         const cards = Array.from(
             viewport.querySelectorAll<HTMLElement>(`.${styles.chip}`),
         );
-        let closestIndex = 0;
+        let closestValue: string = SOURCES[0].value;
         let closestDistance = Number.POSITIVE_INFINITY;
-        cards.forEach((card, index) => {
+        cards.forEach((card) => {
             const distance = Math.abs(
                 center - (card.offsetLeft + card.offsetWidth / 2),
             );
             if (distance < closestDistance) {
                 closestDistance = distance;
-                closestIndex = index;
+                closestValue = card.dataset.value ?? closestValue;
             }
         });
-        setActiveIndex(closestIndex);
+        setActiveValue(closestValue);
     }, []);
 
-    const move = useCallback(
-        (direction: 1 | -1) => goTo(activeIndex + direction),
-        [activeIndex, goTo],
-    );
+    const move = (direction: 1 | -1) => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        const card = viewport.querySelector<HTMLElement>(`.${styles.chip}`);
+        const step = (card?.offsetWidth ?? 208) + 9;
+        viewport.scrollBy({ left: direction * step, behavior: "smooth" });
+    };
 
-    /* Center the chosen database, then hold still so the choice stays readable. */
     useEffect(() => {
-        if (activeSource === "all") return;
-        const index = SOURCES.findIndex(
-            (source) => source.value === activeSource,
-        );
-        if (index >= 0) goTo(index);
-    }, [activeSource, goTo]);
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+
+        const place = () => {
+            if (viewport.scrollLeft === 0) {
+                viewport.scrollLeft = loopWidth(viewport);
+            } else {
+                normalizeLoop(viewport);
+            }
+        };
+
+        place();
+        const observer = new ResizeObserver(place);
+        observer.observe(viewport);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         const viewport = viewportRef.current;
         if (
             !viewport ||
             paused ||
-            hasFocus ||
             window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ) {
             return;
         }
 
-        const timer = window.setInterval(() => move(1), 3_600);
-
-        return () => window.clearInterval(timer);
-    }, [hasFocus, move, paused]);
+        let frame = 0;
+        const tick = () => {
+            viewport.scrollLeft += 0.55;
+            normalizeLoop(viewport);
+            frame = window.requestAnimationFrame(tick);
+        };
+        frame = window.requestAnimationFrame(tick);
+        return () => window.cancelAnimationFrame(frame);
+    }, [paused]);
 
     return (
         <div
@@ -195,14 +216,16 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                 <div
                     ref={viewportRef}
                     className={styles.chips}
+                    data-paused={paused}
                     onPointerDown={() => setPaused(true)}
                     onPointerUp={() => setPaused(false)}
+                    onPointerCancel={() => setPaused(false)}
                     onScroll={syncActiveSource}
                 >
                     <div className={styles.chipTrack}>
-                        {SOURCES.map((source, index) => {
-                            const isActive = activeSource === source.value;
-                            const isCarouselActive = activeIndex === index;
+                        {LOOP.map((source, index) => {
+                            const isSelected = activeSource === source.value;
+                            const isCarouselActive = activeValue === source.value;
                             const content = (
                                 <>
                                     <span
@@ -237,28 +260,29 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
 
                             return source.filterable ? (
                                 <button
-                                    key={source.value}
+                                    key={`${source.copy}-${source.value}-${index}`}
                                     type="button"
                                     className={clsx(
                                         styles.chip,
                                         SOURCE_CLASS[source.value],
-                                        isActive && styles.chipActive,
+                                        isSelected && styles.chipActive,
                                         isCarouselActive &&
                                             styles.chipCarouselActive,
                                     )}
-                                    onClick={() => {
-                                        goTo(index);
+                                    data-value={source.value}
+                                    onClick={() =>
                                         onSelect(
                                             source.value as SearchableMindSource,
-                                        );
-                                    }}
-                                    aria-pressed={isActive}
+                                        )
+                                    }
+                                    aria-pressed={isSelected}
+                                    aria-hidden={source.copy !== 1}
                                 >
                                     {content}
                                 </button>
                             ) : (
                                 <div
-                                    key={source.value}
+                                    key={`${source.copy}-${source.value}-${index}`}
                                     className={clsx(
                                         styles.chip,
                                         styles.indexChip,
@@ -266,7 +290,9 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                                         isCarouselActive &&
                                             styles.chipCarouselActive,
                                     )}
+                                    data-value={source.value}
                                     title="Used in multi-database Discover synthesis"
+                                    aria-hidden={source.copy !== 1}
                                 >
                                     {content}
                                 </div>
@@ -284,27 +310,6 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                         <path d="m6 3 5 5-5 5" />
                     </svg>
                 </button>
-                <div
-                    className={styles.carouselDots}
-                    aria-label="Choose database slide"
-                >
-                    {SOURCES.map((source, index) => (
-                        <button
-                            key={source.value}
-                            type="button"
-                            className={clsx(
-                                styles.carouselDot,
-                                index === activeIndex &&
-                                    styles.carouselDotActive,
-                            )}
-                            onClick={() => goTo(index)}
-                            aria-label={`Show ${source.name}`}
-                            aria-current={
-                                index === activeIndex ? "true" : undefined
-                            }
-                        />
-                    ))}
-                </div>
             </div>
 
             <div className={styles.scene} aria-hidden>
