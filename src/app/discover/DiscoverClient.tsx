@@ -45,6 +45,7 @@ import {
 } from "../api/discover/claim-ledger";
 import RouteLoading from "../components/RouteLoading";
 import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
+import { discoverAskKeyboardInset } from "./ask-field-viewport";
 
 const Markdown = dynamic(() => import("react-markdown"), {
     loading: () => <div className="loading-skeleton" aria-hidden="true" />,
@@ -239,10 +240,15 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     const analysisEndRef = useRef<HTMLDivElement>(null);
     const askScrollYRef = useRef(0);
     const askScrollPinCleanupRef = useRef<(() => void) | null>(null);
+    const askOverflowBackupRef = useRef("");
     const [askPortalReady, setAskPortalReady] = useState(false);
 
     useEffect(() => {
         setAskPortalReady(true);
+        return () => {
+            askScrollPinCleanupRef.current?.();
+            askScrollPinCleanupRef.current = null;
+        };
     }, []);
 
     const loadSavedDiscoveries = useCallback(async () => {
@@ -471,11 +477,25 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         document.body.scrollLeft = 0;
         const page = pageRef.current;
         if (page) page.scrollLeft = 0;
+        const visual = window.visualViewport;
+        const inset = visual
+            ? discoverAskKeyboardInset(
+                  window.innerHeight,
+                  visual.height,
+                  visual.offsetTop,
+              )
+            : 0;
+        document.documentElement.style.setProperty(
+            "--discover-ask-keyboard-inset",
+            `${inset}px`,
+        );
     }, []);
 
     const onAskFieldFocus = useCallback(() => {
         if (typeof window === "undefined") return;
         askScrollYRef.current = window.scrollY;
+        askOverflowBackupRef.current = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = "hidden";
         pinAskFieldScroll();
         window.requestAnimationFrame(pinAskFieldScroll);
         const onMove = () => pinAskFieldScroll();
@@ -488,6 +508,11 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             viewport?.removeEventListener("resize", onMove);
             viewport?.removeEventListener("scroll", onMove);
             window.removeEventListener("scroll", onMove);
+            document.documentElement.style.overflow =
+                askOverflowBackupRef.current;
+            document.documentElement.style.removeProperty(
+                "--discover-ask-keyboard-inset",
+            );
         };
     }, [pinAskFieldScroll]);
 
