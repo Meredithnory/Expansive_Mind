@@ -43,6 +43,8 @@ import {
     evaluateClaimLedger,
     shareLockDetail,
 } from "../api/discover/claim-ledger";
+import RouteLoading from "../components/RouteLoading";
+import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
 
 const Markdown = dynamic(() => import("react-markdown"), {
     loading: () => <div className="loading-skeleton" aria-hidden="true" />,
@@ -734,6 +736,19 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         runDiscovery,
         sessionLoading,
     ]);
+
+    if (
+        isOpeningSavedSynthesis({
+            savedParam,
+            hasResult: Boolean(result),
+            hasError: Boolean(error),
+            sessionLoading,
+            historyLoading,
+            isLoggedIn,
+        })
+    ) {
+        return <RouteLoading label="Opening your synthesis…" />;
+    }
 
     return (
         <div
