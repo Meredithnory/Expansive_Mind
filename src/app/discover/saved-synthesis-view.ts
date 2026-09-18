@@ -1,5 +1,3 @@
-/** View gate for `/discover?saved=` so the Discover landing does not paint first. */
-
 export type SavedSynthesisOpenInput = {
     savedParam: string;
     hasResult: boolean;
