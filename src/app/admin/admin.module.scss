@@ -219,10 +219,14 @@
 
     .header,
     .toolbar,
-    .row,
-    .tabs {
+    .row {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .tabs {
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
     .tabs button,
@@ -233,7 +237,7 @@
     }
 
     .tabs button {
-        width: 100%;
+        flex: 1 1 calc(50% - 6px);
     }
 
     .panel {
