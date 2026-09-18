@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import styles from "./styles/footer.module.scss";
+import { SITE_STATUS } from "./site-status";
 import { DEVELOPER_EMAIL } from "../lib/contact";
 
 const Footer = () => {
@@ -9,7 +10,7 @@ const Footer = () => {
     return (
         <div className={styles.footer}>
             <span>
-                © {currentYear} Expansive Mind. All rights reserved.
+                © {currentYear} Expansive Mind · {SITE_STATUS.label}. All rights reserved.
                 Unauthorized use is prohibited.
             </span>
             <nav className={styles.links} aria-label="Footer">

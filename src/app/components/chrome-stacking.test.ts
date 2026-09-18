@@ -49,4 +49,20 @@ describe("mobile chrome stacking", () => {
         expect(navZ).not.toBeNull();
         expect(footerZ ?? 0).toBeLessThan(navZ as number);
     });
+
+    it("keeps the site status strip between homepage video and the navbar shell", () => {
+        const stripZ = directZIndex(
+            read("styles/site-status.module.scss"),
+            ".strip",
+        );
+        const navZ = directZIndex(
+            read("styles/navbar.module.scss"),
+            ".navbarShell",
+        );
+
+        expect(stripZ).toBe(2);
+        expect(stripZ).toBeGreaterThan(0);
+        expect(navZ).not.toBeNull();
+        expect(stripZ).toBeLessThan(navZ as number);
+    });
 });
