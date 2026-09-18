@@ -10,7 +10,10 @@ export type SavedSynthesisOpenInput = {
 };
 
 export function isOpeningSavedSynthesis(
-    _input: SavedSynthesisOpenInput,
+    input: SavedSynthesisOpenInput,
 ): boolean {
-    return false;
+    if (!input.savedParam) return false;
+    if (input.hasResult || input.hasError) return false;
+    if (input.sessionLoading || input.historyLoading) return true;
+    return input.isLoggedIn;
 }
