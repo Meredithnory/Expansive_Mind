@@ -32,9 +32,9 @@ function mediaBodies(scss: string): string[] {
             if (ch === "}") {
                 depth -= 1;
                 if (depth === 0) {
-                    if (maxWidth && Number(maxWidth[1]) <= 760) {
-                        bodies.push(body);
-                    }
+        if (maxWidth && Number(maxWidth[1]) <= 720) {
+            bodies.push(body);
+        }
                     from = i + 1;
                     break;
                 }

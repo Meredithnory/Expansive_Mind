@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "./usage.module.scss";
 
 type GuestNetworkUsage = {
@@ -61,6 +62,12 @@ export default function AdminUsagePage() {
                 <p>Internal · last {summary.rangeDays} days</p>
                 <h1>Usage and contribution margin</h1>
             </header>
+            <nav className={styles.portalNav} aria-label="Admin pages">
+                <Link href="/admin">Billing</Link>
+                <Link href="/admin/usage" aria-current="page">
+                    Usage
+                </Link>
+            </nav>
             <section className={styles.metrics}>
                 <div>
                     <strong>${summary.estimatedCostUsd.toFixed(2)}</strong>
@@ -123,48 +130,50 @@ export default function AdminUsagePage() {
                         No guest IP usage recorded yet.
                     </p>
                 ) : (
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Network</th>
-                                <th>Discovery</th>
-                                <th>AI questions</th>
-                                <th>Searches</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(summary.guests ?? []).map((guest) => (
-                                <tr key={guest.fingerprint}>
-                                    <td>
-                                        <code>{guest.fingerprint}</code>
-                                        {guest.lastSeen ? (
-                                            <small>
-                                                {new Date(
-                                                    guest.lastSeen,
-                                                ).toLocaleString()}
-                                            </small>
-                                        ) : null}
-                                    </td>
-                                    <td>
-                                        {guest.discoverUsed}/
-                                        {guest.discoverLimit}
-                                    </td>
-                                    <td>
-                                        {guest.chatUsed}/{guest.chatLimit}
-                                    </td>
-                                    <td>
-                                        {guest.searchUsed}/{guest.searchLimit}
-                                    </td>
-                                    <td>
-                                        {guest.exhausted
-                                            ? "Blocked until they pay"
-                                            : "Preview remaining"}
-                                    </td>
+                    <div className={styles.tableScroll}>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Network</th>
+                                    <th>Discovery</th>
+                                    <th>AI questions</th>
+                                    <th>Searches</th>
+                                    <th>Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {(summary.guests ?? []).map((guest) => (
+                                    <tr key={guest.fingerprint}>
+                                        <td>
+                                            <code>{guest.fingerprint}</code>
+                                            {guest.lastSeen ? (
+                                                <small>
+                                                    {new Date(
+                                                        guest.lastSeen,
+                                                    ).toLocaleString()}
+                                                </small>
+                                            ) : null}
+                                        </td>
+                                        <td>
+                                            {guest.discoverUsed}/
+                                            {guest.discoverLimit}
+                                        </td>
+                                        <td>
+                                            {guest.chatUsed}/{guest.chatLimit}
+                                        </td>
+                                        <td>
+                                            {guest.searchUsed}/{guest.searchLimit}
+                                        </td>
+                                        <td>
+                                            {guest.exhausted
+                                                ? "Blocked until they pay"
+                                                : "Preview remaining"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </section>
         </main>

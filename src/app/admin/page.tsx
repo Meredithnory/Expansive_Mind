@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "../lib/use-session";
 import styles from "./admin.module.scss";
 
@@ -187,6 +188,12 @@ export default function AdminPage() {
                 </div>
                 <span className={styles.muted}>{user.email}</span>
             </header>
+            <nav className={styles.portalNav} aria-label="Admin pages">
+                <Link href="/admin" aria-current="page">
+                    Billing
+                </Link>
+                <Link href="/admin/usage">Usage</Link>
+            </nav>
             <nav className={styles.tabs} aria-label="Admin sections" role="tablist">
                 {(["overview", "pricing", "users", "audit"] as Tab[]).map((item) => (
                     <button
@@ -314,25 +321,25 @@ export default function AdminPage() {
                         />
                         <button className={styles.button}>Search</button>
                     </form>
-                    <table className={styles.table}>
+                    <table className={`${styles.table} ${styles.stackOnPhone}`}>
                         <thead><tr><th>User</th><th>Access</th><th>Usage</th><th>Support actions</th></tr></thead>
                         <tbody>
                             {users.map((selectedUser) => (
                                 <tr key={selectedUser._id}>
-                                    <td>
+                                    <td data-label="User">
                                         <strong>{selectedUser.firstName} {selectedUser.lastName}</strong>
                                         <span className={styles.muted}>{selectedUser.email}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Access">
                                         {selectedUser.effectivePlan} · {selectedUser.subscriptionStatus}
                                         {selectedUser.accessOverride && <div className={styles.eyebrow}>Complimentary Pro</div>}
                                     </td>
-                                    <td className={styles.muted}>
+                                    <td className={styles.muted} data-label="Usage">
                                         {Object.entries(selectedUser.usage).map(([feature, count]) => (
                                             <div key={feature}>{feature}: {count}</div>
                                         ))}
                                     </td>
-                                    <td>
+                                    <td data-label="Support actions">
                                         <div className={styles.actions}>
                                             <button className={styles.button} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, selectedUser.accessOverride ? "revoke_pro" : "grant_pro")}>
                                                 {selectedUser.accessOverride ? "Remove comp" : "Grant Pro"}
@@ -353,19 +360,21 @@ export default function AdminPage() {
 
             {tab === "audit" && (
                 <section className={styles.panel}>
-                    <table className={styles.table}>
-                        <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th></tr></thead>
-                        <tbody>
-                            {audit.map((entry) => (
-                                <tr key={entry._id}>
-                                    <td>{new Date(entry.createdAt).toLocaleString()}</td>
-                                    <td>{entry.adminEmail}</td>
-                                    <td>{entry.action}</td>
-                                    <td>{entry.target}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className={styles.tableScroll}>
+                        <table className={styles.table}>
+                            <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th></tr></thead>
+                            <tbody>
+                                {audit.map((entry) => (
+                                    <tr key={entry._id}>
+                                        <td>{new Date(entry.createdAt).toLocaleString()}</td>
+                                        <td>{entry.adminEmail}</td>
+                                        <td>{entry.action}</td>
+                                        <td>{entry.target}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             )}
         </main>
