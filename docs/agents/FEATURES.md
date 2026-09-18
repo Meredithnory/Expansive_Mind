@@ -20,7 +20,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Admin | `src/app/admin/page.tsx`, `admin/usage` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts` | `admin.test.ts`, `admin-identity.test.ts` | — |
 | Contact | `src/app/contact/page.tsx` | `src/app/api/contact/route.ts` | `src/app/lib/contact.ts` | `src/app/lib/contact.test.ts` | — |
 | Analytics | `instrumentation-client.ts` | — | PostHog in Discover/Search/pricing/signup/`use-session` | — | — |
-| Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | — | restyle without OWNER-EDIT |
+| Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | `src/app/home-video.test.ts` | restyle without OWNER-EDIT |
 | Agent verification | `.cursor/skills/verify-expansive-mind/SKILL.md` | doctor script in that skill | feature map next to the skill | — | product runtime |
 
 **Share bar:** claim ledger rows need a home-full-text quote, a resolvable citation, and a commercial-friendly home license URI. Unpaywall does not widen quotes. See [product-intent.md](product-intent.md).

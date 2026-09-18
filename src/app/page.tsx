@@ -25,8 +25,14 @@ export default function Home() {
     return (
         <div className={styles.home}>
             {showVideo ? (
-                <video autoPlay muted loop playsInline>
-                    <source src="/dnabg.mov" type="video/quicktime" />
+                <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster="/dnabg-poster.jpg"
+                    aria-hidden="true"
+                >
                     <source src="/dnabg.mp4" type="video/mp4" />
                     <source src="/dnabg.webm" type="video/webm" />
                 </video>
