@@ -2,7 +2,7 @@
 
 .strip {
     position: relative;
-    z-index: 2; /* homepage video is 0; .navbarShell is 100 */
+    z-index: 2;
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
@@ -25,7 +25,7 @@
     letter-spacing: 0.06em;
     line-height: 1.35;
     text-wrap: pretty;
-    overflow-wrap: anywhere; /* long OWNER-EDIT must not force ~390px horizontal scroll */
+    overflow-wrap: anywhere;
 }
 
 @media (max-width: 720px) {
