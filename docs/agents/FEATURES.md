@@ -17,7 +17,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Auth / session | `src/app/login/page.tsx`, `signup` | `src/app/api/login`, `signup`, `logout`, `session`, `account/password` | `src/app/api/authMiddleware.ts`, `src/app/lib/use-session.tsx`, `session-version.ts` | `src/middleware.test.ts`, `session-version.test.ts` | — |
 | Billing | `src/app/pricing/page.tsx` | `src/app/api/billing/checkout`, `portal`, `webhook` | `src/app/lib/stripe.ts`, `billing-subscription.ts`, `plan-config.ts` | `billing-subscription.test.ts`, `stripe-webhook-signature.test.ts` | — |
 | Quotas | — | consumed in discover/search/chat/projects routes | `src/app/lib/entitlements.ts`, `guest-usage.ts`, `guest-cost-cap.ts` | `entitlements.test.ts`, `guest-*.test.ts` | — |
-| Admin | `src/app/admin/page.tsx`, `admin/usage` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts` | `admin.test.ts`, `admin-identity.test.ts` | — |
+| Admin | `src/app/admin/page.tsx`, `admin/usage` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts` | `admin.test.ts`, `admin-identity.test.ts`, `src/app/admin/admin-mobile.test.ts` | — |
 | Contact | `src/app/contact/page.tsx` | `src/app/api/contact/route.ts` | `src/app/lib/contact.ts` | `src/app/lib/contact.test.ts` | — |
 | Analytics | `instrumentation-client.ts` | — | PostHog in Discover/Search/pricing/signup/`use-session` | — | — |
 | Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | `src/app/home-video.test.ts` | restyle without OWNER-EDIT |

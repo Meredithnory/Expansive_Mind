@@ -1,5 +1,6 @@
 .page {
     width: min(1180px, calc(100% - 32px));
+    min-width: 0;
     margin: 0 auto;
     padding: 48px 0 80px;
     color: #f4f4f7;
@@ -25,6 +26,32 @@
 
 .header {
     margin-bottom: 24px;
+    min-width: 0;
+}
+
+.header h1 {
+    margin: 6px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.portalNav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 18px;
+}
+
+.portalNav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: #a3a3ad;
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.portalNav a[aria-current="page"] {
+    color: #ff168f;
 }
 
 .eyebrow {
@@ -69,6 +96,7 @@
 
 .panel,
 .card {
+    min-width: 0;
     border: 1px solid #29292f;
     border-radius: 16px;
     background: #0c0c0f;
@@ -123,9 +151,18 @@
     color: inherit;
 }
 
+.tableScroll {
+    min-width: 0;
+    max-width: 100%;
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.table .muted {
+    display: block;
 }
 
 .table th,
@@ -169,21 +206,109 @@
     color: #a8efc8;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 720px) {
+    .page {
+        width: 100%;
+        padding: 12px 0 16px;
+    }
+
     .metrics,
     .grid {
         grid-template-columns: 1fr;
     }
 
-    .table {
-        display: block;
-        overflow-x: auto;
-    }
-
     .header,
     .toolbar,
     .row {
-        align-items: flex-start;
+        align-items: stretch;
         flex-direction: column;
+    }
+
+    .tabs {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .tabs button,
+    .button,
+    .danger,
+    .search {
+        min-height: 44px;
+    }
+
+    .tabs button {
+        flex: 1 1 calc(50% - 6px);
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    .tableScroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 22, 143, 0.55) rgba(255, 255, 255, 0.08);
+    }
+
+    .tableScroll::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .tableScroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 22, 143, 0.55);
+        border-radius: 999px;
+    }
+
+    .tableScroll .table {
+        min-width: 640px;
+    }
+
+    .stackOnPhone {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .stackOnPhone thead {
+        display: none;
+    }
+
+    .stackOnPhone,
+    .stackOnPhone tbody,
+    .stackOnPhone tr,
+    .stackOnPhone td {
+        display: block;
+        width: 100%;
+    }
+
+    .stackOnPhone tr {
+        padding: 14px 0;
+        border-bottom: 1px solid #25252b;
+    }
+
+    .stackOnPhone td {
+        padding: 8px 0;
+        border: 0;
+    }
+
+    .stackOnPhone td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: #aaaab4;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .stackOnPhone .actions {
+        width: 100%;
+    }
+
+    .stackOnPhone .actions .button,
+    .stackOnPhone .actions .danger {
+        flex: 1 1 calc(50% - 6px);
     }
 }
