@@ -90,7 +90,6 @@ body {
     overscroll-behavior: auto;
     padding-top: 20px;
     display: grid;
-    /* SiteStatus, NavBar, main, Footer */
     grid-template-rows: auto auto 1fr auto;
 }
 
