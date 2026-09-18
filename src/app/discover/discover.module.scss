@@ -175,7 +175,7 @@
     /* Insets avoid left:50% + translateX + 100vw, which iOS pans on focus. */
     left: 16px;
     right: 16px;
-    bottom: 20px;
+    bottom: calc(20px + var(--discover-ask-keyboard-inset, 0px));
     z-index: 30;
     width: auto;
     max-width: 780px;
@@ -1874,7 +1874,10 @@
 @media (max-width: 720px) {
     .dockedForm {
         /* Sit above the thumb-reachable bottom nav, not on top of it. */
-        bottom: var(--mobile-bottom-nav-clearance);
+        bottom: calc(
+            var(--mobile-bottom-nav-clearance) +
+                var(--discover-ask-keyboard-inset, 0px)
+        );
 
         .textarea {
             font-size: 16px;
