@@ -4,7 +4,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 
 | Feature | UI entry | API / server | Shared types / lib | Tests | Avoid unless editing |
 | --- | --- | --- | --- | --- | --- |
-| Discover | `src/app/discover/page.tsx` | `src/app/api/discover/route.ts` → `agent.ts` | `src/app/discover/discover-types.ts`, `src/app/api/discover/report-types.ts`, `src/app/api/discover/claim-ledger.ts` | `src/app/api/discover/*.test.ts`, `src/app/discover/report-text.test.ts` | `DiscoverClient.tsx` (~1.3k), `OpportunityReportView.tsx` |
+| Discover | `src/app/discover/page.tsx` | `src/app/api/discover/route.ts` → `agent.ts` | `src/app/discover/discover-types.ts`, `src/app/discover/saved-synthesis-view.ts`, `src/app/discover/ask-field-viewport.ts`, `src/app/api/discover/report-types.ts`, `src/app/api/discover/claim-ledger.ts` | `src/app/api/discover/*.test.ts`, `src/app/discover/report-text.test.ts`, `src/app/discover/saved-synthesis-view.test.ts`, `src/app/discover/ask-field-viewport.test.ts` | `DiscoverClient.tsx` (~1.3k), `OpportunityReportView.tsx` |
 | Discover pipeline | — | `question-quality.ts` → `expand-queries.ts` → `research/registry.ts` → `select-candidates.ts` → `analyze.ts` → `synthesize.ts` | `src/app/lib/content-access-policy.ts`, `quote-eligibility.ts`, `paper-context.ts`, `research-citation.ts` | `agent.test.ts`, `question-quality.test.ts`, `synthesize.test.ts` | `src/app/api/search/utils.ts` |
 | Search | `src/app/searchpaper/page.tsx` | `src/app/api/search/route.ts` → `research/registry.ts` | `src/app/lib/search-suggest.ts`, `paper-sources.ts` | `src/app/api/search/springer-query.test.ts` | `SearchPaperClient.tsx`, `search/utils.ts` |
 | Research sources | — | `src/app/api/research/registry.ts` → adapters | `src/app/lib/research-citation.ts`, `paper-sources.ts` | `src/app/lib/research-citation.test.ts`, `src/app/api/research/*.test.ts` | `paper/utils.ts`, `search/utils.ts` |
@@ -17,10 +17,10 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Auth / session | `src/app/login/page.tsx`, `signup` | `src/app/api/login`, `signup`, `logout`, `session`, `account/password` | `src/app/api/authMiddleware.ts`, `src/app/lib/use-session.tsx`, `session-version.ts` | `src/middleware.test.ts`, `session-version.test.ts` | — |
 | Billing | `src/app/pricing/page.tsx` | `src/app/api/billing/checkout`, `portal`, `webhook` | `src/app/lib/stripe.ts`, `billing-subscription.ts`, `plan-config.ts` | `billing-subscription.test.ts`, `stripe-webhook-signature.test.ts` | — |
 | Quotas | — | consumed in discover/search/chat/projects routes | `src/app/lib/entitlements.ts`, `guest-usage.ts`, `guest-cost-cap.ts` | `entitlements.test.ts`, `guest-*.test.ts` | — |
-| Admin | `src/app/admin/page.tsx`, `admin/usage` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts` | `admin.test.ts`, `admin-identity.test.ts` | — |
+| Admin | `src/app/admin/page.tsx`, `admin/usage` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts` | `admin.test.ts`, `admin-identity.test.ts`, `src/app/admin/admin-mobile.test.ts` | — |
 | Contact | `src/app/contact/page.tsx` | `src/app/api/contact/route.ts` | `src/app/lib/contact.ts` | `src/app/lib/contact.test.ts` | — |
 | Analytics | `instrumentation-client.ts` | — | PostHog in Discover/Search/pricing/signup/`use-session` | — | — |
-| Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | — | restyle without OWNER-EDIT |
+| Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | `src/app/home-video.test.ts` | restyle without OWNER-EDIT |
 | Site chrome | `src/app/layout.tsx` → `src/app/components/SiteStatus.tsx` + `NavBar` + `Footer` | — | `src/app/components/site-status.ts` | `src/app/components/site-status.test.ts`, `src/app/components/chrome-stacking.test.ts` | `NavBar.tsx` homepage spacer; `--mobile-bottom-nav-clearance`; Discover islands |
 | Agent verification | `.cursor/skills/verify-expansive-mind/SKILL.md` | doctor script in that skill | feature map next to the skill | — | product runtime |
 

@@ -65,4 +65,21 @@ describe("mobile chrome stacking", () => {
         expect(navZ).not.toBeNull();
         expect(stripZ).toBeLessThan(navZ as number);
     });
+
+    it("lets the footer sit after content instead of on the bottom nav", () => {
+        const globals = read("../globals.scss");
+        const start = globals.indexOf("@media (max-width: 720px)");
+        expect(start).toBeGreaterThan(-1);
+        const body = globals.slice(start, start + 1800);
+        expect(body).toMatch(
+            /grid-template-rows:\s*auto\s+auto\s+auto\s+auto/,
+        );
+        expect(body).not.toMatch(
+            /grid-template-rows:\s*auto\s+auto\s+1fr\s+auto/,
+        );
+        expect(body).toMatch(/min-height:\s*0/);
+        expect(body).toMatch(
+            /scroll-padding-bottom:\s*var\(--mobile-bottom-nav-clearance\)/,
+        );
+    });
 });

@@ -133,9 +133,15 @@ textarea {
         overscroll-behavior-x: none;
     }
 
+    html {
+        scroll-padding-bottom: var(--mobile-bottom-nav-clearance);
+    }
+
     body {
         width: 100%;
         max-width: 100%;
+        min-height: 0;
+        grid-template-rows: auto auto auto auto;
         /* Keep overflow-x clipped; the shorthand would reopen horizontal scroll. */
         overflow-x: clip;
         overflow-y: visible;
