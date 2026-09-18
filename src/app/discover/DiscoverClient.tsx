@@ -235,6 +235,8 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     const pageRef = useRef<HTMLDivElement>(null);
     const citeTriggerRef = useRef<HTMLElement | null>(null);
     const analysisEndRef = useRef<HTMLDivElement>(null);
+    const askScrollYRef = useRef(0);
+    const askScrollPinCleanupRef = useRef<(() => void) | null>(null);
     const [askPortalReady, setAskPortalReady] = useState(false);
 
     useEffect(() => {
@@ -460,19 +462,36 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         target.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
-    const keepAskFieldHorizontallyInView = useCallback(() => {
-        const resetX = () => {
-            if (typeof window === "undefined") return;
-            if (window.scrollX !== 0) {
-                window.scrollTo(0, window.scrollY);
-            }
-            document.documentElement.scrollLeft = 0;
-            document.body.scrollLeft = 0;
-            const page = pageRef.current;
-            if (page) page.scrollLeft = 0;
+    const pinAskFieldScroll = useCallback(() => {
+        if (typeof window === "undefined") return;
+        window.scrollTo(0, askScrollYRef.current);
+        document.documentElement.scrollLeft = 0;
+        document.body.scrollLeft = 0;
+        const page = pageRef.current;
+        if (page) page.scrollLeft = 0;
+    }, []);
+
+    const onAskFieldFocus = useCallback(() => {
+        if (typeof window === "undefined") return;
+        askScrollYRef.current = window.scrollY;
+        pinAskFieldScroll();
+        window.requestAnimationFrame(pinAskFieldScroll);
+        const onMove = () => pinAskFieldScroll();
+        const viewport = window.visualViewport;
+        viewport?.addEventListener("resize", onMove);
+        viewport?.addEventListener("scroll", onMove);
+        window.addEventListener("scroll", onMove, { passive: true });
+        askScrollPinCleanupRef.current?.();
+        askScrollPinCleanupRef.current = () => {
+            viewport?.removeEventListener("resize", onMove);
+            viewport?.removeEventListener("scroll", onMove);
+            window.removeEventListener("scroll", onMove);
         };
-        resetX();
-        window.requestAnimationFrame(resetX);
+    }, [pinAskFieldScroll]);
+
+    const onAskFieldBlur = useCallback(() => {
+        askScrollPinCleanupRef.current?.();
+        askScrollPinCleanupRef.current = null;
     }, []);
 
     const openPaperPreview = useCallback(
@@ -792,7 +811,8 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             className={styles.textarea}
                             value={question}
                             onChange={(event) => setQuestion(event.target.value)}
-                            onFocus={keepAskFieldHorizontallyInView}
+                            onFocus={onAskFieldFocus}
+                            onBlur={onAskFieldBlur}
                             aria-describedby="discover-supporting-metadata"
                             placeholder={
                                 result && !result.noResults
