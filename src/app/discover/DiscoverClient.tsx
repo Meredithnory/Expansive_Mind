@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import styles from "./discover.module.scss";
 import posthog from "posthog-js";
@@ -234,6 +235,11 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     const pageRef = useRef<HTMLDivElement>(null);
     const citeTriggerRef = useRef<HTMLElement | null>(null);
     const analysisEndRef = useRef<HTMLDivElement>(null);
+    const [askPortalReady, setAskPortalReady] = useState(false);
+
+    useEffect(() => {
+        setAskPortalReady(true);
+    }, []);
 
     const loadSavedDiscoveries = useCallback(async () => {
         setHistoryLoading(true);
@@ -744,12 +750,16 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 </button>
             )}
 
-            <form
-                className={clsx(styles.form, {
-                    [styles.dockedForm]: Boolean(result && !result.noResults),
-                })}
-                onSubmit={runDiscovery}
-            >
+            {createAskPortal(
+                <form
+                    className={clsx(styles.form, {
+                        [styles.dockedForm]: Boolean(result && !result.noResults),
+                    })}
+                    data-discover-ask={
+                        result && !result.noResults ? "docked" : "page"
+                    }
+                    onSubmit={runDiscovery}
+                >
                 <div className={styles.formHeading}>
                     <label className={styles.label} htmlFor="discover-question">
                         {result && !result.noResults
@@ -828,7 +838,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                         <span>Licensed excerpts</span>
                     </div>
                 </div>
-            </form>
+                </form>,
+                Boolean(result && !result.noResults) && askPortalReady,
+            )}
 
             {isRunning && (
                 <section
@@ -1283,6 +1295,10 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             ) : null}
         </div>
     );
+}
+
+function createAskPortal(form: ReactNode, portal: boolean) {
+    return portal ? createPortal(form, document.body) : form;
 }
 
 export default DiscoverClient;
