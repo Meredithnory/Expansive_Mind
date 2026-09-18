@@ -9,5 +9,5 @@
       "command": "npm run dev"
     }
   ],
-  "ports": [3000]
+  "ports": [{ "name": "app", "port": 3000 }]
 }
