@@ -57,6 +57,13 @@
         border-radius: 0;
         backdrop-filter: none;
         box-shadow: none;
+        pointer-events: none;
+    }
+
+    .navbar,
+    .menuToggle,
+    .menuBackdrop {
+        pointer-events: auto;
     }
 
     .navbar {

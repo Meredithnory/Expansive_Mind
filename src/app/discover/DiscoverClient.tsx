@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import styles from "./discover.module.scss";
 import posthog from "posthog-js";
@@ -42,6 +43,9 @@ import {
     evaluateClaimLedger,
     shareLockDetail,
 } from "../api/discover/claim-ledger";
+import RouteLoading from "../components/RouteLoading";
+import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
+import { discoverAskKeyboardInset } from "./ask-field-viewport";
 
 const Markdown = dynamic(() => import("react-markdown"), {
     loading: () => <div className="loading-skeleton" aria-hidden="true" />,
@@ -234,6 +238,18 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     const pageRef = useRef<HTMLDivElement>(null);
     const citeTriggerRef = useRef<HTMLElement | null>(null);
     const analysisEndRef = useRef<HTMLDivElement>(null);
+    const askScrollYRef = useRef(0);
+    const askScrollPinCleanupRef = useRef<(() => void) | null>(null);
+    const askOverflowBackupRef = useRef("");
+    const [askPortalReady, setAskPortalReady] = useState(false);
+
+    useEffect(() => {
+        setAskPortalReady(true);
+        return () => {
+            askScrollPinCleanupRef.current?.();
+            askScrollPinCleanupRef.current = null;
+        };
+    }, []);
 
     const loadSavedDiscoveries = useCallback(async () => {
         setHistoryLoading(true);
@@ -454,19 +470,55 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         target.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
-    const keepAskFieldHorizontallyInView = useCallback(() => {
-        const resetX = () => {
-            if (typeof window === "undefined") return;
-            if (window.scrollX !== 0) {
-                window.scrollTo(0, window.scrollY);
-            }
-            document.documentElement.scrollLeft = 0;
-            document.body.scrollLeft = 0;
-            const page = pageRef.current;
-            if (page) page.scrollLeft = 0;
+    const pinAskFieldScroll = useCallback(() => {
+        if (typeof window === "undefined") return;
+        window.scrollTo(0, askScrollYRef.current);
+        document.documentElement.scrollLeft = 0;
+        document.body.scrollLeft = 0;
+        const page = pageRef.current;
+        if (page) page.scrollLeft = 0;
+        const visual = window.visualViewport;
+        const inset = visual
+            ? discoverAskKeyboardInset(
+                  window.innerHeight,
+                  visual.height,
+                  visual.offsetTop,
+              )
+            : 0;
+        document.documentElement.style.setProperty(
+            "--discover-ask-keyboard-inset",
+            `${inset}px`,
+        );
+    }, []);
+
+    const onAskFieldFocus = useCallback(() => {
+        if (typeof window === "undefined") return;
+        askScrollYRef.current = window.scrollY;
+        askOverflowBackupRef.current = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = "hidden";
+        pinAskFieldScroll();
+        window.requestAnimationFrame(pinAskFieldScroll);
+        const onMove = () => pinAskFieldScroll();
+        const viewport = window.visualViewport;
+        viewport?.addEventListener("resize", onMove);
+        viewport?.addEventListener("scroll", onMove);
+        window.addEventListener("scroll", onMove, { passive: true });
+        askScrollPinCleanupRef.current?.();
+        askScrollPinCleanupRef.current = () => {
+            viewport?.removeEventListener("resize", onMove);
+            viewport?.removeEventListener("scroll", onMove);
+            window.removeEventListener("scroll", onMove);
+            document.documentElement.style.overflow =
+                askOverflowBackupRef.current;
+            document.documentElement.style.removeProperty(
+                "--discover-ask-keyboard-inset",
+            );
         };
-        resetX();
-        window.requestAnimationFrame(resetX);
+    }, [pinAskFieldScroll]);
+
+    const onAskFieldBlur = useCallback(() => {
+        askScrollPinCleanupRef.current?.();
+        askScrollPinCleanupRef.current = null;
     }, []);
 
     const openPaperPreview = useCallback(
@@ -710,6 +762,19 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         sessionLoading,
     ]);
 
+    if (
+        isOpeningSavedSynthesis({
+            savedParam,
+            hasResult: Boolean(result),
+            hasError: Boolean(error),
+            sessionLoading,
+            historyLoading,
+            isLoggedIn,
+        })
+    ) {
+        return <RouteLoading label="Opening your synthesis…" />;
+    }
+
     return (
         <div
             ref={pageRef}
@@ -744,12 +809,16 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 </button>
             )}
 
-            <form
-                className={clsx(styles.form, {
-                    [styles.dockedForm]: Boolean(result && !result.noResults),
-                })}
-                onSubmit={runDiscovery}
-            >
+            {createAskPortal(
+                <form
+                    className={clsx(styles.form, {
+                        [styles.dockedForm]: Boolean(result && !result.noResults),
+                    })}
+                    data-discover-ask={
+                        result && !result.noResults ? "docked" : "page"
+                    }
+                    onSubmit={runDiscovery}
+                >
                 <div className={styles.formHeading}>
                     <label className={styles.label} htmlFor="discover-question">
                         {result && !result.noResults
@@ -782,7 +851,8 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             className={styles.textarea}
                             value={question}
                             onChange={(event) => setQuestion(event.target.value)}
-                            onFocus={keepAskFieldHorizontallyInView}
+                            onFocus={onAskFieldFocus}
+                            onBlur={onAskFieldBlur}
                             aria-describedby="discover-supporting-metadata"
                             placeholder={
                                 result && !result.noResults
@@ -828,7 +898,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                         <span>Licensed excerpts</span>
                     </div>
                 </div>
-            </form>
+                </form>,
+                Boolean(result && !result.noResults) && askPortalReady,
+            )}
 
             {isRunning && (
                 <section
@@ -1283,6 +1355,10 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             ) : null}
         </div>
     );
+}
+
+function createAskPortal(form: ReactNode, portal: boolean) {
+    return portal ? createPortal(form, document.body) : form;
 }
 
 export default DiscoverClient;
