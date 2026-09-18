@@ -15,7 +15,6 @@ function createSiteStatus(notice: SiteStatusNotice): SiteStatusNotice {
     return { kind: notice.kind, label, srLabel };
 }
 
-// OWNER-EDIT: beta disclosure copy. Keep it short.
 export const SITE_STATUS: SiteStatusNotice = createSiteStatus({
     kind: "beta",
     label: "Beta — still in testing",
