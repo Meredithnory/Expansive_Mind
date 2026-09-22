@@ -176,7 +176,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         // Commercial retrieval runs alongside the existing literature pipeline.
         const commercialPromise = retrieveFounderSources(question, founderScope, usageContext).catch(() => ({ sources: [], limitations: ["Commercial retrieval failed. Commercial conclusions remain unverified."] }));
         const discovery = await cached({
-            namespace: "discovery-v5-expanded-indexes",
+            namespace: "discovery-v6-claim-passages",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),

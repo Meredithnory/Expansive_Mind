@@ -61,6 +61,23 @@ describe("parseStoredPaperExtraction", () => {
         });
     });
 
+    it("does not treat a stored DOI or a reviewer flag as human-checked support", () => {
+        const parsed = parseStoredPaperExtraction({
+            index: 1,
+            title: "Example",
+            claims: [
+                {
+                    claimText: "Antigen escape is incomplete.",
+                    paperId: "10.1000/example",
+                    supportRelation: "supports",
+                    verificationStatus: "reviewer_checked",
+                },
+            ],
+        });
+        expect(parsed?.claims?.[0].supportRelation).toBe("unverified");
+        expect(parsed?.claims?.[0].verificationStatus).toBe("not_checked");
+    });
+
     it("rejects records without an index or title", () => {
         expect(parseStoredPaperExtraction({ title: "Nope" })).toBeNull();
         expect(parseStoredPaperExtraction({ index: 1 })).toBeNull();

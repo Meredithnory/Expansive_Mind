@@ -6,10 +6,15 @@ import clsx from "clsx";
 import styles from "./discover.module.scss";
 import type {
     OpportunityReport,
+    PaperExtraction,
     ProjectSeed,
     ReportConfidence,
     ReportGap,
 } from "../api/discover/report-types";
+import {
+    ledgerCounts,
+    supportRelationLabel,
+} from "../lib/claim-evidence";
 import { useSession } from "../lib/use-session";
 import { splitCitedText, splitParagraphs } from "./report-text";
 import {
@@ -286,6 +291,7 @@ function StartProjectButton({
 export default function OpportunityReportView({
     report,
     paperCount,
+    extractions,
     isLoggedIn,
     sourceDiscoveryId,
     activePaperIndex,
@@ -294,6 +300,7 @@ export default function OpportunityReportView({
 }: {
     report: OpportunityReport;
     paperCount: number;
+    extractions?: PaperExtraction[];
     isLoggedIn: boolean;
     sourceDiscoveryId: string | undefined;
     activePaperIndex?: number | null;
@@ -465,6 +472,10 @@ export default function OpportunityReportView({
         }
     }, [action.key, action.projectId, action.status, discarding, refresh]);
 
+    const claimLedger = (extractions ?? []).flatMap(
+        (extraction) => extraction.claims ?? [],
+    );
+    const claimCounts = ledgerCounts(claimLedger);
     const stateParagraphs = splitParagraphs(sections.stateOfScience);
     const showError = action.status === "error";
     const outline = reportOutline(report);
@@ -527,6 +538,63 @@ export default function OpportunityReportView({
                 </section>
             )}
 
+            {claimLedger.length > 0 && (
+                <section
+                    className={styles.reportSection}
+                    aria-label="Claim ledger"
+                >
+                    <details className={styles.ledger}>
+                        <summary>
+                            Claim ledger · {claimCounts.located} of{" "}
+                            {claimCounts.total} have a located passage ·{" "}
+                            {claimCounts.directSupport} classified as direct
+                            support
+                        </summary>
+                        <p className={styles.scopeNote}>
+                            A located passage was checked by machine against
+                            the licensed excerpt. That is not human review. A
+                            DOI or paper number alone is not support.
+                        </p>
+                        <div className={styles.gapGrid}>
+                            {claimLedger.map((claim) => (
+                                <article
+                                    key={claim.claimId}
+                                    className={styles.gapCard}
+                                >
+                                    <div className={styles.gapCardHeader}>
+                                        <span>{claim.paperId}</span>
+                                        <span>
+                                            {supportRelationLabel(
+                                                claim.supportRelation,
+                                            )}
+                                        </span>
+                                    </div>
+                                    <h4>{claim.claimText}</h4>
+                                    <p>
+                                        Population match: {claim.populationMatch}
+                                        .{" "}
+                                        {claim.verificationStatus ===
+                                        "machine_checked"
+                                            ? "Machine-checked. Not human review."
+                                            : "Not checked against a passage."}
+                                    </p>
+                                    {claim.passageText ? (
+                                        <blockquote className={styles.ledgerQuote}>
+                                            {claim.passageText}
+                                        </blockquote>
+                                    ) : (
+                                        <p>No source passage verified.</p>
+                                    )}
+                                    {claim.passageLocator ? (
+                                        <p>{claim.passageLocator}</p>
+                                    ) : null}
+                                </article>
+                            ))}
+                        </div>
+                    </details>
+                </section>
+            )}
+
             {gapsEntry && sections.gaps.length > 0 && (
                 <section
                     id={reportSectionAnchor("gaps")}
@@ -565,6 +633,11 @@ export default function OpportunityReportView({
                                         />
                                         </p>
                                     )}
+                                    {gap.scopeNote ? (
+                                        <p className={styles.scopeNote}>
+                                            {gap.scopeNote}
+                                        </p>
+                                    ) : null}
                                     {gap.whyItMatters && (
                                         <p className={styles.whyItMatters}>
                                             <strong>Why it matters</strong>

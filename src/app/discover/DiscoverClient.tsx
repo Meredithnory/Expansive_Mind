@@ -35,11 +35,10 @@ import type {
     PaperExtraction,
 } from "../api/discover/report-types";
 import {
-    evidenceMixLabel,
-    evidenceTypeLabel,
     extractionForPaper,
     yearRangeLabel,
 } from "../lib/evidence-type";
+import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
 import { buildPaperFocusHref } from "../lib/paper-sources";
 import {
     CONFIDENCE_GUIDE,
@@ -701,7 +700,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
 
     const evidenceMix = useMemo(() => {
         if (!result) return "";
-        const mix = evidenceMixLabel(result.extractions);
+        const mix = designMixLabel(result.extractions);
         const years = yearRangeLabel([
             ...(result.papers.map((paper) => paper.date) ?? []),
             ...(result.extractions?.map((item) => item.publicationDate) ?? []),
@@ -1723,6 +1722,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                 <OpportunityReportView
                                     report={structuredReport}
                                     paperCount={result.papers.length}
+                                    extractions={result.extractions}
                                     isLoggedIn={isLoggedIn}
                                     sourceDiscoveryId={
                                         canShareResult ? result.id : undefined
@@ -1974,8 +1974,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             <div className={styles.methodNote}>
                                 <span aria-hidden="true">i</span>
                                 <p>
-                                    Confidence is paper agreement, not model
-                                    certainty. Click Paper N to read the excerpt.
+                                    Confidence is agreement among selected
+                                    papers, not a field-wide finding. Click
+                                    Paper N to read the checked passage.
                                     This is not medical or investment advice.
                                 </p>
                             </div>
@@ -2047,9 +2048,17 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                                     ),
                                                 )}
                                             >
-                                                {evidenceTypeLabel(
-                                                    extraction.evidenceType,
-                                                )}
+                                                {paperDesignLabel(extraction)}
+                                            </span>
+                                        ) : null}
+                                        {extraction?.includedStudyDesign ? (
+                                            <span className={styles.evidenceBadge}>
+                                                Includes {extraction.includedStudyDesign} studies
+                                            </span>
+                                        ) : null}
+                                        {extraction?.populationMatch === "indirect" ? (
+                                            <span className={styles.evidenceBadge}>
+                                                Indirect population
                                             </span>
                                         ) : null}
                                     </div>

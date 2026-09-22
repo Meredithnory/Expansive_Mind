@@ -1,19 +1,20 @@
 "use client";
 import type { OpportunityReport, PaperExtraction } from "../api/discover/report-types";
+import { paperDesignLabel } from "../lib/claim-evidence";
 import { rankFounderOptions, VENTURE_SCORE_CRITERIA, type FounderReport } from "../lib/founder-report";
 import styles from "./report-visuals.module.scss";
 
 export function ScienceVisuals({ report, extractions, onCite }: { report: OpportunityReport; extractions: PaperExtraction[]; onCite: (index: number) => void }) {
-    const types = [...new Set(extractions.map(p => p.evidenceType))];
+    const types = [...new Set(extractions.map(p => paperDesignLabel(p)))];
     return <section className={styles.card} aria-label="Science at a glance"><h3>Science at a glance</h3>
         <p>Research gaps suggest experiments to test. They do not establish commercial viability.</p>
         <div className={styles.grid}><div><h4>Evidence mix · {extractions.length} classified papers</h4>
-            {types.map(type => { const papers = extractions.filter(p => p.evidenceType === type); return <div key={type} className={styles.row}>
+            {types.map(type => { const papers = extractions.filter(p => paperDesignLabel(p) === type); return <div key={type} className={styles.row}>
                 <strong>{type} · {papers.length}</strong><div className={styles.track}><span style={{width: `${papers.length / Math.max(1, extractions.length) * 100}%`}} /></div>
                 <div>{papers.map(p => <button key={p.index} onClick={() => onCite(p.index)}>Paper {p.index}</button>)}</div>
             </div>; })}<p>Counts describe this report’s evidence, not study quality or effect size.</p></div>
-            <div><h4>What to validate next</h4>{report.sections.gaps.map((gap, i) => <details key={i} className={styles.row}><summary>{gap.confidence} · {gap.title}</summary>
-                <p>{gap.description}</p><p>{gap.whyItMatters}</p>{gap.citations.map(id => <button key={id} onClick={() => onCite(id)}>Inspect Paper {id}</button>)}
+            <div><h4>What to validate next</h4>{report.sections.gaps.map((gap, i) => <details key={i} className={styles.row}><summary>{gap.confidence === "established" ? "in this run" : gap.confidence} · {gap.title}</summary>
+                <p>{gap.description}</p>{gap.scopeNote ? <p>{gap.scopeNote}</p> : null}<p>{gap.whyItMatters}</p>{gap.citations.map(id => <button key={id} onClick={() => onCite(id)}>Inspect Paper {id}</button>)}
                 {report.sections.projectSeeds.filter(seed => seed.gapRef === i + 1).map((seed, j) => <p key={j}><strong>Next experiment:</strong> {seed.oneLiner}</p>)}
             </details>)}<p>{report.sections.couldNotVerify.length} unresolved limitations are listed in the full report below.</p></div></div>
     </section>;

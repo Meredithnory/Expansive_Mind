@@ -1645,6 +1645,27 @@
     text-transform: none;
 }
 
+.ledger {
+    summary {
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+}
+
+.ledgerQuote {
+    margin: 0 0 10px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(215, 235, 255, 0.2);
+    color: rgba(215, 235, 255, 0.78);
+}
+
+.scopeNote {
+    color: rgba(255, 196, 120, 0.92);
+    font-size: 0.84rem;
+}
+
 .limitsCard {
     border-color: rgba(255, 176, 80, 0.22);
     background:

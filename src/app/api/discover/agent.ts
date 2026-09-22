@@ -8,6 +8,7 @@ import { rankSearchResults } from "../search/semantic-rank";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { abstractToText } from "../../lib/abstract-text";
 import { loadCachedPaperBySource } from "../paper/load-paper";
+import { groundDiscoveryEvidence } from "../../lib/claim-evidence";
 import { selectPaperContext } from "../../lib/paper-context";
 import {
     PAPER_SOURCES,
@@ -19,7 +20,10 @@ import {
     dedupeDiscoverCandidates,
     type DiscoverCandidate,
 } from "./select-candidates";
-import { synthesizeOpportunityReport } from "./synthesize";
+import {
+    renderOpportunityReport,
+    synthesizeOpportunityReport,
+} from "./synthesize";
 import {
     extractPaperFindings,
     fallbackPaperExtraction,
@@ -514,9 +518,15 @@ export async function runDiscoverAgent(
         extractionSettled,
     );
 
+    const prepared = groundDiscoveryEvidence({
+        question: searchQuestion,
+        excerpts,
+        extractions,
+        papers: cards,
+    });
     const synthesis = await synthesizeOpportunityReport(
         searchQuestion,
-        extractions,
+        prepared.extractions,
         usageContext,
     );
     if (!synthesis?.brief) {
@@ -525,6 +535,25 @@ export async function runDiscoverAgent(
             502,
         );
     }
+    const grounded = groundDiscoveryEvidence({
+        question: searchQuestion,
+        excerpts,
+        extractions: prepared.extractions,
+        papers: cards,
+        gaps: synthesis.report?.sections.gaps,
+    });
+    const report = synthesis.report
+        ? {
+              ...synthesis.report,
+              sections: {
+                  ...synthesis.report.sections,
+                  gaps: grounded.gaps,
+              },
+          }
+        : undefined;
+    const brief = report
+        ? renderOpportunityReport(report)
+        : synthesis.brief;
 
     const nihFillCount = cards.filter(
         (paper) => paper.database === PAPER_SOURCES.nih.database,
@@ -537,9 +566,9 @@ export async function runDiscoverAgent(
     return {
         question,
         papers: cards,
-        brief: synthesis.brief,
-        report: synthesis.report,
-        extractions,
+        brief,
+        report,
+        extractions: grounded.extractions,
         meta: {
             springerCandidateCount,
             springerEligibleCount,

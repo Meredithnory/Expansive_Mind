@@ -9,6 +9,49 @@ export type EvidenceType =
 
 export type ReportConfidence = "established" | "suggested" | "speculative";
 
+export type ClaimKind = "finding" | "synthesis" | "hypothesis";
+
+export type SourceAccess = "full_text" | "excerpt" | "abstract" | "metadata";
+
+export type SupportRelation =
+    | "supports"
+    | "partial"
+    | "contradicts"
+    | "indirect"
+    | "unverified";
+
+export type PopulationMatch = "direct" | "indirect" | "unknown";
+
+export type VerificationStatus =
+    | "not_checked"
+    | "machine_checked"
+    | "reviewer_checked";
+
+/** Design of the paper itself. Included-study design is stored separately. */
+export type PaperStudyDesign =
+    | "evidence-synthesis"
+    | "rct"
+    | "observational"
+    | "preclinical-experimental"
+    | "animal"
+    | "computational"
+    | "other";
+
+export interface ClaimEvidenceRecord {
+    claimId: string;
+    claimText: string;
+    claimKind: ClaimKind;
+    /** DOI, PMID, or other stable paper id. An id alone is not support. */
+    paperId: string;
+    sourceAccess: SourceAccess;
+    passageLocator?: string;
+    /** Present only when this span exists in the licensed excerpt. */
+    passageText?: string;
+    supportRelation: SupportRelation;
+    populationMatch: PopulationMatch;
+    verificationStatus: VerificationStatus;
+}
+
 export interface PaperExcerptForSynthesis {
     index: number;
     title: string;
@@ -29,8 +72,20 @@ export interface PaperExtraction {
     limitations: string[];
     openQuestions: string[];
     evidenceType: EvidenceType;
-    /** Short licensed snippet shown when a citation is opened. Not full text. */
+    /**
+     * Licensed span that passed claim-level checks.
+     * Never the generic opening of the excerpt.
+     */
     supportingExcerpt?: string;
+    population?: string;
+    disease?: string;
+    outcome?: string;
+    timeHorizon?: string;
+    studyDesign?: PaperStudyDesign;
+    /** Design of studies included in a review. Empty for primary studies. */
+    includedStudyDesign?: string;
+    populationMatch?: PopulationMatch;
+    claims?: ClaimEvidenceRecord[];
 }
 
 export interface ReportGap {
@@ -39,6 +94,8 @@ export interface ReportGap {
     whyItMatters: string;
     citations: number[];
     confidence: ReportConfidence;
+    /** Why this gap is not a field-wide absence. */
+    scopeNote?: string;
 }
 
 export interface ReportProblem {

@@ -1,4 +1,14 @@
-import type { EvidenceType, PaperExtraction } from "../api/discover/report-types";
+import type {
+    ClaimEvidenceRecord,
+    ClaimKind,
+    EvidenceType,
+    PaperExtraction,
+    PaperStudyDesign,
+    PopulationMatch,
+    SourceAccess,
+    SupportRelation,
+    VerificationStatus,
+} from "../api/discover/report-types";
 
 export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
     review: "Review",
@@ -61,6 +71,35 @@ function asStringList(value: unknown): string[] {
         .filter(Boolean);
 }
 
+const CLAIM_KINDS = new Set<ClaimKind>(["finding", "synthesis", "hypothesis"]);
+const SOURCE_ACCESS = new Set<SourceAccess>([
+    "full_text",
+    "excerpt",
+    "abstract",
+    "metadata",
+]);
+const SUPPORT_RELATIONS = new Set<SupportRelation>([
+    "supports",
+    "partial",
+    "contradicts",
+    "indirect",
+    "unverified",
+]);
+const POPULATION_MATCHES = new Set<PopulationMatch>([
+    "direct",
+    "indirect",
+    "unknown",
+]);
+const STUDY_DESIGNS = new Set<PaperStudyDesign>([
+    "evidence-synthesis",
+    "rct",
+    "observational",
+    "preclinical-experimental",
+    "animal",
+    "computational",
+    "other",
+]);
+
 function asIndex(value: unknown): number | null {
     const index =
         typeof value === "number"
@@ -69,6 +108,53 @@ function asIndex(value: unknown): number | null {
               ? Number.parseInt(value, 10)
               : NaN;
     return Number.isInteger(index) && index >= 1 ? index : null;
+}
+
+function parseStoredClaim(value: unknown): ClaimEvidenceRecord | null {
+    if (!value || typeof value !== "object") return null;
+    const raw = value as Record<string, unknown>;
+    const claimText = asTrimmedString(raw.claimText);
+    const paperId = asTrimmedString(raw.paperId);
+    if (!claimText || !paperId) return null;
+    const claimKind = CLAIM_KINDS.has(raw.claimKind as ClaimKind)
+        ? (raw.claimKind as ClaimKind)
+        : "finding";
+    const sourceAccess = SOURCE_ACCESS.has(raw.sourceAccess as SourceAccess)
+        ? (raw.sourceAccess as SourceAccess)
+        : "excerpt";
+    let supportRelation = SUPPORT_RELATIONS.has(
+        raw.supportRelation as SupportRelation,
+    )
+        ? (raw.supportRelation as SupportRelation)
+        : "unverified";
+    const populationMatch = POPULATION_MATCHES.has(
+        raw.populationMatch as PopulationMatch,
+    )
+        ? (raw.populationMatch as PopulationMatch)
+        : "unknown";
+    const passageText = asTrimmedString(raw.passageText);
+    const passageLocator = asTrimmedString(raw.passageLocator);
+    let verificationStatus: VerificationStatus =
+        raw.verificationStatus === "machine_checked" ||
+        raw.verificationStatus === "reviewer_checked"
+            ? "machine_checked"
+            : "not_checked";
+    if (supportRelation !== "unverified" && !passageText) {
+        supportRelation = "unverified";
+        verificationStatus = "not_checked";
+    }
+    return {
+        claimId: asTrimmedString(raw.claimId) || `${paperId}#stored`,
+        claimText,
+        claimKind,
+        paperId,
+        sourceAccess,
+        ...(passageLocator ? { passageLocator } : {}),
+        ...(passageText ? { passageText } : {}),
+        supportRelation,
+        populationMatch,
+        verificationStatus,
+    };
 }
 
 export function parseStoredPaperExtraction(
@@ -81,6 +167,24 @@ export function parseStoredPaperExtraction(
     if (!index || !title) return null;
 
     const supportingExcerpt = asTrimmedString(raw.supportingExcerpt);
+    const population = asTrimmedString(raw.population);
+    const disease = asTrimmedString(raw.disease);
+    const outcome = asTrimmedString(raw.outcome);
+    const timeHorizon = asTrimmedString(raw.timeHorizon);
+    const includedStudyDesign = asTrimmedString(raw.includedStudyDesign);
+    const studyDesign = STUDY_DESIGNS.has(raw.studyDesign as PaperStudyDesign)
+        ? (raw.studyDesign as PaperStudyDesign)
+        : undefined;
+    const populationMatch = POPULATION_MATCHES.has(
+        raw.populationMatch as PopulationMatch,
+    )
+        ? (raw.populationMatch as PopulationMatch)
+        : undefined;
+    const claims = Array.isArray(raw.claims)
+        ? raw.claims
+              .map(parseStoredClaim)
+              .filter((claim): claim is ClaimEvidenceRecord => Boolean(claim))
+        : [];
     return {
         index,
         title,
@@ -95,6 +199,14 @@ export function parseStoredPaperExtraction(
             ? raw.evidenceType
             : "other",
         ...(supportingExcerpt ? { supportingExcerpt } : {}),
+        ...(population ? { population } : {}),
+        ...(disease ? { disease } : {}),
+        ...(outcome ? { outcome } : {}),
+        ...(timeHorizon ? { timeHorizon } : {}),
+        ...(studyDesign ? { studyDesign } : {}),
+        ...(includedStudyDesign ? { includedStudyDesign } : {}),
+        ...(populationMatch ? { populationMatch } : {}),
+        ...(claims.length > 0 ? { claims } : {}),
     };
 }
 

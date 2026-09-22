@@ -115,8 +115,9 @@ export const CONFIDENCE_GUIDE: Record<
     { label: string; meaning: string }
 > = {
     established: {
-        label: "Established",
-        meaning: "Two or more papers in this run independently agree.",
+        label: "In this run",
+        meaning:
+            "Two or more selected papers agree. This is not a field-wide finding or a documented absence.",
     },
     suggested: {
         label: "Suggested",
@@ -133,8 +134,8 @@ export const GROUNDING_NOTE = {
     title: "How to read this",
     lead: "This is a literature synthesis, not a model’s opinion. Treat it as a cited brief you can check, not as a finding.",
     points: [
-        "Claims are drawn only from licensed excerpts of the papers listed below. Open any Paper N to see the excerpt and evidence type.",
-        "Confidence badges reflect paper agreement in this run, not how sure the model sounds. Established means two or more papers independently agree; speculative means inferred, not shown.",
+        "Each claim is tied to a passage in a licensed excerpt when one could be checked. A DOI or paper number alone is not support. Machine checking is not human review.",
+        "Confidence badges reflect agreement among the papers selected for this run, not a field-wide finding. In this run means two or more selected papers agree; speculative means inferred, not shown.",
         "Human evidence outranks animal, in-vitro, and computational work. A single paper or a preclinical-only claim is labeled as such.",
         "Anything this run could not confirm from the excerpts is listed under Limits of this analysis. Read that section before acting.",
     ],

@@ -76,6 +76,9 @@ function parseGap(value: unknown): ReportGap | null {
         whyItMatters: asTrimmedString(gap.whyItMatters),
         citations: asIndexList(gap.citations),
         confidence: asConfidence(gap.confidence),
+        ...(asTrimmedString(gap.scopeNote)
+            ? { scopeNote: asTrimmedString(gap.scopeNote) }
+            : {}),
     };
 }
 
