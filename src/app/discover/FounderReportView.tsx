@@ -9,6 +9,207 @@ import {
 } from "../lib/founder-report";
 import styles from "./founder.module.scss";
 
+const OPTION_COLORS = ["#ff8ec8", "#7ad4ff", "#8be8b8"];
+const CRITERION_LABELS: Record<string, string> = {
+    demand: "Demand",
+    technical: "Build",
+    market: "Market",
+    differentiation: "Edge",
+    capital: "Capital",
+    execution: "Path",
+};
+const AREA_LABELS: Record<string, string> = {
+    demand: "Need",
+    market: "Market",
+    competition: "Rivals",
+    business: "Price",
+    technical: "Build",
+    regulatory: "Rules",
+    capital: "Capital",
+    risks: "Risk",
+};
+
+type RankedOption = ReturnType<typeof rankFounderOptions>["entries"][number];
+
+function optionColor(index: number) {
+    return OPTION_COLORS[index % OPTION_COLORS.length];
+}
+
+function ratingFor(entry: RankedOption, id: string) {
+    return (
+        entry.option.assessments?.find((item) => item.id === id)?.rating ??
+        null
+    );
+}
+
+function OpportunityCharts({
+    entries,
+    areas,
+}: {
+    entries: RankedOption[];
+    areas: FounderReport["areas"];
+}) {
+    const maxFindings = Math.max(
+        1,
+        ...areas.map((area) => area.findings.length),
+    );
+    const scoreSummary = entries
+        .map(
+            (entry) =>
+                `${entry.option.title}: ${entry.score ?? "unscored"} of 100, ${entry.coverage}% evidence coverage`,
+        )
+        .join(". ");
+
+    return (
+        <div className={styles.charts}>
+            <figure className={styles.chart}>
+                <figcaption>Priority vs evidence</figcaption>
+                <div
+                    className={styles.scoreChart}
+                    role="img"
+                    aria-label={scoreSummary}
+                >
+                    {entries.map((entry, index) => (
+                        <div
+                            className={styles.barRow}
+                            key={entry.originalIndex}
+                        >
+                            <span
+                                className={styles.barLabel}
+                                title={entry.option.title}
+                            >
+                                <span
+                                    className={styles.swatch}
+                                    style={{ background: optionColor(index) }}
+                                />
+                                {entry.option.title}
+                            </span>
+                            <span className={styles.trackStack}>
+                                <span className={styles.track}>
+                                    <span
+                                        className={styles.fill}
+                                        style={{
+                                            width: `${entry.score ?? 0}%`,
+                                            background: optionColor(index),
+                                        }}
+                                    />
+                                </span>
+                                <span className={styles.track}>
+                                    <span
+                                        className={styles.fillMuted}
+                                        style={{
+                                            width: `${entry.coverage}%`,
+                                            background: optionColor(index),
+                                        }}
+                                    />
+                                </span>
+                            </span>
+                            <span className={styles.barValue}>
+                                {entry.score ?? "—"}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+                <p className={styles.chartKey}>
+                    Bright bar is the priority score. Faint bar is how much of
+                    the rubric has sources.
+                </p>
+            </figure>
+
+            <figure className={styles.chart}>
+                <figcaption>How the options differ</figcaption>
+                <ul className={styles.legend}>
+                    {entries.map((entry, index) => (
+                        <li key={entry.originalIndex}>
+                            <span
+                                className={styles.swatch}
+                                style={{ background: optionColor(index) }}
+                            />
+                            <span title={entry.option.title}>
+                                Option {index + 1}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+                <div
+                    className={styles.criterionChart}
+                    role="img"
+                    aria-label="Criterion ratings from 1 to 5 for each option"
+                >
+                    {VENTURE_SCORE_CRITERIA.map((criterion) => (
+                        <div className={styles.criterionCol} key={criterion.id}>
+                            <div className={styles.criterionBars}>
+                                {entries.map((entry, index) => {
+                                    const rating = ratingFor(
+                                        entry,
+                                        criterion.id,
+                                    );
+                                    return (
+                                        <span
+                                            key={entry.originalIndex}
+                                            className={styles.criterionBar}
+                                            title={`${entry.option.title}, ${criterion.label}: ${rating ?? "unknown"} of 5`}
+                                            style={{
+                                                height:
+                                                    rating == null
+                                                        ? "6%"
+                                                        : `${(rating / 5) * 100}%`,
+                                                background:
+                                                    rating == null
+                                                        ? "rgba(215, 235, 255, 0.16)"
+                                                        : optionColor(index),
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                            <span className={styles.criterionName}>
+                                {CRITERION_LABELS[criterion.id]}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </figure>
+
+            <figure className={`${styles.chart} ${styles.chartWide}`}>
+                <figcaption>Evidence by area</figcaption>
+                <div
+                    className={styles.areaChart}
+                    role="img"
+                    aria-label={areas
+                        .map(
+                            (area) =>
+                                `${AREA_LABELS[area.id] || area.id}: ${area.findings.length} sourced findings`,
+                        )
+                        .join(". ")}
+                >
+                    {areas.map((area) => (
+                        <div className={styles.areaCol} key={area.id}>
+                            <span className={styles.areaCount}>
+                                {area.findings.length}
+                            </span>
+                            <span className={styles.areaTrack}>
+                                <span
+                                    style={{
+                                        height: `${area.findings.length === 0 ? 8 : (area.findings.length / maxFindings) * 100}%`,
+                                        background:
+                                            area.findings.length === 0
+                                                ? "rgba(255, 212, 154, 0.35)"
+                                                : "#7ad4ff",
+                                    }}
+                                />
+                            </span>
+                            <span className={styles.areaName}>
+                                {AREA_LABELS[area.id] || area.id}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </figure>
+        </div>
+    );
+}
+
 export default function FounderReportView({ report }: { report: FounderReport }) {
     const covered = report.areas.filter((area) => area.findings.length).length;
     const ranking = rankFounderOptions(report.options);
@@ -45,6 +246,13 @@ export default function FounderReportView({ report }: { report: FounderReport })
                     Download
                 </button>
             </header>
+
+            {ranking.entries.length > 0 ? (
+                <OpportunityCharts
+                    entries={ranking.entries}
+                    areas={report.areas}
+                />
+            ) : null}
 
             {ranking.entries.length > 0 ? (
                 <div className={styles.options}>

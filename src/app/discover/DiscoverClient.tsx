@@ -2118,16 +2118,15 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             hidden={activeReportTab !== "opportunity"}>
                             <FounderReportView key={result.id} report={structuredReport.founder} />
                             {!guestExhausted && <details className={styles.founderControls}>
-                                <summary>Refine this opportunity report</summary>
+                                <summary>Add context and regenerate</summary>
                                 <form onSubmit={(event) => { event.preventDefault(); void runDiscovery(result.question, founderScope.trim()); }}>
-                                    <label>Optional context: geography, budget, or business stage
+                                    <label>Geography, budget, or stage
                                         <input type="text" value={founderScope} maxLength={500} disabled={isRunning}
                                             onChange={event => setFounderScope(event.target.value)}
-                                            placeholder="e.g. US research labs · $250k validation budget · idea stage" />
+                                            placeholder="US labs · $250k validation budget · idea stage" />
                                     </label>
-                                    <p>Generate a new report with this context. Uses another Discovery run.</p>
                                     <button type="submit" className={styles.shareButton} disabled={isRunning || isCheckingSpelling || !founderScope.trim()}>
-                                        Generate refined report
+                                        Regenerate
                                     </button>
                                 </form>
                             </details>}
