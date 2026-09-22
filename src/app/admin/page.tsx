@@ -3,9 +3,10 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useSession } from "../lib/use-session";
 import { AdminOverview, type OverviewUsage } from "./AdminOverview";
+import { AudiencePanel } from "./AudiencePanel";
 import styles from "./admin.module.scss";
 
-type Tab = "overview" | "pricing" | "users" | "audit";
+type Tab = "overview" | "audience" | "pricing" | "users" | "audit";
 type Feature = "search" | "discover" | "chat" | "scholar_search" | "projects";
 type Plan = "guest" | "free" | "pro";
 type Pricing = {
@@ -161,7 +162,11 @@ export default function AdminPage() {
 
     if (sessionLoading) return <main className={styles.page}>Checking access…</main>;
     if (!user?.isAdmin) {
-        return <main className={styles.page}>You are not authorized to view this page.</main>;
+        return (
+            <main className={styles.page}>
+                You are not authorized to view this page.
+            </main>
+        );
     }
 
     return (
@@ -174,7 +179,7 @@ export default function AdminPage() {
                 <span className={styles.muted}>{user.email}</span>
             </header>
             <nav className={styles.tabs} aria-label="Admin sections" role="tablist">
-                {(["overview", "pricing", "users", "audit"] as Tab[]).map((item) => (
+                {(["overview", "audience", "pricing", "users", "audit"] as Tab[]).map((item) => (
                     <button
                         key={item}
                         type="button"
@@ -190,6 +195,8 @@ export default function AdminPage() {
             {message && <p className={styles.success}>{message}</p>}
 
             {tab === "overview" && <AdminOverview usage={usage} />}
+
+            {tab === "audience" && <AudiencePanel />}
 
             {tab === "pricing" && pricing && (
                 <section className={styles.panel}>

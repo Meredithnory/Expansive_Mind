@@ -65,6 +65,18 @@ const userSchema = new mongoose.Schema({
     subscriptionCurrentPeriodEnd: {
         type: Date,
     },
+    adminTotpEnabled: {
+        type: Boolean,
+        default: false,
+    },
+    adminTotpSecret: {
+        type: String,
+        select: false,
+    },
+    adminTotpLastStep: {
+        type: Number,
+        select: false,
+    },
 });
 
 //Fire a function before document is saved to db - first got to salt the password & hash before storing in db

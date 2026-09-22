@@ -1,5 +1,6 @@
 import { abstractToText } from "../../lib/abstract-text";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
+import { mergePaperImpact, parseCitationCount } from "../../lib/paper-impact";
 import { dedupeDiscoverCandidates, type DiscoverCandidate } from "./select-candidates";
 
 export type IndexSearchStatus = {
@@ -48,9 +49,13 @@ export function mapEuropePmcRecord(raw: unknown, indexedBy: string[] = ["Europe 
     const doi = normalizeDiscoveryDoi(item.doi);
     const sourceUrl = `https://pmc.ncbi.nlm.nih.gov/articles/PMC${pmcid}/`;
     const date = text(item.firstPublicationDate) || text(item.pubYear);
+    const citationCount = parseCitationCount(item.citedByCount);
     return {
         database: "nih", paperId: pmcid, idName: "pmcid", title, authors, date,
         abstract: abstractToText(text(item.abstractText)), sourceLabel: "NIH PubMed Central", sourceUrl, doi, indexedBy,
+        ...(citationCount != null
+            ? { citationCount, citationSource: "europepmc" as const }
+            : {}),
         access: evaluateContentAccess({ source: "nih", rawLicense: text(item.license) || null,
             attribution: { title, authors, sourceLabel: "Europe PMC", canonicalUrl: sourceUrl, paperId: pmcid, idName: "pmcid", doi, publicationDate: date } }),
     };
@@ -74,19 +79,40 @@ export async function searchEuropePmc(queries: string[]): Promise<IndexResult> {
 export async function searchCrossref(question: string): Promise<IndexResult> {
     let metadataCount = 0;
     try {
-        const params = new URLSearchParams({ "query.bibliographic": question.slice(0, 500), rows: "12", filter: "type:journal-article", select: "DOI" });
+        const params = new URLSearchParams({ "query.bibliographic": question.slice(0, 500), rows: "12", filter: "type:journal-article", select: "DOI,is-referenced-by-count" });
         if (process.env.CROSSREF_MAILTO) params.set("mailto", process.env.CROSSREF_MAILTO);
         const data = record(await fetchJson(`${CROSSREF}?${params}`));
         const items = record(data.message).items;
         if (!Array.isArray(items)) throw new Error("Invalid Crossref response");
         metadataCount = items.length;
-        const dois = [...new Set(items.map(item => normalizeDiscoveryDoi(record(item).DOI)).filter((doi): doi is string => Boolean(doi)))].slice(0, 12);
+        const crossrefCounts = new Map<string, number>();
+        const dois = [...new Set(items.map(item => {
+            const row = record(item);
+            const doi = normalizeDiscoveryDoi(row.DOI);
+            const citationCount = parseCitationCount(row["is-referenced-by-count"]);
+            if (doi && citationCount != null) crossrefCounts.set(doi, citationCount);
+            return doi;
+        }).filter((doi): doi is string => Boolean(doi)))].slice(0, 12);
         if (!dois.length) return finish("Crossref", [], metadataCount, "ok", "No usable journal-article DOIs found.");
         const resolved = await europeRecords(dois.map(doi => `DOI:"${doi}"`).join(" OR "));
         const candidates = resolved.filter(item => {
             const doi = normalizeDiscoveryDoi(record(item).doi);
             return doi && dois.includes(doi);
-        }).map(item => mapEuropePmcRecord(item, ["Crossref", "Europe PMC"])).filter((item): item is DiscoverCandidate => Boolean(item));
+        }).map(item => mapEuropePmcRecord(item, ["Crossref", "Europe PMC"])).filter((item): item is DiscoverCandidate => Boolean(item))
+            .map((candidate) => {
+                const citationCount = candidate.doi
+                    ? crossrefCounts.get(candidate.doi)
+                    : undefined;
+                return {
+                    ...candidate,
+                    ...mergePaperImpact(
+                        candidate,
+                        citationCount != null
+                            ? { citationCount, citationSource: "crossref" }
+                            : undefined,
+                    ),
+                };
+            });
         return finish("Crossref", candidates, metadataCount, "ok", "Metadata discovery only. DOI matches are resolved through Europe PMC; only readable PMC papers can enter synthesis. Metadata-only records are not evidence.");
     } catch {
         return finish("Crossref", [], metadataCount, metadataCount ? "partial" : "unavailable", "Crossref search or DOI resolution failed; coverage is incomplete.");

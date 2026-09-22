@@ -55,8 +55,8 @@ describe("selectPaperContext", () => {
             paper,
             "Did treatment reduce inflammation?",
         );
-        expect(context).toContain("## Abstract");
-        expect(context).toContain("## Results");
+        expect(context).toContain("## Abstract\n");
+        expect(context).toContain("## Results\n");
         expect(context).not.toContain("bibliography");
     });
 

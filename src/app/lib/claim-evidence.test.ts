@@ -132,6 +132,24 @@ describe("claim passages", () => {
         });
         expect(claim.supportRelation).toBe("supports");
         expect(claim.passageLocator).toContain("Results");
+        expect(claim.passageLocator!.length).toBeLessThanOrEqual(200);
+    });
+
+    it("keeps a locator short when the excerpt heading was flattened onto one line", () => {
+        const quote =
+            "Antigen escape reduced detectable target cells in the solid-tumor cultures after infusion.";
+        const claim = buildClaimRecord({
+            claimText:
+                "Antigen escape reduced detectable target cells in solid-tumor cultures.",
+            quote,
+            excerpt: `## Abstract ${"Immunosenescence describes age-related immune decline. ".repeat(120)}${quote}`,
+            paperId: "10.1000/flat",
+            ordinal: 1,
+            question: "What happens to target cells in solid tumors?",
+            paperText: "Adults with solid tumors were studied.",
+        });
+        expect(claim.passageLocator).toMatch(/^Abstract /);
+        expect(claim.passageLocator!.length).toBeLessThanOrEqual(200);
         expect(claim.verificationStatus).toBe("machine_checked");
         expect(claim.populationMatch).not.toBe("indirect");
     });

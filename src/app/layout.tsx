@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google";
 import "./globals.scss";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
+import AudienceTracker from "./components/AudienceTracker";
 import ScrollTheme from "./components/ScrollTheme";
 import { SessionProvider } from "./lib/use-session";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
             <body className="antialiased">
                 <SessionProvider>
                     <ScrollTheme />
+                    <AudienceTracker />
                     <NavBar />
                     <div className="main-content">{children}</div>
                     <Footer />

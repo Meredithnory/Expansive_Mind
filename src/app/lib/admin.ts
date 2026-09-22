@@ -5,6 +5,7 @@ import {
     configuredAdminEmails,
     isAdminIdentity,
 } from "./admin-identity";
+import { readAdminSessionFromRequest } from "./admin-session";
 
 export function adminEmails() {
     return configuredAdminEmails();
@@ -14,11 +15,25 @@ export function isAdminUser(user?: { email?: string } | null) {
     return isAdminIdentity(user);
 }
 
+export async function hasAdminSession(
+    request: NextRequest,
+    userId?: string,
+) {
+    const session = await readAdminSessionFromRequest(request);
+    if (!session) return false;
+    if (userId && session.id !== userId) return false;
+    return true;
+}
+
 export const withAdmin = (
     handler: (request: NextRequest) => Promise<NextResponse>,
 ) =>
     withAuth(async (request: NextRequest) => {
-        if (!isAdminUser(request.user)) {
+        const userId = request.user._id.toString();
+        if (
+            !isAdminUser(request.user) ||
+            !(await hasAdminSession(request, userId))
+        ) {
             return NextResponse.json(
                 { error: "Not authorized." },
                 { status: 403 },

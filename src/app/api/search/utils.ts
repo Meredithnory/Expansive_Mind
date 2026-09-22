@@ -1,6 +1,10 @@
 import convert from "xml-js";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { abstractToText } from "../../lib/abstract-text";
+import {
+    normalizePaperDoi,
+    parseCitationCount,
+} from "../../lib/paper-impact";
 import { consumeRateLimit } from "../../lib/rate-limit";
 import {
     buildSpringerFallbackQuery,
@@ -227,6 +231,15 @@ export const getNIHPaperResults = async (
                       .filter(Boolean)
                 : [];
             const date = summary?.pubdate || summary?.epubdate || null;
+            const articleIds = Array.isArray(summary?.articleids)
+                ? summary.articleids
+                : [];
+            const doi = normalizePaperDoi(
+                articleIds.find(
+                    (articleId: { idtype?: string; value?: string }) =>
+                        String(articleId?.idtype || "").toLowerCase() === "doi",
+                )?.value,
+            );
 
             return {
                 pmcid: id,
@@ -234,6 +247,7 @@ export const getNIHPaperResults = async (
                 authors,
                 abstract: null,
                 date,
+                doi,
                 matchTier: searchValue
                     ? inferMatchTier(
                           searchValue,
@@ -485,6 +499,10 @@ const mapScholarRecord = (
         },
     });
 
+    const citationCount = parseCitationCount(
+        record?.inline_links?.cited_by?.total,
+    );
+
     return {
         sourceId: stableId,
         clusterId: stableId,
@@ -498,6 +516,9 @@ const mapScholarRecord = (
         sourceUrl: externalUrl,
         contentLabel: "Search snippet",
         access,
+        ...(citationCount != null
+            ? { citationCount, citationSource: "scholar" as const }
+            : {}),
     };
 };
 

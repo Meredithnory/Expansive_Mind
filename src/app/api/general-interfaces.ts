@@ -143,4 +143,6 @@ export interface FormattedPaper {
     status?: ArticleStatus;
     relatedResearchArticle?: RelatedResearchArticle;
     contentNotice?: string;
+    citationCount?: number;
+    citationSource?: "crossref" | "europepmc" | "scholar";
 }

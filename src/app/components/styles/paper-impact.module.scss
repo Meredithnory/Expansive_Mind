@@ -1,0 +1,74 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 4px 8px;
+    border: 1px solid rgba(215, 235, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.05);
+    color: rgba(215, 235, 255, 0.78);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .badge {
+        gap: 5px;
+        min-height: 26px;
+        padding: 5px 9px;
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .badge {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: 0.64rem;
+        letter-spacing: 0.01em;
+    }
+
+    .popularity {
+        letter-spacing: 0.01em;
+    }
+}
+
+.count {
+    font-variant-numeric: tabular-nums;
+}
+
+.popularity {
+    color: inherit;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+}
+
+.none {
+    color: rgba(215, 235, 255, 0.5);
+}
+
+.emerging {
+    color: #7ad4ff;
+}
+
+.cited {
+    color: #9ad7ff;
+}
+
+.widely-cited {
+    color: #8be8b8;
+    border-color: rgba(99, 211, 153, 0.28);
+    background: rgba(99, 211, 153, 0.08);
+}
+
+.highly-cited {
+    color: #ffd27a;
+    border-color: rgba(255, 210, 122, 0.32);
+    background: rgba(255, 210, 122, 0.08);
+}

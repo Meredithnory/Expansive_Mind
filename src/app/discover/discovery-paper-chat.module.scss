@@ -8,7 +8,7 @@
     gap: 10px;
     box-sizing: border-box;
     width: min(780px, calc(100vw - 32px));
-    height: min(58dvh, calc(100dvh - 188px));
+    height: min(78dvh, calc(100dvh - 188px));
     max-height: calc(100dvh - 188px);
     overflow: hidden;
     padding: 14px 16px 12px;
@@ -163,7 +163,7 @@
         right: auto;
         bottom: 148px;
         width: calc(100vw - 20px);
-        height: min(50dvh, calc(100dvh - 176px));
+        height: min(62dvh, calc(100dvh - 176px));
         max-height: calc(100dvh - 176px);
     }
 }

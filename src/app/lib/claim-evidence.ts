@@ -104,8 +104,11 @@ function sectionTitleAt(source: string, quote: string): string {
     let current = "Excerpt";
     let consumed = "";
     for (const line of source.split("\n")) {
-        const heading = line.match(/^##\s+(.+)/);
-        if (heading) current = heading[1].trim() || current;
+        const heading = line.match(/^##\s+(\S+(?:\s+\S+){0,6})/);
+        if (heading) {
+            const title = heading[1].trim().slice(0, 80);
+            if (title) current = title;
+        }
         consumed = normalizeEvidenceText(`${consumed} ${line}`);
         if (consumed.includes(normalizedQuote)) return current;
     }
@@ -116,7 +119,7 @@ export function passageLocator(source: string, quote: string): string | null {
     const located = locatePassage(source, quote);
     if (!located) return null;
     const section = sectionTitleAt(source, quote);
-    return `${section} · characters ${located.start}–${located.end}`;
+    return `${section} · characters ${located.start}–${located.end}`.slice(0, 200);
 }
 
 export function sourceAccessForExcerpt(excerpt: string): SourceAccess {

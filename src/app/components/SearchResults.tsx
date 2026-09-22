@@ -9,6 +9,8 @@ import {
 } from "../lib/paper-sources";
 import { HighlightSearchTitle } from "../lib/highlight-search";
 import type { ContentAccessPolicy } from "../lib/content-access-policy";
+import type { CitationSource } from "../lib/paper-impact";
+import PaperImpactBadge from "./PaperImpactBadge";
 
 // CHANGED: This interface used to have a 'pmcid' field (which only worked for NIH papers).
 // Now we have 'sourceId' which is the ID in whatever source system the paper came from,
@@ -29,6 +31,8 @@ interface SearchResult {
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
     access?: ContentAccessPolicy;
+    citationCount?: number;
+    citationSource?: CitationSource;
 }
 
 // this function takes the abstract from the API and turns it into a plain string
@@ -209,6 +213,12 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                   : "Metadata only"}
                         </span>
                         </div>
+                        <span className={styles.impactTag}>
+                            <PaperImpactBadge
+                                citationCount={paper.citationCount}
+                                citationSource={paper.citationSource}
+                            />
+                        </span>
                         {paper.date && (
                             <time
                                 className={clsx(

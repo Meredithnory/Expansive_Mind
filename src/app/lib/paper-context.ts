@@ -70,5 +70,20 @@ export const selectPaperContext = (
             `## ${section.title}\n${truncateAtSentence(section.content, MAX_SECTION_CHARS)}`,
         );
     }
-    return truncateAtSentence(parts.join("\n\n"), MAX_CONTEXT_CHARS);
+    return capContext(parts.join("\n\n"), MAX_CONTEXT_CHARS);
+}
+
+/** Keeps section headings on their own lines. Sentence trimming is for section bodies only. */
+function capContext(text: string, limit: number) {
+    if (text.length <= limit) return text;
+    const slice = text.slice(0, limit);
+    const paragraph = slice.lastIndexOf("\n\n");
+    const sentence = Math.max(
+        slice.lastIndexOf(". "),
+        slice.lastIndexOf("? "),
+        slice.lastIndexOf("! "),
+    );
+    const breakAt = Math.max(paragraph, sentence);
+    const cut = breakAt > limit * 0.6 ? breakAt : limit;
+    return `${text.slice(0, cut).trim()}…`;
 };

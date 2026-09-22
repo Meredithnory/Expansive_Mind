@@ -15,6 +15,8 @@ import {
     supportRelationLabel,
 } from "../lib/claim-evidence";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import PaperImpactBadge from "../components/PaperImpactBadge";
+import type { CitationSource } from "../lib/paper-impact";
 
 export type PreviewPaper = {
     index: number;
@@ -26,6 +28,8 @@ export type PreviewPaper = {
     sourceUrl: string;
     href: string;
     doi?: string;
+    citationCount?: number;
+    citationSource?: CitationSource;
 };
 
 type PaperPreviewDrawerProps = {
@@ -152,6 +156,10 @@ export default function PaperPreviewDrawer({
                         >
                             {paper.sourceLabel}
                         </span>
+                        <PaperImpactBadge
+                            citationCount={paper.citationCount}
+                            citationSource={paper.citationSource}
+                        />
                         {year ? (
                             <span className={styles.yearChip}>{year}</span>
                         ) : null}

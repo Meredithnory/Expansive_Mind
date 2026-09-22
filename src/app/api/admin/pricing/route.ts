@@ -12,7 +12,12 @@ import {
     type RuntimePlanConfig,
 } from "../../../lib/plan-config";
 import { hasValidMutationOrigin } from "../../../lib/request-security";
-import { getStripe, isStripeConfigured } from "../../../lib/stripe";
+import {
+    ensureStripeProductTaxCode,
+    getStripe,
+    isStripeConfigured,
+    RESEARCHER_PRO_TAX_CODE,
+} from "../../../lib/stripe";
 
 const intervals: BillingInterval[] = ["month", "year"];
 const plans: Plan[] = ["guest", "free", "pro"];
@@ -45,12 +50,14 @@ async function resolveStripeProductId(
         const priceId = current[interval].stripePriceId;
         if (!priceId) continue;
         const price = await stripe.prices.retrieve(priceId);
-        return typeof price.product === "string"
-            ? price.product
-            : price.product.id;
+        const productId =
+            typeof price.product === "string" ? price.product : price.product.id;
+        await ensureStripeProductTaxCode(productId);
+        return productId;
     }
     const product = await stripe.products.create({
         name: "Researcher Pro",
+        tax_code: RESEARCHER_PRO_TAX_CODE,
         metadata: { managedBy: "admin-portal" },
     });
     return product.id;

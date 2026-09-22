@@ -21,7 +21,7 @@ const STEPS = [
     {
         eyebrow: "Synthesize",
         title: "You get two useful views",
-        body: "Science shows the evidence. Opportunity shows gaps, ventures, and scenarios.",
+        body: "Science shows the evidence. Opportunity shows gaps and ventures.",
         visual: "synthesize",
     },
 ] as const;

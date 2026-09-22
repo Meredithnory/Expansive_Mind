@@ -1,11 +1,12 @@
 import type { ContentAccessPolicy } from "../../lib/content-access-policy";
 import type { SourceDatabase } from "../../lib/paper-sources";
+import { mergePaperImpact, type PaperImpact } from "../../lib/paper-impact";
 
 export const TARGET_PAPER_COUNT = 10;
 /** @deprecated Discovery now searches NIH on every run, not as a Springer fill. */
 export const MIN_SPRINGER_BEFORE_NIH_FILL = 3;
 
-export interface DiscoverCandidate {
+export interface DiscoverCandidate extends PaperImpact {
     database: SourceDatabase;
     paperId: string;
     idName: string;
@@ -46,7 +47,13 @@ export function dedupeDiscoverCandidates(
         const preferred = group.find(entry => entry.access.canSendToAI) || group[0];
         const indexedBy = [...new Set(group.flatMap(entry => entry.indexedBy || []))];
         const doi = preferred.doi || group.find(entry => entry.doi)?.doi;
-        const combined = { ...preferred, ...(doi ? { doi } : {}), ...(indexedBy.length ? { indexedBy } : {}) };
+        const impact = mergePaperImpact(...group);
+        const combined = {
+            ...preferred,
+            ...(doi ? { doi } : {}),
+            ...(indexedBy.length ? { indexedBy } : {}),
+            ...impact,
+        };
         const position = groups.indexOf(matches[0]);
         for (const entry of matches) { entry.keys.forEach(key => keys.add(key)); groups.splice(groups.indexOf(entry), 1); }
         groups.splice(position, 0, { candidate: combined, keys });

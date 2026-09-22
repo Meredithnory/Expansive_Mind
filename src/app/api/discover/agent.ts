@@ -7,6 +7,8 @@ import {
 import { rankSearchResults } from "../search/semantic-rank";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { abstractToText } from "../../lib/abstract-text";
+import { attachPaperImpact } from "../../lib/paper-impact-lookup";
+import type { PaperImpact } from "../../lib/paper-impact";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import { groundDiscoveryEvidence } from "../../lib/claim-evidence";
 import { selectPaperContext } from "../../lib/paper-context";
@@ -39,7 +41,7 @@ import { assessDiscoveryQuestion, UNCLEAR_QUESTION_ERROR } from "./assess-query"
 import { buildNihDiscoveryQuery } from "./discovery-query";
 import { searchEuropePmc, searchCrossref, type IndexSearchStatus } from "./additional-indexes";
 
-export interface DiscoverPaperCard {
+export interface DiscoverPaperCard extends PaperImpact {
     index: number;
     database: SourceDatabase;
     paperId: string;
@@ -124,6 +126,8 @@ function mapSpringerResults(results: any[]): DiscoverCandidate[] {
             sourceUrl,
             doi: doi || undefined,
             indexedBy: ["Springer Nature"],
+            citationCount: result.citationCount,
+            citationSource: result.citationSource,
             access,
         };
     });
@@ -161,6 +165,8 @@ function mapNihResults(results: any[]): DiscoverCandidate[] {
             sourceUrl,
             doi: typeof paper.doi === "string" ? paper.doi : undefined,
             indexedBy: ["NIH PMC"],
+            citationCount: paper.citationCount,
+            citationSource: paper.citationSource,
             access,
         };
     });
@@ -202,6 +208,8 @@ function mapScholarResults(results: any[]): DiscoverCandidate[] {
             sourceUrl,
             doi: result.doi ? String(result.doi).trim() : undefined,
             indexedBy: ["Google Scholar"],
+            citationCount: result.citationCount,
+            citationSource: result.citationSource,
             access,
         };
     });
@@ -396,8 +404,10 @@ async function readPaperExcerpts(
                     paper.paperId || candidate.paperId,
                     paper.idName || candidate.idName,
                 ),
-                doi: candidate.doi,
+                doi: candidate.doi || paper.access.attribution.doi,
                 indexedBy: candidate.indexedBy,
+                citationCount: candidate.citationCount,
+                citationSource: candidate.citationSource,
             };
 
             const synthesisPaper: PaperExcerptForSynthesis = {
@@ -426,7 +436,17 @@ async function readPaperExcerpts(
         });
     }
 
-    return { cards, excerpts };
+    const cardsWithImpact = await attachPaperImpact(
+        cards.map((card) => ({
+            ...card,
+            pmcid: card.idName === "pmcid" ? card.paperId : undefined,
+        })),
+    );
+
+    return {
+        cards: cardsWithImpact.map(({ pmcid: _pmcid, ...card }) => card),
+        excerpts,
+    };
 }
 
 function collectExtractions(

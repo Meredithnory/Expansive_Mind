@@ -85,6 +85,8 @@ interface SearchResult {
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
     access?: ContentAccessPolicy;
+    citationCount?: number;
+    citationSource?: "crossref" | "europepmc" | "scholar";
 }
 
 const parseSourceFilter = (value: string | null): SourceFilter => {

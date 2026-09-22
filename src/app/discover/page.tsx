@@ -29,9 +29,8 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
                         </h1>
                         <p className={styles.subtitle}>
                             Ask one research question. Get cited scientific findings,
-                            research gaps, ranked startup opportunities, and revenue
-                            and funding scenarios together. Financial estimates use
-                            explicit assumptions; missing evidence stays visible.
+                            research gaps, and ranked startup opportunities together.
+                            Missing evidence stays visible.
                         </p>
                     </>
                 }

@@ -1,6 +1,5 @@
 "use client";
 import DiscoveryPaperChat from "./DiscoveryPaperChat";
-import { ScienceVisuals } from "./ReportVisuals";
 import SourceLogoCarousel from "./SourceLogoCarousel";
 import DiscoverOnboarding from "./DiscoverOnboarding";
 
@@ -34,6 +33,7 @@ import type {
     OpportunityReport,
     PaperExtraction,
 } from "../api/discover/report-types";
+import PaperImpactBadge from "../components/PaperImpactBadge";
 import {
     extractionForPaper,
     yearRangeLabel,
@@ -94,6 +94,8 @@ type DiscoverPaper = {
     href: string;
     doi?: string;
     indexedBy?: string[];
+    citationCount?: number;
+    citationSource?: "crossref" | "europepmc" | "scholar";
 };
 
 type DiscoverResponse = {
@@ -1099,6 +1101,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 </button>
             )}
 
+            {!isRunning && (
             <form
                 className={clsx(styles.form, {
                     [styles.dockedForm]: Boolean(result),
@@ -1469,6 +1472,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                     </div>
                 </div>
             </form>
+            )}
 
             {!result && !isRunning && (
                 <DiscoverOnboarding
@@ -1497,16 +1501,12 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                 Building your opportunity report
                             </p>
                             <p className={styles.status}>{statusLabel}</p>
+                            {question.trim() ? (
+                                <p className={styles.runningQuestion}>{question.trim()}</p>
+                            ) : null}
                             <p className={styles.progressHint}>
-                                Reading literature and primary commercial sources, then preparing research findings, venture comparisons, and financial scenarios. This can take several minutes; missing evidence will be identified.
+                                Reading literature and primary commercial sources, then preparing research findings and venture comparisons. This can take several minutes; missing evidence will be identified.
                             </p>
-                            <button
-                                type="button"
-                                className={styles.cancelButton}
-                                onClick={cancelDiscovery}
-                            >
-                                Cancel discovery
-                            </button>
                         </div>
                     </div>
                     <ol className={styles.progressSteps}>
@@ -1529,21 +1529,14 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             );
                         })}
                     </ol>
-                    <div className={styles.answerSkeleton} aria-hidden="true">
-                        <div className={styles.skeletonHeading} />
-                        <div className={styles.skeletonLine} />
-                        <div className={styles.skeletonLine} />
-                        <div
-                            className={clsx(
-                                styles.skeletonLine,
-                                styles.skeletonLineShort,
-                            )}
-                        />
-                        <div className={styles.skeletonSources}>
-                            <span />
-                            <span />
-                            <span />
-                        </div>
+                    <div className={styles.runningActions}>
+                        <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={cancelDiscovery}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </section>
             )}
@@ -1651,7 +1644,6 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                     <div id="report-panel-science" role={structuredReport?.founder ? "tabpanel" : undefined}
                         aria-labelledby={structuredReport?.founder ? "report-tab-science" : undefined}
                         hidden={activeReportTab !== "science"}>
-                    {structuredReport && <ScienceVisuals report={structuredReport} extractions={result.extractions ?? []} onCite={openPaperPreview} />}
                     {result.meta.additionalIndexes && <details className={styles.groundingNote}>
                         <summary>Additional research index coverage</summary>
                         <ul>{result.meta.additionalIndexes.map(index => <li key={index.name}>
@@ -2038,6 +2030,10 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                         >
                                             {paper.sourceLabel}
                                         </span>
+                                        <PaperImpactBadge
+                                            citationCount={paper.citationCount}
+                                            citationSource={paper.citationSource}
+                                        />
                                         {paper.indexedBy?.length ? <span className={styles.evidenceBadge}>Found via {paper.indexedBy.join(" · ")}</span> : null}
                                         {extraction?.evidenceType ? (
                                             <span

@@ -22,6 +22,7 @@ import {
     type UsageContext,
 } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { attachPaperImpact } from "../../lib/paper-impact-lookup";
 
 type SourceFilter = "all" | "nih" | "springer" | "scholar";
 type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
@@ -107,6 +108,9 @@ async function runSearch(
             source: "nih",
             sourceLabel: "NIH PubMed Central",
             sourceUrl,
+            doi: paper.doi,
+            pmcid: paper.pmcid,
+            idName: "pmcid",
             contentLabel: "Abstract",
             access: evaluateContentAccess({
                 source: "nih",
@@ -157,9 +161,24 @@ async function runSearch(
               mergedResults,
               options?.usageContext,
           );
+    const results = await attachPaperImpact(
+        paperResults.map((paper: any) => ({
+            ...paper,
+            pmcid:
+                paper.pmcid ||
+                (paper.source === "nih" ? paper.sourceId : undefined),
+            idName:
+                paper.idName ||
+                (paper.source === "nih"
+                    ? "pmcid"
+                    : paper.source === "nature"
+                      ? "doi"
+                      : undefined),
+        })),
+    );
 
     return {
-        results: paperResults,
+        results,
         totalCount,
         totalPages,
         warnings:

@@ -84,6 +84,15 @@
         font-weight: 600;
     }
 
+    .impactTag {
+        display: inline-flex;
+        max-width: 100%;
+
+        &:empty {
+            display: none;
+        }
+    }
+
     .title {
         color: #d7ebff;
         font-size: 22px;
@@ -278,7 +287,21 @@
         }
 
         .paperMeta {
-            align-items: flex-start;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 8px 12px;
+        }
+
+        .metaTags {
+            grid-column: 1 / -1;
+            width: 100%;
+            gap: 6px;
+        }
+
+        .impactTag {
+            grid-column: 1;
+            align-self: center;
         }
 
         .title {
@@ -287,13 +310,13 @@
         }
 
         .publicationdate {
-            width: 100%;
+            grid-column: 2;
+            width: auto;
             margin-left: 0;
-            padding: 8px 0 0;
-            align-items: flex-start;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            border-left: 0;
-            text-align: left;
+            padding: 0;
+            align-items: flex-end;
+            border: 0;
+            text-align: right;
         }
 
         .dateValue {

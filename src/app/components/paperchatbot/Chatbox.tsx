@@ -852,7 +852,12 @@ const Chatbox = ({
     const paperTitle = wholePaper?.title?.trim() || "This paper";
 
     return (
-        <div className={styles.chatpaperbox}>
+        <div
+            className={clsx(
+                styles.chatpaperbox,
+                hideComposer && styles.chatEmbedded,
+            )}
+        >
             <header className={styles.chatHeader}>
                 <div className={styles.chatIdentity}>
                     <span className={styles.chatMark} aria-hidden="true" />

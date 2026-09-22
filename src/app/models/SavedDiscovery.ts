@@ -20,6 +20,11 @@ const discoverPaperSchema = new Schema(
         href: { type: String, required: true },
         doi: { type: String },
         indexedBy: { type: [String], default: undefined },
+        citationCount: { type: Number, min: 0 },
+        citationSource: {
+            type: String,
+            enum: ["crossref", "europepmc", "scholar"],
+        },
     },
     {
         _id: false,

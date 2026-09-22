@@ -28,6 +28,7 @@ import {
     fetchPaperHighlights,
     savePaperHighlight,
 } from "../../lib/paper-highlights";
+import PaperImpactBadge from "../PaperImpactBadge";
 
 const AGENT_HIGHLIGHT = "agent-focus";
 const AGENT_HIGHLIGHT_STYLE_ID = "agent-focus-highlight-style";
@@ -611,6 +612,11 @@ const Paperbox = ({
                 />
             </h1>
             <div className={styles.authors}>{paper.authors.join(", ")}</div>
+            <PaperImpactBadge
+                citationCount={paper.citationCount}
+                citationSource={paper.citationSource}
+                className={styles.impactBadge}
+            />
             <div className={styles.pmcid}>
                 Source: {paper.primarySource} | ID ({paper.idName}):{" "}
                 {paper.paperId}

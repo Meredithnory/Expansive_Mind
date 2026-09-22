@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "../../authMiddleware";
 import { hasValidMutationOrigin } from "../../../lib/request-security";
-import { getStripe } from "../../../lib/stripe";
+import { ensureStripeProductTaxCode, getStripe } from "../../../lib/stripe";
 import User from "../../../models/User";
 import { getPlanConfig } from "../../../lib/plan-config";
 
@@ -40,6 +40,10 @@ export const POST = withAuth(async (request: NextRequest) => {
             process.env.APP_URL ||
             request.headers.get("origin") ||
             request.nextUrl.origin;
+        const price = await stripe.prices.retrieve(priceId);
+        const productId =
+            typeof price.product === "string" ? price.product : price.product.id;
+        await ensureStripeProductTaxCode(productId);
         const session = await stripe.checkout.sessions.create({
             mode: "subscription",
             customer: customerId,
