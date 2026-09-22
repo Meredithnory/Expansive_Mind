@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
                 ],
             },
             {
-                source: "/:file(dnabg.mov|dnabg.mp4|dnabg-hd.mp4|dnabg-poster.jpg)",
+                source: "/:file(dnabg.mov|dnabg.mp4|dnabg.webm|dnabg-hd.mp4|dnabg-hd.webm|dnabg-poster.jpg)",
                 headers: [
                     {
                         key: "Cache-Control",
