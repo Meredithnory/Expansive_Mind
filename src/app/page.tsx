@@ -4,21 +4,27 @@ import styles from "./home.module.scss";
 import Link from "next/link";
 import { useSession } from "./lib/use-session";
 
-const sequence = [
+const paths = [
     {
         index: "01",
-        title: "Discover",
-        detail: "One question across the open literature.",
+        title: "A question that won't settle",
+        detail: "One biomedical question is enough, even if it's still rough. You'll see what the papers report and where they don't agree.",
+        href: "/discover",
+        action: "Ask it",
     },
     {
         index: "02",
-        title: "Read",
-        detail: "Every claim opens at its source.",
+        title: "A paper you need to understand",
+        detail: "Open the article and ask about a passage. The reply stays inside that text, and you can jump back to the lines.",
+        href: "/searchpaper",
+        action: "Open a paper",
     },
     {
         index: "03",
-        title: "Plan",
-        detail: "The gaps become the next experiment.",
+        title: "Work you want to come back to",
+        detail: "Save the papers and the thread. The gap you noticed can wait until you're ready for the next experiment.",
+        href: "/savedpapers",
+        action: "Your library",
     },
 ];
 
@@ -56,39 +62,53 @@ export default function Home() {
             ) : null}
             <div className={styles.scrim} aria-hidden="true" />
             <section className={styles.hero}>
-                <p className={styles.eyebrow}>Research agent</p>
+                <p className={styles.eyebrow}>A rough question is welcome</p>
                 <h1>Ask the literature.</h1>
                 <p className={styles.tagline}>
-                    One biomedical question. Cited findings, the conflicts
-                    between them, and the gaps still open.
+                    Bring the biomedical question you&apos;re actually holding.
+                    A half-formed one is welcome. You&apos;ll see what the open
+                    papers report, where they conflict, and what they still
+                    leave open. Every finding stays tied to its source.
                 </p>
                 <div className={styles.actions}>
                     <Link href="/discover" className={styles.primaryCta}>
-                        Begin a discovery
+                        Start with your question
                         <span aria-hidden="true">→</span>
                     </Link>
                     {isLoggedIn ? (
                         <Link href="/savedpapers" className={styles.secondaryCta}>
-                            Research library
+                            Pick up your library
                         </Link>
                     ) : loading ? null : (
                         <Link href="/searchpaper" className={styles.secondaryCta}>
-                            Search a paper
+                            I already have a paper
                         </Link>
                     )}
                 </div>
-                {isLoggedIn || loading ? null : (
+                {loading ? null : isLoggedIn ? (
                     <p className={styles.loginHint}>
+                        Your saved papers and conversations are here when you
+                        want to continue.
+                    </p>
+                ) : (
+                    <p className={styles.loginHint}>
+                        Reading is open to anyone. A free account lets you save
+                        papers and ask about the text.{" "}
                         <Link href="/login">Log in</Link>
+                        {" · "}
+                        <Link href="/signup">Create an account</Link>
                     </p>
                 )}
             </section>
             <ol className={styles.sequence}>
-                {sequence.map((step) => (
-                    <li key={step.index}>
-                        <span>{step.index}</span>
-                        <strong>{step.title}</strong>
-                        <p>{step.detail}</p>
+                {paths.map((path) => (
+                    <li key={path.index}>
+                        <Link href={path.href}>
+                            <span>{path.index}</span>
+                            <strong>{path.title}</strong>
+                            <p>{path.detail}</p>
+                            <em>{path.action}</em>
+                        </Link>
                     </li>
                 ))}
             </ol>

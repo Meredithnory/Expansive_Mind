@@ -24,6 +24,7 @@ import {
 } from "../../../lib/paper-sources";
 import type { PaperCitation } from "../../../lib/paper-citation";
 import type { PaperTool } from "../../../lib/region-capture";
+import ResearchBot from "../../../components/ResearchBot";
 
 const ResponsiveChatPanel = dynamic(
     () => import("../../../components/paperchatbot/ResponsiveChatPanel"),
@@ -456,6 +457,7 @@ const PaperChatClient = ({
                             </div>
                         ) : researchPaper?.access.canSendToAI ? (
                             <div className={styles.restrictedChat}>
+                                <ResearchBot className={styles.restrictedBot} />
                                 <p className={styles.restrictedEyebrow}>
                                     Paper assistant
                                 </p>
@@ -481,6 +483,7 @@ const PaperChatClient = ({
                             </div>
                         ) : researchPaper ? (
                             <div className={styles.restrictedChat}>
+                                <ResearchBot className={styles.restrictedBot} />
                                 <p className={styles.restrictedEyebrow}>
                                     Paper assistant
                                 </p>

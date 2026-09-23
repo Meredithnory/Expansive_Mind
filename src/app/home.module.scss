@@ -80,12 +80,12 @@
 }
 
 .tagline {
-    max-width: 28rem;
+    max-width: 36rem;
     margin: 28px 0 0;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+    color: rgba(255, 255, 255, 0.84);
+    font-size: clamp(1.02rem, 1.5vw, 1.16rem);
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .actions {
@@ -124,6 +124,12 @@
             transform: translateX(4px);
         }
     }
+
+    &:focus-visible {
+        outline: 2px solid $main-pink;
+        outline-offset: 4px;
+        border-radius: 4px;
+    }
 }
 
 .secondaryCta {
@@ -133,20 +139,35 @@
     &:hover {
         color: #fff;
     }
+
+    &:focus-visible {
+        outline: 2px solid $main-pink;
+        outline-offset: 4px;
+        border-radius: 4px;
+    }
 }
 
 .loginHint {
-    margin: 22px 0 0;
-    color: rgba(255, 255, 255, 0.42);
-    font-size: 0.82rem;
-    letter-spacing: 0.04em;
+    max-width: 36rem;
+    margin: 18px 0 0;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.88rem;
+    line-height: 1.5;
 
     a {
-        color: inherit;
-        text-decoration: none;
+        color: #fff;
+        text-decoration: underline;
+        text-decoration-color: rgba(255, 255, 255, 0.35);
+        text-underline-offset: 3px;
 
         &:hover {
-            color: #fff;
+            text-decoration-color: #fff;
+        }
+
+        &:focus-visible {
+            outline: 2px solid $main-pink;
+            outline-offset: 3px;
+            border-radius: 2px;
         }
     }
 }
@@ -156,39 +177,75 @@
     z-index: 1;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 28px;
+    gap: 18px;
     width: 100%;
     margin: 0;
-    padding: 22px 0 8px;
+    padding: 18px 0 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.16);
     list-style: none;
 
-    li {
+    a {
         display: grid;
         grid-template-columns: auto 1fr;
         column-gap: 14px;
-        row-gap: 4px;
+        row-gap: 6px;
+        height: 100%;
+        padding: 8px 8px 8px 0;
+        color: inherit;
+        text-decoration: none;
+        border-radius: 12px;
+
+        &:hover,
+        &:focus-visible {
+            strong,
+            em {
+                color: #fff;
+            }
+
+            em {
+                text-decoration-color: $main-pink;
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid $main-pink;
+            outline-offset: 4px;
+        }
     }
 
     span {
-        grid-row: 1 / span 2;
-        color: rgba(255, 255, 255, 0.38);
+        grid-row: 1 / span 3;
+        padding-top: 3px;
+        color: rgba(255, 255, 255, 0.42);
         font-size: 0.72rem;
+        font-style: normal;
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.08em;
     }
 
     strong {
         color: #fff;
-        font-size: 0.95rem;
-        font-weight: 500;
+        font-size: 0.98rem;
+        font-weight: 550;
+        letter-spacing: -0.01em;
+        line-height: 1.35;
     }
 
     p {
         margin: 0;
-        color: rgba(255, 255, 255, 0.52);
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    em {
+        color: rgba(255, 255, 255, 0.78);
         font-size: 0.82rem;
-        line-height: 1.4;
+        font-style: normal;
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-color: rgba(255, 0, 132, 0.7);
+        text-underline-offset: 3px;
     }
 }
 

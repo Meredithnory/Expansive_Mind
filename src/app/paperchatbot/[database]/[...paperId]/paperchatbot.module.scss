@@ -239,6 +239,13 @@
         }
     }
 
+    .restrictedBot {
+        width: 84px;
+        height: auto;
+        margin-bottom: 4px;
+        filter: drop-shadow(0 12px 18px rgba(255, 0, 132, 0.16));
+    }
+
     .restrictedEyebrow {
         color: $main-pink;
         font-size: 11px;

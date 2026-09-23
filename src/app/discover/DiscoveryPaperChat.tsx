@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Chatbox from "../components/paperchatbot/Chatbox";
+import Paperbox from "../components/paperchatbot/Paperbox";
 import type { FormattedPaper } from "../api/general-interfaces";
 import { buildChatMessages, type ChatMessage } from "../lib/chat-messages";
+import type { PaperCitation } from "../lib/paper-citation";
 import styles from "./discovery-paper-chat.module.scss";
 
 type Paper = {
@@ -29,6 +31,8 @@ function PaperConversation({
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [error, setError] = useState("");
     const [attempt, setAttempt] = useState(0);
+    const [focusCitation, setFocusCitation] = useState<PaperCitation | null>(null);
+    const [focusRequestId, setFocusRequestId] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -75,20 +79,48 @@ function PaperConversation({
         return <p role="status">Loading paper and your conversation…</p>;
     }
     return (
-        <Chatbox
-            wholePaper={loaded}
-            allMessages={messages}
-            setAllMessages={setMessages}
-            researchContext={context}
-            hideComposer
-            pendingQuestion={pendingQuestion}
-            onPendingQuestionHandled={onPendingQuestionHandled}
-            onLocateCitation={(citation) => {
-                const url = new URL(paper.href, window.location.origin);
-                url.searchParams.set("focus", citation.lines.join(" "));
-                window.open(url.toString(), "_blank", "noopener,noreferrer");
-            }}
-        />
+        <div className={styles.split}>
+            <div className={styles.paperPane}>
+                <Paperbox
+                    paper={loaded}
+                    searchTerm={null}
+                    isPro={false}
+                    onAnalyzeFigure={() => undefined}
+                    focusCitation={focusCitation}
+                    focusRequestId={focusRequestId}
+                />
+            </div>
+            <div className={styles.chatPane}>
+                <a
+                    className={styles.openFullPaper}
+                    href={paper.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open full paper and conversation in a new tab"
+                >
+                    <span className={styles.openFullPaperLabel}>Open full paper</span>
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path
+                            fill="currentColor"
+                            d="M5.5 3.25h7.25V10.5h-1.5V5.81L4.28 12.78l-1.06-1.06 6.97-6.97H5.5v-1.5Z"
+                        />
+                    </svg>
+                </a>
+                <Chatbox
+                    wholePaper={loaded}
+                    allMessages={messages}
+                    setAllMessages={setMessages}
+                    researchContext={context}
+                    hideComposer
+                    pendingQuestion={pendingQuestion}
+                    onPendingQuestionHandled={onPendingQuestionHandled}
+                    onLocateCitation={(citation) => {
+                        setFocusCitation(citation);
+                        setFocusRequestId((current) => current + 1);
+                    }}
+                />
+            </div>
+        </div>
     );
 }
 
@@ -110,9 +142,7 @@ export default function DiscoveryPaperChat({
     onPendingQuestionHandled?: () => void;
 }) {
     const [visited, setVisited] = useState<number[]>([]);
-    const [goals, setGoals] = useState("");
     const close = useRef<HTMLButtonElement>(null);
-    const current = papers.find((paper) => paper.index === selected);
 
     useEffect(() => {
         if (open) close.current?.focus();
@@ -153,27 +183,6 @@ export default function DiscoveryPaperChat({
                     ×
                 </button>
             </header>
-            <p className={styles.panelLead}>
-                Ask from the composer below. Answers stay grounded in the selected
-                paper.
-            </p>
-            <details>
-                <summary>What are you trying to understand?</summary>
-                <label>
-                    Your goal or preferred explanation level
-                    <textarea
-                        maxLength={1000}
-                        value={goals}
-                        onChange={(event) => setGoals(event.target.value)}
-                        placeholder="e.g. I’m a first-time founder. Help me understand what this evidence can actually support."
-                    />
-                </label>
-                <p>
-                    The chatbot uses your replies to clarify goals and adjust
-                    explanations. Messages share the same saved history as the full
-                    paper chatbot. This goal stays in the open discovery.
-                </p>
-            </details>
             <div className={styles.conversations}>
                 {papers
                     .filter((paper) => visited.includes(paper.index))
@@ -185,7 +194,7 @@ export default function DiscoveryPaperChat({
                         >
                             <PaperConversation
                                 paper={paper}
-                                context={`Discovery question: ${question}\nUser's stated goal: ${goals || "Not specified"}`}
+                                context={`Discovery question: ${question}`}
                                 pendingQuestion={
                                     paper.index === selected ? pendingQuestion : null
                                 }
@@ -194,23 +203,6 @@ export default function DiscoveryPaperChat({
                         </div>
                     ))}
             </div>
-            {current && (
-                <a
-                    className={styles.openFullPaper}
-                    href={current.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Open full paper and conversation in a new tab"
-                >
-                    <span>Open full paper</span>
-                    <svg viewBox="0 0 16 16" aria-hidden="true">
-                        <path
-                            fill="currentColor"
-                            d="M5.5 3.25h7.25V10.5h-1.5V5.81L4.28 12.78l-1.06-1.06 6.97-6.97H5.5v-1.5Z"
-                        />
-                    </svg>
-                </a>
-            )}
         </section>
     );
 }

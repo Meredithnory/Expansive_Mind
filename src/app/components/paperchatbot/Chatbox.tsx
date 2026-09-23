@@ -31,6 +31,7 @@ import {
     type PaperCitation,
 } from "../../lib/paper-citation";
 import { useSession } from "../../lib/use-session";
+import ResearchBot from "../ResearchBot";
 
 const SendIcon = () => (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -260,7 +261,7 @@ const Messages = ({
                             className={clsx(styles.turn, styles.turnAssistant)}
                         >
                             <div className={styles.turnMeta}>
-                                <span className={styles.turnMark} aria-hidden="true" />
+                                <ResearchBot className={styles.turnBot} />
                                 Assistant
                             </div>
                             <div className={clsx(styles.message, styles.aiMessage)}>
@@ -334,7 +335,7 @@ const Messages = ({
             {loading && (
                 <article className={clsx(styles.turn, styles.turnAssistant)}>
                     <div className={styles.turnMeta}>
-                        <span className={styles.turnMark} aria-hidden="true" />
+                        <ResearchBot className={styles.turnBot} />
                         Assistant
                     </div>
                     <div
@@ -860,7 +861,7 @@ const Chatbox = ({
         >
             <header className={styles.chatHeader}>
                 <div className={styles.chatIdentity}>
-                    <span className={styles.chatMark} aria-hidden="true" />
+                    <ResearchBot className={styles.chatBot} />
                     <div className={styles.chatHeading}>
                         <p className={styles.chatEyebrow}>Paper assistant</p>
                         <h2 className={styles.chatTitle} title={paperTitle}>
@@ -874,7 +875,10 @@ const Chatbox = ({
             </header>
             {isFreshChat ? (
                 <div className={styles.intro}>
-                    <p className={styles.introCopy}>{WELCOME_COPY}</p>
+                    <div className={styles.introHello}>
+                        <ResearchBot className={styles.introBot} />
+                        <p className={styles.introCopy}>{WELCOME_COPY}</p>
+                    </div>
                     <div className={styles.promptRail}>
                         {prompts.map((prompt) => (
                             <button
