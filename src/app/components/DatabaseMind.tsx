@@ -80,7 +80,7 @@ const ANGLE_CLASS: Record<MindSource, string> = {
 
 interface DatabaseMindProps {
     activeSource: "all" | SearchableMindSource;
-    onSelect: (source: SearchableMindSource) => void;
+    onSelect: (source: "all" | SearchableMindSource) => void;
 }
 
 const FOCUS_CLASS: Record<SearchableMindSource, string> = {
@@ -111,7 +111,13 @@ function normalizeLoop(viewport: HTMLElement) {
 const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
     const hasFocus = activeSource !== "all";
     const viewportRef = useRef<HTMLDivElement>(null);
+    const hoveringRef = useRef(false);
+    const holdingRef = useRef(false);
     const [paused, setPaused] = useState(false);
+
+    const syncPaused = () => {
+        setPaused(hoveringRef.current || holdingRef.current);
+    };
     const [activeValue, setActiveValue] = useState<string>(SOURCES[0].value);
 
     const syncActiveSource = useCallback(() => {
@@ -140,7 +146,7 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
         const viewport = viewportRef.current;
         if (!viewport) return;
         const card = viewport.querySelector<HTMLElement>(`.${styles.chip}`);
-        const step = (card?.offsetWidth ?? 208) + 9;
+        const step = (card?.offsetWidth ?? 198) + 10;
         viewport.scrollBy({ left: direction * step, behavior: "smooth" });
     };
 
@@ -160,6 +166,20 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
         const observer = new ResizeObserver(place);
         observer.observe(viewport);
         return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const release = () => {
+            if (!holdingRef.current) return;
+            holdingRef.current = false;
+            syncPaused();
+        };
+        window.addEventListener("pointerup", release);
+        window.addEventListener("pointercancel", release);
+        return () => {
+            window.removeEventListener("pointerup", release);
+            window.removeEventListener("pointercancel", release);
+        };
     }, []);
 
     useEffect(() => {
@@ -194,12 +214,22 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                 className={styles.carousel}
                 role="region"
                 aria-label="Research databases"
-                onMouseEnter={() => setPaused(true)}
-                onMouseLeave={() => setPaused(false)}
-                onFocusCapture={() => setPaused(true)}
+                onMouseEnter={() => {
+                    hoveringRef.current = true;
+                    syncPaused();
+                }}
+                onMouseLeave={() => {
+                    hoveringRef.current = false;
+                    syncPaused();
+                }}
+                onFocusCapture={() => {
+                    hoveringRef.current = true;
+                    syncPaused();
+                }}
                 onBlurCapture={(event) => {
                     if (!event.currentTarget.contains(event.relatedTarget)) {
-                        setPaused(false);
+                        hoveringRef.current = false;
+                        syncPaused();
                     }
                 }}
             >
@@ -217,9 +247,10 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                     ref={viewportRef}
                     className={styles.chips}
                     data-paused={paused}
-                    onPointerDown={() => setPaused(true)}
-                    onPointerUp={() => setPaused(false)}
-                    onPointerCancel={() => setPaused(false)}
+                    onPointerDown={() => {
+                        holdingRef.current = true;
+                        syncPaused();
+                    }}
                     onScroll={syncActiveSource}
                 >
                     <div className={styles.chipTrack}>
@@ -272,7 +303,9 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                                     data-value={source.value}
                                     onClick={() =>
                                         onSelect(
-                                            source.value as SearchableMindSource,
+                                            activeSource === source.value
+                                                ? "all"
+                                                : source.value,
                                         )
                                     }
                                     aria-pressed={isSelected}

@@ -107,7 +107,10 @@ export default function SharedPaperPage() {
             <main className={styles.state}>
                 <h1>Shared paper unavailable</h1>
                 <p>{message}</p>
-                <Link className={styles.secondaryAction} href="/searchpaper">
+                <Link
+                    className={styles.secondaryAction}
+                    href="/discover?mode=search"
+                >
                     Search for papers
                 </Link>
             </main>

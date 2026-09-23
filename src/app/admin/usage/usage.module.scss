@@ -85,6 +85,99 @@
     }
 }
 
+.quota {
+    margin-top: 42px;
+
+    h2 {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
+    }
+
+    > p {
+        margin: 0 0 18px;
+        max-width: 640px;
+        color: rgba(215, 235, 255, 0.55);
+        font-size: 0.82rem;
+        line-height: 1.5;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    th,
+    td {
+        padding: 12px 10px;
+        border-bottom: 1px solid rgba(215, 235, 255, 0.1);
+        text-align: left;
+        vertical-align: top;
+    }
+
+    th {
+        color: rgba(215, 235, 255, 0.45);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    strong {
+        display: block;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    small {
+        display: block;
+        margin-top: 4px;
+        color: rgba(215, 235, 255, 0.4);
+        font-size: 0.7rem;
+    }
+}
+
+.monthTotals {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-bottom: 22px;
+    border: 1px solid rgba(215, 235, 255, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+
+    div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px 14px;
+        border-right: 1px solid rgba(215, 235, 255, 0.1);
+    }
+
+    div:last-child {
+        border-right: 0;
+    }
+
+    strong {
+        font-size: 1.35rem;
+        color: #fff;
+    }
+
+    span {
+        color: rgba(215, 235, 255, 0.5);
+        font-size: 0.72rem;
+        line-height: 1.35;
+    }
+}
+
+.history {
+    margin-top: 28px;
+
+    h3 {
+        margin: 0 0 12px;
+        font-size: 0.95rem;
+    }
+}
+
 .guests {
     margin-top: 42px;
 
@@ -143,12 +236,77 @@
     font-size: 0.85rem;
 }
 
+.guestConversations {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 160px;
+        gap: 18px;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(215, 235, 255, 0.1);
+    }
+
+    strong {
+        display: block;
+        color: #fff;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    small {
+        display: block;
+        margin-top: 4px;
+        color: rgba(215, 235, 255, 0.42);
+        font-size: 0.72rem;
+    }
+
+    p {
+        margin: 8px 0 0;
+        color: rgba(215, 235, 255, 0.68);
+        font-size: 0.84rem;
+        line-height: 1.5;
+    }
+
+    aside {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: rgba(215, 235, 255, 0.48);
+        font-size: 0.72rem;
+    }
+}
+
 @media (max-width: 720px) {
     .metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .monthTotals {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        div {
+            border-right: 0;
+            border-bottom: 1px solid rgba(215, 235, 255, 0.1);
+        }
+    }
+
+    .quota table,
+    .history table {
+        display: block;
+        overflow-x: auto;
+    }
+
     .rows article {
+        grid-template-columns: 1fr;
+    }
+
+    .guestConversations li {
         grid-template-columns: 1fr;
     }
 }

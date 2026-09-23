@@ -21,6 +21,7 @@ import {
 } from "../../lib/provider-cache";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
+import { recordGuestDiscovery } from "../../lib/guest-discovery-log";
 import { retrieveFounderSources, buildFounderReport } from "./founder-diligence";
 import { founderReportMarkdown } from "../../lib/founder-report";
 
@@ -233,6 +234,21 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 payload,
                 24 * 60 * 60,
             );
+            try {
+                await recordGuestDiscovery({
+                    identity,
+                    question: result.question,
+                    brief: result.brief,
+                    papers: result.papers,
+                    papersUsed: result.meta?.papersUsed,
+                    correctedQuery:
+                        typeof result.meta?.correctedQuery === "string"
+                            ? result.meta.correctedQuery
+                            : undefined,
+                });
+            } catch (logError) {
+                console.warn("Guest discovery log failed", logError);
+            }
         }
 
         return NextResponse.json(payload, {

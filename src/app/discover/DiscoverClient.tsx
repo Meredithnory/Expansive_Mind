@@ -1,7 +1,5 @@
 "use client";
 import DiscoveryPaperChat from "./DiscoveryPaperChat";
-import SourceLogoCarousel from "./SourceLogoCarousel";
-import DiscoverOnboarding from "./DiscoverOnboarding";
 
 import React, {
     useCallback,
@@ -20,19 +18,19 @@ import styles from "./discover.module.scss";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
 import {
-    GUEST_UPGRADE_PROMPTED_KEY,
-    GUEST_UPGRADE_VIEW_MS,
     parseGuestDiscoveryResult,
     parseGuestOpportunityReport,
     readGuestDiscoveryResult,
     writeGuestDiscoveryResult,
     clearGuestDiscoveryResult,
-    shouldPromptGuestUpgrade,
 } from "../lib/guest-discovery";
 import type {
     OpportunityReport,
     PaperExtraction,
 } from "../api/discover/report-types";
+import DatabaseMind, {
+    type SearchableMindSource,
+} from "../components/DatabaseMind";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import {
     extractionForPaper,
@@ -274,10 +272,16 @@ function isAbortError(error: unknown) {
 type DiscoverClientProps = {
     qParam: string;
     savedParam: string;
-    hero: ReactNode;
+    hero?: ReactNode;
+    modeChrome?: ReactNode;
 };
 
-function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
+function DiscoverClient({
+    qParam,
+    savedParam,
+    hero,
+    modeChrome,
+}: DiscoverClientProps) {
     const router = useRouter();
     const {
         isLoggedIn,
@@ -311,7 +315,6 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     );
     const pageRef = useRef<HTMLDivElement>(null);
     const citeTriggerRef = useRef<HTMLElement | null>(null);
-    const analysisEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollLockRef = useRef<{ page: number; windowY: number } | null>(
         null,
@@ -337,6 +340,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     const [pendingPaperQuestion, setPendingPaperQuestion] = useState<
         string | null
     >(null);
+    const [mindSource, setMindSource] = useState<"all" | SearchableMindSource>(
+        "all",
+    );
 
     const isRunning = step !== "idle" && step !== "done";
     const isCheckingSpelling = spellingCheck === "checking";
@@ -472,56 +478,6 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
     }, [discoveryQuota, isLoggedIn, qParam, result, sessionLoading]);
 
     useEffect(() => {
-        if (!result || isLoggedIn || sessionLoading) return;
-        if (result.report?.founder) return;
-        if (typeof window === "undefined") return;
-        if (window.sessionStorage.getItem(GUEST_UPGRADE_PROMPTED_KEY)) return;
-
-        const sentinel = analysisEndRef.current;
-        const startedBelowFold = sentinel
-            ? sentinel.getBoundingClientRect().top > window.innerHeight - 80
-            : Boolean(result.brief);
-        const startedAt = Date.now();
-        let prompted = false;
-
-        const promptUpgrade = () => {
-            if (prompted) return;
-            prompted = true;
-            window.sessionStorage.setItem(GUEST_UPGRADE_PROMPTED_KEY, "true");
-            setUpgradeExhausted(true);
-            setUpgradeOpen(true);
-        };
-
-        const maybePrompt = () => {
-            const visible = sentinel
-                ? sentinel.getBoundingClientRect().top <
-                  window.innerHeight * 0.85
-                : false;
-            if (
-                shouldPromptGuestUpgrade({
-                    elapsedMs: Date.now() - startedAt,
-                    analysisWasBelowFold: startedBelowFold,
-                    analysisIsVisible: visible,
-                })
-            ) {
-                promptUpgrade();
-            }
-        };
-
-        const timer = window.setTimeout(promptUpgrade, GUEST_UPGRADE_VIEW_MS);
-        const page = pageRef.current;
-        const onScroll = () => maybePrompt();
-        page?.addEventListener("scroll", onScroll, { passive: true });
-        window.addEventListener("scroll", onScroll, { passive: true });
-
-        return () => {
-            window.clearTimeout(timer);
-            page?.removeEventListener("scroll", onScroll);
-            window.removeEventListener("scroll", onScroll);
-        };
-    }, [isLoggedIn, result, sessionLoading]);
-
-    useEffect(() => {
         if (highlightedPaper === null) return;
         const timer = window.setTimeout(
             () => setHighlightedPaper(null),
@@ -535,6 +491,11 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
         !isLoggedIn &&
         discoveryQuota?.remaining === 0;
     const guestLimit = discoveryQuota?.limit ?? 1;
+
+    const openGuestUpgrade = useCallback((exhausted: boolean) => {
+        setUpgradeExhausted(exhausted);
+        setUpgradeOpen(true);
+    }, []);
 
     useEffect(() => {
         if (question.trim() || result || isRunning || guestExhausted) return;
@@ -835,6 +796,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             ).trim();
             if (!trimmed || isRunning || isCheckingSpelling) return;
             if (!isLoggedIn && discoveryQuota?.remaining === 0) {
+                openGuestUpgrade(true);
                 restoreGuestBrief();
                 return;
             }
@@ -877,6 +839,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                     setShowPlanLink(blocked);
                     if (!isLoggedIn && blocked) {
                         setDiscoveryQuota(data.quota ?? discoveryQuota);
+                        openGuestUpgrade(true);
                         if (restoreGuestBrief()) {
                             return;
                         }
@@ -943,6 +906,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             isCheckingSpelling,
             isLoggedIn,
             isRunning,
+            openGuestUpgrade,
             question,
             refresh,
             restoreGuestBrief,
@@ -962,6 +926,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             ).trim();
             if (!trimmed || isRunning || isCheckingSpelling) return;
             if (!isLoggedIn && discoveryQuota?.remaining === 0) {
+                openGuestUpgrade(true);
                 restoreGuestBrief();
                 return;
             }
@@ -1018,6 +983,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             isCheckingSpelling,
             isLoggedIn,
             isRunning,
+            openGuestUpgrade,
             queryAssessment,
             question,
             restoreGuestBrief,
@@ -1077,28 +1043,46 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
             })}
             data-page-scroll
         >
-            <section
-                className={clsx(styles.hero, {
-                    [styles.heroCompact]: Boolean(result),
-                })}
-            >
-                {hero}
-            </section>
-
-            {!sessionLoading && !isLoggedIn && !guestExhausted && (
-                <button
-                    type="button"
-                    className={styles.guestStatus}
-                    onClick={() => {
-                        setUpgradeExhausted(false);
-                        setUpgradeOpen(true);
-                    }}
+            {modeChrome ? (
+                <div
+                    className={clsx(styles.modeChrome, {
+                        [styles.modeChromeCompact]: Boolean(result),
+                    })}
                 >
-                    <span>
-                        {`${discoveryQuota?.remaining ?? guestLimit} of ${guestLimit} guest Discovery remaining on this network`}
-                    </span>
-                    <strong>What is included?</strong>
-                </button>
+                    {modeChrome}
+                </div>
+            ) : null}
+            {hero ? (
+                <section
+                    className={clsx(styles.hero, {
+                        [styles.heroCompact]: Boolean(result),
+                    })}
+                >
+                    {hero}
+                </section>
+            ) : !result ? (
+                <h1 className={styles.srOnly}>Discovery</h1>
+            ) : null}
+
+            {!sessionLoading && !isLoggedIn && (
+                guestExhausted ? (
+                    <div className={styles.quotaLine} role="status">
+                        <p className={styles.quotaMessage}>
+                            Guest Discovery limit reached.
+                        </p>
+                        <button
+                            type="button"
+                            className={styles.quotaUnlock}
+                            onClick={() => openGuestUpgrade(true)}
+                        >
+                            Unlock Researcher Pro monthly
+                        </button>
+                    </div>
+                ) : (
+                    <p className={styles.quotaLine} role="status">
+                        {`${discoveryQuota?.remaining ?? guestLimit} of ${guestLimit} guest Discovery left on this network`}
+                    </p>
+                )
             )}
 
             {!isRunning && (
@@ -1124,34 +1108,22 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                 }}
             >
                 <div className={styles.formHeading}>
-                    <label className={styles.label} htmlFor="discover-question">
+                    <label
+                        className={clsx(styles.label, {
+                            [styles.srOnly]: !result,
+                        })}
+                        htmlFor="discover-question"
+                    >
                         {result
                             ? composerMode === "paper"
                                 ? "Ask a paper from this report"
                                 : "Ask another research question"
-                            : "Research question"}
+                            : "Ask a research question"}
                     </label>
                     <span className={styles.characterCount}>
                         {question.length.toLocaleString()} / 2,000
                     </span>
                 </div>
-                {guestExhausted ? (
-                    <button
-                        type="button"
-                        className={styles.lockedPrompt}
-                        onClick={() => {
-                            setUpgradeExhausted(true);
-                            setUpgradeOpen(true);
-                        }}
-                    >
-                        <span>
-                            <strong>Continue discovering with Researcher Pro</strong>
-                            Your guest synthesis is complete.
-                        </span>
-                        <span aria-hidden="true">Unlock →</span>
-                    </button>
-                ) : (
-                    <>
                     <div
                         className={clsx(styles.promptShell, {
                             [styles.promptShellUnclear]:
@@ -1203,7 +1175,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                 }
                                 event.currentTarget.form?.requestSubmit();
                             }}
-                            aria-describedby="discover-question-feedback discover-supporting-metadata discover-voice-status"
+                            aria-describedby="discover-question-feedback discover-voice-status"
                             aria-invalid={
                                 composerMode === "discover" &&
                                 (queryUnclear || Boolean(spellingPrompt))
@@ -1213,7 +1185,9 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                     ? composerMode === "paper"
                                         ? "Ask this paper…"
                                         : "Ask another question…"
-                                    : ""
+                                    : question.trim()
+                                      ? "Ask a research question…"
+                                      : ""
                             }
                             rows={result ? 1 : 2}
                             maxLength={2000}
@@ -1348,7 +1322,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                               ? "Ask paper"
                                               : isCheckingSpelling
                                                 ? "Checking spelling…"
-                                                : "Run discovery"}
+                                                : "Run"}
                                     </span>
                                     <span
                                         className={styles.submitIcon}
@@ -1403,9 +1377,42 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             </div>
                         ) : queryUnclear ? (
                             <p className={styles.queryWarning} role="status">
-                                This doesn’t look like a research question.
-                                Check the spelling or try a clearer biomedical
-                                topic.
+                                <span
+                                    className={styles.queryWarningIcon}
+                                    aria-hidden="true"
+                                >
+                                    <svg
+                                        viewBox="0 0 16 16"
+                                        width="14"
+                                        height="14"
+                                        fill="none"
+                                    >
+                                        <circle
+                                            cx="8"
+                                            cy="8"
+                                            r="6.25"
+                                            stroke="currentColor"
+                                            strokeWidth="1.25"
+                                        />
+                                        <path
+                                            d="M8 5.1v3.4"
+                                            stroke="currentColor"
+                                            strokeWidth="1.35"
+                                            strokeLinecap="round"
+                                        />
+                                        <circle
+                                            cx="8"
+                                            cy="11.05"
+                                            r="0.7"
+                                            fill="currentColor"
+                                        />
+                                    </svg>
+                                </span>
+                                <span className={styles.queryWarningText}>
+                                    This doesn’t look like a research question.
+                                    Check the spelling or try a clearer
+                                    biomedical topic.
+                                </span>
                             </p>
                         ) : querySuggestion ? (
                             <button
@@ -1454,37 +1461,17 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             <span id="discover-voice-status" hidden />
                         )}
                     </div>
-                    </>
-                )}
-                <div
-                    id="discover-supporting-metadata"
-                    className={styles.formFooter}
-                >
-                    <div className={styles.metadataGroup}>
-                        <span className={styles.metadataLabel}>Sources</span>
-                        <SourceLogoCarousel />
-                    </div>
-                    <div className={styles.metadataGroup}>
-                        <span className={styles.metadataLabel}>Analysis</span>
-                        <span>Up to 10 papers</span>
-                        <span>Licensed excerpts</span>
-                        <span>Several minutes</span>
-                    </div>
-                </div>
             </form>
             )}
 
-            {!result && !isRunning && (
-                <DiscoverOnboarding
-                    onTry={() => {
-                        textareaRef.current?.focus();
-                        textareaRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
-                    }}
-                />
-            )}
+            {!result && !isRunning ? (
+                <div className={styles.databaseCatalog}>
+                    <DatabaseMind
+                        activeSource={mindSource}
+                        onSelect={setMindSource}
+                    />
+                </div>
+            ) : null}
 
             {isRunning && (
                 <section
@@ -1722,8 +1709,7 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                                     activePaperIndex={activePaperIndex}
                                     onCitePaper={openPaperPreview}
                                     onGuestUpgrade={() => {
-                                        setUpgradeExhausted(guestExhausted);
-                                        setUpgradeOpen(true);
+                                        openGuestUpgrade(guestExhausted);
                                     }}
                                 />
                             ) : (
@@ -1974,7 +1960,6 @@ function DiscoverClient({ qParam, savedParam, hero }: DiscoverClientProps) {
                             </div>
                         </aside>
                     </div>
-                    <div ref={analysisEndRef} aria-hidden="true" />
 
                     <section
                         id="discover-sources"

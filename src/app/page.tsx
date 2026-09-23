@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import styles from "./home.module.scss";
 import Link from "next/link";
+import PaperStack from "./components/PaperStack";
 import { useSession } from "./lib/use-session";
 
 const paths = [
@@ -16,7 +17,7 @@ const paths = [
         index: "02",
         title: "A paper you need to understand",
         detail: "Open the article and ask about a passage. The reply stays inside that text, and you can jump back to the lines.",
-        href: "/searchpaper",
+        href: "/discover?mode=search",
         action: "Open a paper",
     },
     {
@@ -77,10 +78,11 @@ export default function Home() {
                     </Link>
                     {isLoggedIn ? (
                         <Link href="/savedpapers" className={styles.secondaryCta}>
+                            <PaperStack />
                             Pick up your library
                         </Link>
                     ) : loading ? null : (
-                        <Link href="/searchpaper" className={styles.secondaryCta}>
+                        <Link href="/discover?mode=search" className={styles.secondaryCta}>
                             I already have a paper
                         </Link>
                     )}

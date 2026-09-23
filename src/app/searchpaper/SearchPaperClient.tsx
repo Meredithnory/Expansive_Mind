@@ -113,7 +113,9 @@ type SearchPaperClientProps = {
     initialPage: string;
     initialSource: string;
     initialDate: string;
-    landingIntro: ReactNode;
+    landingIntro?: ReactNode;
+    modeChrome?: ReactNode;
+    skipInitialScroll?: boolean;
 };
 
 const SearchPaperClient = ({
@@ -122,6 +124,8 @@ const SearchPaperClient = ({
     initialSource,
     initialDate,
     landingIntro,
+    modeChrome,
+    skipInitialScroll = false,
 }: SearchPaperClientProps) => {
     const qParam = initialQuery || null;
     const pageParam = initialPage || null;
@@ -174,9 +178,10 @@ const SearchPaperClient = ({
     };
 
     useLayoutEffect(() => {
+        if (skipInitialScroll) return;
         pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
         window.scrollTo({ top: 0, behavior: "auto" });
-    }, []);
+    }, [skipInitialScroll]);
 
     const pushSearchParams = (
         query: string,
@@ -188,6 +193,15 @@ const SearchPaperClient = ({
             q: query,
             page: String(page),
         });
+
+        // Preserve combined-page mode so refresh and share links stay on Search.
+        if (
+            skipInitialScroll ||
+            modeChrome ||
+            new URLSearchParams(window.location.search).get("mode") === "search"
+        ) {
+            params.set("mode", "search");
+        }
 
         if (source !== "all") {
             params.set("source", source);
@@ -272,9 +286,11 @@ const SearchPaperClient = ({
                     : window.location.pathname,
                 { scroll: false },
             );
-            window.setTimeout(() => {
-                document.getElementById("paper-search-input")?.focus();
-            }, 0);
+            if (source !== "all") {
+                window.setTimeout(() => {
+                    document.getElementById("paper-search-input")?.focus();
+                }, 0);
+            }
             return;
         }
 
@@ -424,6 +440,7 @@ const SearchPaperClient = ({
                 [styles.pageLanding]: !hasCommittedSearch,
             })}
             data-search-paper-page
+            data-search-landing={hasCommittedSearch ? undefined : "true"}
             data-page-scroll
             ref={pageRef}
         >
@@ -455,13 +472,26 @@ const SearchPaperClient = ({
                     [styles.searchboxResults]: hasCommittedSearch,
                 })}
             >
-                <div
-                    className={clsx(styles.landingIntro, {
-                        [styles.landingIntroHidden]: hasCommittedSearch,
-                    })}
-                >
-                    {landingIntro}
-                </div>
+                {modeChrome ? (
+                    <div
+                        className={clsx(styles.modeChrome, {
+                            [styles.modeChromeResults]: hasCommittedSearch,
+                        })}
+                    >
+                        {modeChrome}
+                    </div>
+                ) : null}
+                {landingIntro ? (
+                    <div
+                        className={clsx(styles.landingIntro, {
+                            [styles.landingIntroHidden]: hasCommittedSearch,
+                        })}
+                    >
+                        {landingIntro}
+                    </div>
+                ) : !hasCommittedSearch ? (
+                    <h1 className={styles.srOnly}>Search papers</h1>
+                ) : null}
                 <SearchBar
                     searchValue={searchValue}
                     setSearchValue={handleSearchValueChange}
@@ -482,20 +512,6 @@ const SearchPaperClient = ({
                         activeSource={activeSource}
                         onSelect={handleSourceChange}
                     />
-                    <ul className={styles.landingProof}>
-                        <li>
-                            <span className={styles.proofDot} data-tone="pink" />
-                            Free to explore
-                        </li>
-                        <li>
-                            <span className={styles.proofDot} data-tone="violet" />
-                            Chat with any paper
-                        </li>
-                        <li>
-                            <span className={styles.proofDot} data-tone="blue" />
-                            Understand it. Share it.
-                        </li>
-                    </ul>
                 </div>
                 <div
                     className={clsx(styles.searchLayout, {
@@ -691,7 +707,7 @@ const SearchPaperClient = ({
                                         className={styles.synthesizeCta}
                                         href={`/discover?q=${encodeURIComponent(committedQuery)}`}
                                     >
-                                        Synthesize this topic
+                                        Discover this topic
                                     </Link>
                                 )}
                             </div>

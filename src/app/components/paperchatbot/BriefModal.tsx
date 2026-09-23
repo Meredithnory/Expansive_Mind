@@ -171,18 +171,18 @@ const BriefModal = ({ paper, open, onClose }: BriefModalProps) => {
                             <button
                                 type="button"
                                 className={styles.primaryAction}
+                                onClick={shareOnX}
+                            >
+                                Post on X
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.secondaryAction}
                                 onClick={() => copy("link")}
                             >
                                 {copied === "link"
                                     ? "Link copied!"
                                     : "Copy share link"}
-                            </button>
-                            <button
-                                type="button"
-                                className={styles.secondaryAction}
-                                onClick={shareOnX}
-                            >
-                                Post on X
                             </button>
                             <button
                                 type="button"
@@ -212,8 +212,8 @@ const BriefModal = ({ paper, open, onClose }: BriefModalProps) => {
                 ) : (
                     <div className={styles.emptyState}>
                         <p>
-                            Distill this paper into a short, shareable summary:
-                            a plain-language TL;DR, key findings with
+                            Distill this paper into a short summary you can post
+                            on X: a plain-language TL;DR, key findings with
                             citations, why it matters, and limitations.
                         </p>
                         <button

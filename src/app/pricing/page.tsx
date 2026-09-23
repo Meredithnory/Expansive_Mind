@@ -23,7 +23,7 @@ const defaults: PricingConfig = {
     entitlements: {
         guest: { search: 3, discover: 1, chat: 0, scholar_search: 0, projects: 0 },
         free: { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 },
-        pro: { search: 300, discover: 40, chat: 100, scholar_search: 25, projects: 50 },
+        pro: { search: 300, discover: 20, chat: 100, scholar_search: 25, projects: 50 },
     },
 };
 
@@ -178,7 +178,7 @@ function PricingContent() {
                         <li>{pricing.entitlements.pro.search} paper searches each month</li>
                         <li>{pricing.entitlements.pro.discover} Discovery syntheses each month</li>
                         <li>{pricing.entitlements.pro.chat} AI paper questions each month</li>
-                        <li>{pricing.entitlements.pro.scholar_search} explicit Scholar searches each month</li>
+                        <li>{pricing.entitlements.pro.scholar_search} Google Scholar searches each month</li>
                         <li>{pricing.entitlements.pro.projects} research projects each month</li>
                     </ul>
                     {user?.plan === "pro" ? (

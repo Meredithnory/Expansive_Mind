@@ -323,12 +323,12 @@ const AboutPage = () => {
                     <h2>
                         {isLoggedIn
                             ? "Your research workspace is waiting."
-                            : "Try a discovery, or search for one paper."}
+                            : "Try a discovery, or search for papers."}
                     </h2>
                 </div>
                 <div className={styles.ctaActions}>
                     <Link href="/discover" className={styles.primaryButton}>
-                        Start discovering
+                        Start researching
                     </Link>
                     {isLoggedIn ? (
                         <Link
@@ -338,7 +338,10 @@ const AboutPage = () => {
                             Research Library
                         </Link>
                     ) : (
-                        <Link href="/searchpaper" className={styles.secondaryLink}>
+                        <Link
+                            href="/discover?mode=search"
+                            className={styles.secondaryLink}
+                        >
                             Search papers
                         </Link>
                     )}

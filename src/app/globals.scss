@@ -88,6 +88,7 @@ body {
     overscroll-behavior: auto;
     padding-top: 20px;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr auto;
 }
 
@@ -95,11 +96,67 @@ body:has([data-search-paper-page]) {
     width: min(calc(100% - 32px), 1500px);
 }
 
+/* Combined Research page: full viewport width so the page frame is not a
+   left-shifted 80% column. The 720px research cluster centers inside it.
+   Lock the body to the viewport so Discovery ↔ Search height differences
+   cannot move the shared footer (grid row stays at the bottom). */
+body:has([data-research-workspace]) {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+/* Search widens body for results; keep site chrome at the standard width
+   so the shared footer matches Discover and every other route. */
 @media (min-width: 901px) {
-    body:has([data-search-paper-page]) [data-app-nav] {
+    body:has([data-search-paper-page]) [data-app-nav],
+    body:has([data-search-paper-page]) [data-app-footer] {
         width: min(80vw, 1440px);
         justify-self: center;
     }
+
+    body:has([data-research-workspace]) [data-app-nav],
+    body:has([data-research-workspace]) [data-app-footer] {
+        width: min(80vw, 1440px);
+        max-width: 1440px;
+        justify-self: center;
+    }
+}
+
+/* Research landing: parent fills the viewport row; the short cluster is
+   vertically centered inside it (chat-home style). Tall mode content
+   (orbit, results) scrolls here — footer stays put. No footer z-index. */
+body:has([data-research-workspace]) .main-content {
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body:has([data-research-workspace]) .page-transition-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    align-items: center;
+    /* `safe` falls back to start when results/report content exceeds the row. */
+    justify-content: safe center;
+}
+
+/* Search results / tall panes: pin to the top so nothing clips above. */
+body:has([data-research-workspace]) .page-transition-shell:has(
+    [data-search-paper-page]:not([data-search-landing])
+) {
+    justify-content: flex-start;
 }
 
 button,
@@ -110,8 +167,10 @@ textarea {
 }
 
 .main-content {
+    min-width: 0;
     min-height: 0;
     width: 100%;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -121,8 +180,15 @@ textarea {
 }
 
 @media (max-width: 900px) {
-    body {
+    body,
+    body:has([data-search-paper-page]) {
         width: calc(100% - 32px);
+    }
+
+    body:has([data-research-workspace]) {
+        width: 100%;
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
@@ -134,10 +200,13 @@ textarea {
         overflow-x: clip;
     }
 
-    body {
+    body,
+    body:has([data-search-paper-page]),
+    body:has([data-research-workspace]) {
         width: 100%;
         max-width: 100%;
-        overflow: visible;
+        overflow-x: clip;
+        overflow-y: visible;
         padding:
             max(12px, env(safe-area-inset-top))
             max(16px, env(safe-area-inset-right))
@@ -147,7 +216,28 @@ textarea {
     }
 
     .main-content {
-        overflow: visible;
+        overflow-x: clip;
+        overflow-y: visible;
+    }
+
+    /* Research only: keep the locked viewport so the footer stays above the
+       fixed bottom nav and does not jump when toggling modes. */
+    body:has([data-research-workspace]) {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow-x: clip;
+        overflow-y: hidden;
+    }
+
+    body:has([data-research-workspace]) .main-content {
+        justify-content: center;
+        min-height: 0;
+        overflow-x: clip;
+        overflow-y: auto;
+    }
+
+    body:has([data-research-workspace]) .page-transition-shell {
+        justify-content: safe center;
     }
 }
 
@@ -161,7 +251,8 @@ textarea {
     min-width: 0;
     min-height: 100%;
     height: auto;
-    animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    /* Short enter so library → paper chat (and other routes) feel immediate. */
+    animation: page-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
     transform-origin: center top;
 }
 
@@ -533,21 +624,19 @@ html[data-nav-direction="forward"] .page-transition-shell,
 @keyframes page-enter {
     0% {
         opacity: 0;
-        transform: translateY(10px) scale(0.992);
-        filter: blur(6px);
+        transform: translateY(6px);
     }
 
     100% {
         opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
+        transform: translateY(0);
     }
 }
 
 @keyframes page-enter-from-right {
     0% {
         opacity: 0;
-        transform: translateX(min(32px, 8vw));
+        transform: translateX(min(18px, 5vw));
     }
 
     100% {
@@ -559,7 +648,7 @@ html[data-nav-direction="forward"] .page-transition-shell,
 @keyframes page-enter-from-left {
     0% {
         opacity: 0;
-        transform: translateX(max(-32px, -8vw));
+        transform: translateX(max(-18px, -5vw));
     }
 
     100% {

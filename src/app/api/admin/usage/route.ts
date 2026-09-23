@@ -4,7 +4,9 @@ import User from "../../../models/User";
 import { withAdmin } from "../../../lib/admin";
 import { getPlanConfig } from "../../../lib/plan-config";
 import { listGuestQuotaNetworks } from "../../../lib/entitlements";
+import { listGuestDiscoveries } from "../../../lib/guest-discovery-log";
 import { fillDailySeries, type DailyPoint } from "../../../lib/admin-overview";
+import { loadQuotaReport } from "../../../lib/account-usage-report";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
@@ -12,7 +14,7 @@ export const GET = withAdmin(async () => {
     const now = new Date();
     const since = new Date(now.getTime() - 30 * DAY_MS);
     const priorSince = new Date(now.getTime() - 60 * DAY_MS);
-    const [usage, dailyRows, priorRows, users, config, guests] =
+    const [usage, dailyRows, priorRows, users, config, guests, guestDiscoveries, quota] =
         await Promise.all([
             UsageEvent.aggregate([
                 { $match: { occurredAt: { $gte: since } } },
@@ -87,6 +89,8 @@ export const GET = withAdmin(async () => {
             ]),
             getPlanConfig(),
             listGuestQuotaNetworks(40),
+            listGuestDiscoveries(40),
+            loadQuotaReport(now),
         ]);
 
     const folded = new Map<string, DailyPoint>();
@@ -141,6 +145,8 @@ export const GET = withAdmin(async () => {
             ),
             monthlyListPrice: config.prices.month.amount / 100,
             guests,
+            guestDiscoveries,
+            quota,
         },
         { headers: { "Cache-Control": "private, no-store" } },
     );

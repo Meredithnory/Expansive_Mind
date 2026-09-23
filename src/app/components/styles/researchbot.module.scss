@@ -1,69 +1,236 @@
 .bot {
+    position: relative;
     display: block;
-    overflow: visible;
+    container-type: inline-size;
+    aspect-ratio: 1;
 }
 
-.wave {
-    transform-box: fill-box;
-    transform-origin: 0% 80%;
-    animation: wave 2.8s ease-in-out infinite;
+.figure {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 78%;
+    animation: sway 4.8s ease-in-out infinite;
 }
 
-.brain {
-    transform-box: fill-box;
-    transform-origin: center bottom;
-    animation: sway 3.6s ease-in-out infinite;
+.head {
+    position: absolute;
+    z-index: 1;
+    top: -4%;
+    left: 8%;
+    width: 76%;
+    height: 70%;
+    object-fit: contain;
+    object-position: center bottom;
+    transform-origin: 55% 82%;
+    animation: nod 4.8s ease-in-out infinite;
 }
 
-.blink {
+.coat {
+    position: absolute;
+    z-index: 2;
+    left: 10%;
+    right: 8%;
+    bottom: 1%;
+    height: 44%;
+    border-radius: 46% 46% 20% 20% / 30% 30% 16% 16%;
+    background: linear-gradient(180deg, #ffffff 0%, #eef3f8 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(10, 177, 255, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.35);
+    transform-origin: 50% 8%;
+    animation: coat 4.8s ease-in-out infinite;
+}
+
+.notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 46%;
+    height: 46%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #4a2d68 0%, #241428 100%);
+    clip-path: polygon(50% 100%, 6% 0, 94% 0);
+}
+
+.pocket {
+    position: absolute;
+    top: 42%;
+    left: 14%;
+    width: 24%;
+    height: 24%;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1.5px rgba(10, 177, 255, 0.55);
+}
+
+.button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #ff0084;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.buttonLower {
+    top: 72%;
+}
+
+.aura {
+    position: absolute;
+    z-index: 0;
+    inset: 10%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 0, 132, 0.55), transparent 68%);
+    filter: blur(5px);
+    animation: aura 4.6s ease-in-out infinite;
+}
+
+.yellow,
+.pink,
+.blue,
+.green {
+    position: absolute;
+    z-index: 2;
+    width: 16%;
+    height: 16%;
+    border-radius: 50%;
     opacity: 0;
-    animation: blink 5.2s step-end infinite;
+    animation: spark 2.8s ease-in-out infinite;
 }
 
-@keyframes wave {
-    0%,
-    55%,
-    100% {
-        transform: rotate(0deg);
-    }
+.yellow {
+    top: 4%;
+    right: 18%;
+    background: #f9ed32;
+}
 
-    70% {
-        transform: rotate(16deg);
-    }
+.pink {
+    top: 0;
+    right: 2%;
+    background: #ff0084;
+    animation-delay: 0.45s;
+}
 
-    84% {
-        transform: rotate(-8deg);
-    }
+.blue {
+    top: 20%;
+    right: 0;
+    background: #0ab1ff;
+    animation-delay: 0.9s;
+}
+
+.green {
+    top: 34%;
+    right: 12%;
+    background: #56ba48;
+    animation-delay: 1.35s;
 }
 
 @keyframes sway {
     0%,
     100% {
-        transform: rotate(-3deg);
+        transform: rotate(-2.4deg);
     }
 
     50% {
-        transform: rotate(3deg);
+        transform: rotate(2.6deg);
     }
 }
 
-@keyframes blink {
+@keyframes nod {
     0%,
-    92%,
     100% {
-        opacity: 0;
+        transform: translateY(1%) rotate(-4deg);
     }
 
-    94%,
-    97% {
+    50% {
+        transform: translateY(-4%) rotate(5deg);
+    }
+}
+
+@keyframes coat {
+    0%,
+    100% {
+        transform: rotate(2deg);
+    }
+
+    50% {
+        transform: rotate(-2.4deg);
+    }
+}
+
+@keyframes aura {
+    0%,
+    100% {
+        opacity: 0.45;
+        transform: scale(0.88);
+        background: radial-gradient(circle, rgba(255, 0, 132, 0.55), transparent 68%);
+    }
+
+    35% {
+        opacity: 0.9;
+        transform: scale(1.05);
+        background: radial-gradient(circle, rgba(10, 177, 255, 0.55), transparent 68%);
+    }
+
+    70% {
+        opacity: 0.7;
+        transform: scale(0.94);
+        background: radial-gradient(circle, rgba(249, 237, 50, 0.4), transparent 70%);
+    }
+}
+
+@keyframes spark {
+    0%,
+    100% {
+        opacity: 0;
+        transform: scale(0.35);
+    }
+
+    35% {
         opacity: 1;
+        transform: scale(1);
+    }
+
+    68% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+@container (max-width: 32px) {
+    .yellow,
+    .pink,
+    .blue,
+    .green,
+    .pocket,
+    .button {
+        display: none;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .wave,
-    .brain,
-    .blink {
+    .figure,
+    .head,
+    .coat,
+    .aura,
+    .yellow,
+    .pink,
+    .blue,
+    .green {
         animation: none;
+    }
+
+    .aura,
+    .yellow,
+    .pink,
+    .blue,
+    .green {
+        opacity: 0;
     }
 }

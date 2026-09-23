@@ -9,6 +9,7 @@ import {
 } from "./plan-config";
 import { summarizeGuestCounters } from "./guest-usage";
 import { hashQuotaIdentity } from "./quota-identity";
+import { quotaPeriod } from "./quota-period";
 
 export {
     PLAN_ENTITLEMENTS,
@@ -19,16 +20,7 @@ export {
 } from "./plan-config";
 
 function periodFor(plan: Plan, feature: QuotaFeature, now: Date) {
-    if (plan === "guest" && (feature === "discover" || feature === "projects")) {
-        return "lifetime";
-    }
-    if (plan === "guest") {
-        return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
-    }
-    if (plan === "free" && (feature === "discover" || feature === "projects")) {
-        return "lifetime";
-    }
-    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    return quotaPeriod(plan, feature, now);
 }
 
 function expirationFor(period: string, now: Date) {

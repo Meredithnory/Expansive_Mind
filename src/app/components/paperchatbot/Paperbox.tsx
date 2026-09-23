@@ -24,14 +24,37 @@ import {
     type PaperTool,
 } from "../../lib/region-capture";
 import {
+    DEFAULT_HIGHLIGHT_COLOR,
     deletePaperHighlight,
     fetchPaperHighlights,
+    type HighlightColor,
+    HIGHLIGHT_COLORS,
+    parseHighlightColor,
     savePaperHighlight,
+    updatePaperHighlightColor,
 } from "../../lib/paper-highlights";
 import PaperImpactBadge from "../PaperImpactBadge";
 
 const AGENT_HIGHLIGHT = "agent-focus";
 const AGENT_HIGHLIGHT_STYLE_ID = "agent-focus-highlight-style";
+
+const HIGHLIGHT_COLOR_LABELS: Record<HighlightColor, string> = {
+    pink: "Pink highlight",
+    blue: "Blue highlight",
+    yellow: "Yellow highlight",
+};
+
+const INK_COLOR_CLASS: Record<HighlightColor, string> = {
+    pink: styles.inkColor_pink,
+    blue: styles.inkColor_blue,
+    yellow: styles.inkColor_yellow,
+};
+
+const INK_SWATCH_CLASS: Record<HighlightColor, string> = {
+    pink: styles.inkSwatch_pink,
+    blue: styles.inkSwatch_blue,
+    yellow: styles.inkSwatch_yellow,
+};
 
 const ensureAgentHighlightStyle = () => {
     if (typeof document === "undefined") return;
@@ -97,6 +120,7 @@ interface InkMark {
     excerpt: string;
     rects: InkRect[];
     citation: PaperCitation;
+    color: HighlightColor;
 }
 
 const rectsMatch = (left: InkRect[], right: InkRect[]) =>
@@ -305,6 +329,7 @@ const Paperbox = ({
                     excerpt,
                     rects,
                     citation,
+                    color: DEFAULT_HIGHLIGHT_COLOR,
                 });
                 if (scrollToMatch) {
                     const node = range.startContainer;
@@ -325,6 +350,7 @@ const Paperbox = ({
                 excerpt,
                 rects: [],
                 citation,
+                color: DEFAULT_HIGHLIGHT_COLOR,
             });
             const section = root.querySelector(
                 `[data-section-title="${CSS.escape(citation.sectionTitle)}"]`,
@@ -377,6 +403,7 @@ const Paperbox = ({
                 serverId: record.id,
                 excerpt: record.excerpt,
                 citation: record.citation,
+                color: parseHighlightColor(record.color),
                 rects: root ? measureExcerptRects(root, record.excerpt) : [],
             }));
             setInkMarks((current) => {
@@ -443,7 +470,13 @@ const Paperbox = ({
         selection.removeAllRanges();
         const id = crypto.randomUUID();
         const citation = locateExcerptInPaper(paper, text, fallbackSection);
-        const mark: InkMark = { id, excerpt: text, rects, citation };
+        const mark: InkMark = {
+            id,
+            excerpt: text,
+            rects,
+            citation,
+            color: DEFAULT_HIGHLIGHT_COLOR,
+        };
         setInkMarks((current) => [...current, mark]);
         setOpenMarkId(id);
         if (persistHighlights) {
@@ -452,6 +485,7 @@ const Paperbox = ({
                     ...persistHighlights,
                     excerpt: text,
                     citation,
+                    color: DEFAULT_HIGHLIGHT_COLOR,
                 });
                 if (!saved) return;
                 if (deletedMarkIds.current.has(id)) {
@@ -461,7 +495,11 @@ const Paperbox = ({
                 setInkMarks((current) =>
                     current.map((item) =>
                         item.id === id
-                            ? { ...item, serverId: saved.id }
+                            ? {
+                                  ...item,
+                                  serverId: saved.id,
+                                  color: parseHighlightColor(saved.color),
+                              }
                             : item,
                     ),
                 );
@@ -473,6 +511,23 @@ const Paperbox = ({
         const excerpt = mark.excerpt || mark.citation.lines.join(" ").trim();
         void navigator.clipboard?.writeText(excerpt).catch(() => undefined);
         onHighlight?.(mark.citation);
+    };
+
+    const setMarkColor = (mark: InkMark, color: HighlightColor) => {
+        const nextColor = parseHighlightColor(color);
+        if (mark.color === nextColor) return;
+        setInkMarks((current) =>
+            current.map((item) =>
+                item.id === mark.id ? { ...item, color: nextColor } : item,
+            ),
+        );
+        setOpenMarkId(mark.id);
+        if (mark.serverId) {
+            void updatePaperHighlightColor({
+                highlightId: mark.serverId,
+                color: nextColor,
+            }).catch(() => undefined);
+        }
     };
 
     const removeMark = (mark: InkMark) => {
@@ -529,14 +584,20 @@ const Paperbox = ({
                             : null}
                         {inkMarks.map((mark) => {
                             const end = mark.rects[mark.rects.length - 1];
+                            const color = parseHighlightColor(mark.color);
                             return (
                                 <div
                                     key={mark.id}
                                     data-ink-mark=""
-                                    className={clsx(styles.inkMark, {
-                                        [styles.inkMarkOpen]:
-                                            openMarkId === mark.id,
-                                    })}
+                                    data-ink-color={color}
+                                    className={clsx(
+                                        styles.inkMark,
+                                        INK_COLOR_CLASS[color],
+                                        {
+                                            [styles.inkMarkOpen]:
+                                                openMarkId === mark.id,
+                                        },
+                                    )}
                                 >
                                     {mark.rects.map((rect, index) => (
                                         <span
@@ -548,6 +609,7 @@ const Paperbox = ({
                                                 width: rect.width,
                                                 height: rect.height,
                                             }}
+                                            onClick={() => setOpenMarkId(mark.id)}
                                         />
                                     ))}
                                     {end && (
@@ -569,11 +631,66 @@ const Paperbox = ({
                                                 event.stopPropagation()
                                             }
                                         >
-                                            <span
+                                            <button
+                                                type="button"
                                                 className={styles.inkHandle}
-                                                aria-hidden="true"
+                                                aria-label={`Highlight actions, ${HIGHLIGHT_COLOR_LABELS[color]}`}
+                                                aria-expanded={
+                                                    openMarkId === mark.id
+                                                }
+                                                onClick={() =>
+                                                    setOpenMarkId((current) =>
+                                                        current === mark.id
+                                                            ? null
+                                                            : mark.id,
+                                                    )
+                                                }
                                             />
-                                            <div className={styles.inkActions}>
+                                            <div
+                                                className={styles.inkActions}
+                                                role="toolbar"
+                                                aria-label="Highlight actions"
+                                            >
+                                                <div
+                                                    className={styles.inkColors}
+                                                    role="group"
+                                                    aria-label="Highlight color"
+                                                >
+                                                    {HIGHLIGHT_COLORS.map(
+                                                        (swatch) => (
+                                                            <button
+                                                                key={swatch}
+                                                                type="button"
+                                                                className={clsx(
+                                                                    styles.inkColorSwatch,
+                                                                    INK_SWATCH_CLASS[
+                                                                        swatch
+                                                                    ],
+                                                                    {
+                                                                        [styles.inkColorSwatchActive]:
+                                                                            color ===
+                                                                            swatch,
+                                                                    },
+                                                                )}
+                                                                aria-label={
+                                                                    HIGHLIGHT_COLOR_LABELS[
+                                                                        swatch
+                                                                    ]
+                                                                }
+                                                                aria-pressed={
+                                                                    color ===
+                                                                    swatch
+                                                                }
+                                                                onClick={() =>
+                                                                    setMarkColor(
+                                                                        mark,
+                                                                        swatch,
+                                                                    )
+                                                                }
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
                                                 <button
                                                     type="button"
                                                     className={styles.inkSend}

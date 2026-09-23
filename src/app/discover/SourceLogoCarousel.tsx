@@ -87,7 +87,7 @@ export default function SourceLogoCarousel() {
         const viewport = viewportRef.current;
         if (!viewport) return;
         const card = viewport.querySelector<HTMLElement>(`.${styles.sourceCard}`);
-        const step = (card?.offsetWidth ?? 176) + 9;
+        const step = (card?.offsetWidth ?? 188) + 10;
         viewport.scrollBy({ left: direction * step, behavior: "smooth" });
     };
 

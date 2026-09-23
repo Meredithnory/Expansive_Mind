@@ -104,8 +104,8 @@ const SearchBar = ({
                     value={searchValue}
                     onChange={(event) => setSearchValue(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Search papers"
-                    aria-label="Search papers"
+                    placeholder="Search for papers…"
+                    aria-label="Search for papers"
                     autoComplete="off"
                     spellCheck
                 />

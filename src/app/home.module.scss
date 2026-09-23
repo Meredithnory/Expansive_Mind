@@ -133,6 +133,9 @@
 }
 
 .secondaryCta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     color: rgba(255, 255, 255, 0.62);
     font-size: 1.05rem;
 

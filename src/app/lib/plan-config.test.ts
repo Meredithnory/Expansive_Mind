@@ -32,7 +32,7 @@ describe("plan entitlements", () => {
         expect(
             resolvePlan({ plan: "pro", subscriptionStatus: "trialing" }),
         ).toBe("pro");
-        expect(PLAN_ENTITLEMENTS.pro.discover).toBe(40);
+        expect(PLAN_ENTITLEMENTS.pro.discover).toBe(20);
         expect(PLAN_ENTITLEMENTS.pro.scholar_search).toBe(25);
         expect(PLAN_ENTITLEMENTS.pro.projects).toBe(50);
     });
@@ -84,6 +84,42 @@ describe("stored plan configuration", () => {
         expect(merged.prices.year.amount).toBe(8800);
         expect(merged.prices.month.stripePriceId).toBe("price_month_env");
         expect(merged.prices.year.stripePriceId).toBe("price_year_env");
+    });
+
+    it("replaces the previous Pro Discovery default of 40 with the current allowance", () => {
+        const merged = applyStoredPlanConfig(
+            {
+                entitlements: {
+                    pro: {
+                        search: 300,
+                        discover: 40,
+                        chat: 100,
+                        scholar_search: 25,
+                        projects: 50,
+                    },
+                },
+            },
+            fallback,
+        );
+        expect(merged.entitlements.pro.discover).toBe(20);
+    });
+
+    it("keeps a custom Pro Discovery allowance", () => {
+        const merged = applyStoredPlanConfig(
+            {
+                entitlements: {
+                    pro: {
+                        search: 300,
+                        discover: 12,
+                        chat: 100,
+                        scholar_search: 25,
+                        projects: 50,
+                    },
+                },
+            },
+            fallback,
+        );
+        expect(merged.entitlements.pro.discover).toBe(12);
     });
 
     it("prefers Stripe IDs saved from the admin portal", () => {

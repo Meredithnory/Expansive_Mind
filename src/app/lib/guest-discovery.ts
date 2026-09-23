@@ -12,8 +12,6 @@ import { parseStoredPaperExtractions } from "./evidence-type";
 import { parseFounderReport } from "./founder-report";
 
 export const GUEST_DISCOVERY_STORAGE_KEY = "guest-discovery-last-result";
-export const GUEST_UPGRADE_PROMPTED_KEY = "guest-discovery-upgrade-prompted";
-export const GUEST_UPGRADE_VIEW_MS = 5_000;
 
 const REPORT_CONFIDENCES = new Set<ReportConfidence>([
     "established",
@@ -260,19 +258,4 @@ export function clearGuestDiscoveryResult() {
     } catch {
         // Ignore private-mode failures.
     }
-}
-
-export function shouldPromptGuestUpgrade({
-    elapsedMs,
-    analysisWasBelowFold,
-    analysisIsVisible,
-    viewDelayMs = GUEST_UPGRADE_VIEW_MS,
-}: {
-    elapsedMs: number;
-    analysisWasBelowFold: boolean;
-    analysisIsVisible: boolean;
-    viewDelayMs?: number;
-}) {
-    if (elapsedMs >= viewDelayMs) return true;
-    return analysisWasBelowFold && analysisIsVisible;
 }

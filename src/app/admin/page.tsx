@@ -15,6 +15,12 @@ type Pricing = {
     stripeConfigured?: boolean;
     warning?: string;
 };
+type QuotaCell = {
+    feature: Feature;
+    used: number;
+    limit: number;
+    period: string;
+};
 type UserRow = {
     _id: string;
     firstName: string;
@@ -25,7 +31,7 @@ type UserRow = {
     subscriptionStatus: string;
     stripeSubscriptionId?: string;
     subscriptionCurrentPeriodEnd?: string;
-    usage: Record<string, number>;
+    usage: QuotaCell[];
 };
 type Usage = OverviewUsage;
 type AuditEntry = {
@@ -301,9 +307,16 @@ export default function AdminPage() {
                                         {selectedUser.accessOverride && <div className={styles.eyebrow}>Complimentary Pro</div>}
                                     </td>
                                     <td className={styles.muted}>
-                                        {Object.entries(selectedUser.usage).map(([feature, count]) => (
-                                            <div key={feature}>{feature}: {count}</div>
-                                        ))}
+                                        {selectedUser.usage.length === 0 ? (
+                                            <div>No usage this period</div>
+                                        ) : (
+                                            selectedUser.usage.map((cell) => (
+                                                <div key={cell.feature}>
+                                                    {cell.feature}: {cell.used}/{cell.limit}
+                                                    {cell.period === "lifetime" ? " lifetime" : ""}
+                                                </div>
+                                            ))
+                                        )}
                                     </td>
                                     <td>
                                         <div className={styles.actions}>

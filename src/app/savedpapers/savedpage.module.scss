@@ -43,6 +43,9 @@
       padding: 18px 20px 14px;
 
       h1 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         margin: 2px 0 6px;
         color: #fff;
         font-size: clamp(1.55rem, 3vw, 2.1rem);
@@ -71,9 +74,11 @@
       justify-content: center;
       gap: 8px;
       flex-shrink: 0;
-      padding: 12px 20px 14px;
-      border-top: 1px solid rgba(215, 235, 255, 0.08);
+      padding: 4px 20px 14px;
+      border-bottom: 1px solid rgba(215, 235, 255, 0.08);
       overflow-x: auto;
+      /* Desktop: in-flow under the library heading — not pinned to the bottom. */
+      position: static;
 
       button {
         display: inline-flex;
@@ -352,10 +357,111 @@
       }
     }
 
+    /* Desktop: one horizontal snap row per research area. */
+    .paperCarousel {
+      position: relative;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
     .paperGroupList {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       gap: 12px;
+      min-width: 0;
+      max-width: 100%;
+      padding: 2px 2px 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 0, 132, 0.35) transparent;
+
+      &::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(255, 0, 132, 0.35);
+      }
+    }
+
+    .carouselSlide {
+      flex: 0 0 min(400px, 72%);
+      min-width: 0;
+      max-width: 100%;
+      scroll-snap-align: start;
+      scroll-snap-stop: normal;
+
+      > * {
+        height: 100%;
+      }
+
+      /* Keep titles readable without crushing the card. */
+      :global(h3) {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+    }
+
+    .paperCarousel[data-single="true"] .carouselSlide {
+      flex-basis: min(560px, 100%);
+    }
+
+    .carouselPrev,
+    .carouselNext {
+      appearance: none;
+      position: absolute;
+      top: 50%;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid rgba(215, 235, 255, 0.14);
+      border-radius: 999px;
+      background: rgba(12, 14, 18, 0.88);
+      color: #fff;
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      transform: translateY(-60%);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+      transition:
+        opacity 160ms ease,
+        border-color 160ms ease,
+        background-color 160ms ease;
+
+      &:hover:not(:disabled) {
+        border-color: rgba(255, 0, 132, 0.45);
+        background: rgba(255, 0, 132, 0.16);
+      }
+
+      &:disabled {
+        opacity: 0.28;
+        cursor: default;
+      }
+
+      &:focus-visible {
+        outline: 2px solid rgba(255, 0, 132, 0.7);
+        outline-offset: 2px;
+      }
+    }
+
+    .carouselPrev {
+      left: 4px;
+    }
+
+    .carouselNext {
+      right: 4px;
     }
 
     .savedPapersSkeleton {
@@ -499,6 +605,39 @@
         padding: 8px 0 16px;
       }
 
+      /* Mobile: keep the vertical paper list; hide carousel chrome. */
+      .paperCarousel {
+        display: contents;
+      }
+
+      .paperGroupList {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 0;
+        overflow: visible;
+        scroll-snap-type: none;
+        scrollbar-width: auto;
+      }
+
+      .carouselSlide {
+        flex: none;
+        width: 100%;
+        max-width: none;
+        scroll-snap-align: none;
+
+        :global(h3) {
+          display: block;
+          overflow: visible;
+          -webkit-line-clamp: unset;
+        }
+      }
+
+      .carouselPrev,
+      .carouselNext {
+        display: none;
+      }
+
       .cardActions button {
         opacity: 1;
         transform: none;
@@ -580,5 +719,11 @@
 @media (max-width: 380px) {
   .pagecontainer .pagecontent .tabs button span {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagecontainer .pagecontent .paperGroupList {
+    scroll-behavior: auto;
   }
 }

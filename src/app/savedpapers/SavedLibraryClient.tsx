@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,6 +23,109 @@ import {
 const PAPERS_PER_PAGE = 6;
 type LibraryTab = "papers" | "syntheses" | "projects";
 type TopicFilter = "all" | PaperTopic;
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** Desktop: horizontal snap carousel. Mobile CSS restores a vertical stack. */
+function PaperGroupCarousel({
+  topic,
+  papers,
+  deletePaper,
+}: {
+  topic: string;
+  papers: Paper[];
+  deletePaper: (paper: Paper) => void;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+
+  const updateOverflow = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const overflowing = max > 4;
+    setCanPrev(overflowing && el.scrollLeft > 4);
+    setCanNext(overflowing && el.scrollLeft < max - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    updateOverflow();
+    el.addEventListener("scroll", updateOverflow, { passive: true });
+    const ro = new ResizeObserver(updateOverflow);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateOverflow);
+      ro.disconnect();
+    };
+  }, [papers.length, updateOverflow]);
+
+  const scrollByCard = (direction: -1 | 1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const slide = el.querySelector<HTMLElement>(`.${styles.carouselSlide}`);
+    const amount = slide ? slide.offsetWidth + 12 : Math.max(280, el.clientWidth * 0.75);
+    el.scrollBy({
+      left: direction * amount,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  };
+
+  const showArrows = canPrev || canNext;
+
+  return (
+    <div
+      className={styles.paperCarousel}
+      data-single={papers.length === 1 ? "true" : undefined}
+    >
+      {showArrows ? (
+        <button
+          type="button"
+          className={styles.carouselPrev}
+          aria-label={`Previous ${topic} papers`}
+          disabled={!canPrev}
+          onClick={() => scrollByCard(-1)}
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+      ) : null}
+      <div
+        ref={scrollerRef}
+        className={styles.paperGroupList}
+        role="list"
+        aria-label={`${topic} papers`}
+      >
+        {papers.map((page) => (
+          <div
+            className={styles.carouselSlide}
+            role="listitem"
+            key={`${page.primarySource}-${page.idName}-${page.paperId}`}
+          >
+            <SavedPaper page={page} isLink={true} deletePaper={deletePaper} />
+          </div>
+        ))}
+      </div>
+      {showArrows ? (
+        <button
+          type="button"
+          className={styles.carouselNext}
+          aria-label={`Next ${topic} papers`}
+          disabled={!canNext}
+          onClick={() => scrollByCard(1)}
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 type SavedSynthesis = {
   id: string;
@@ -227,6 +331,20 @@ const SavedLibraryClient = ({
     <>
       <LoadingOverlay visible={loading} label="Loading your library…" />
       {header}
+      <div className={styles.tabs} role="tablist" aria-label="Library">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? styles.activeTab : ""}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label} <span>{counts[tab.id]}</span>
+          </button>
+        ))}
+      </div>
       {loading ? (
         <div className={styles.savedPapersSkeleton} aria-hidden="true">
           {[0, 1, 2, 3, 4, 5].map((item) => (
@@ -252,7 +370,7 @@ const SavedLibraryClient = ({
               Open a paper from a synthesis or quick search and save it here for
               later.
             </p>
-            <Link href="/searchpaper" className={styles.searchButton}>
+            <Link href="/discover?mode=search" className={styles.searchButton}>
               Search papers
             </Link>
           </div>
@@ -303,16 +421,11 @@ const SavedLibraryClient = ({
                     <h2>{topic}</h2>
                     <span>{papers.length}</span>
                   </header>
-                  <div className={styles.paperGroupList}>
-                    {papers.map((page) => (
-                      <SavedPaper
-                        key={`${page.primarySource}-${page.idName}-${page.paperId}`}
-                        page={page}
-                        isLink={true}
-                        deletePaper={deletePaper}
-                      />
-                    ))}
-                  </div>
+                  <PaperGroupCarousel
+                    topic={topic}
+                    papers={papers}
+                    deletePaper={deletePaper}
+                  />
                 </section>
               ))}
             </div>
@@ -430,20 +543,6 @@ const SavedLibraryClient = ({
           })}
         </div>
       )}
-      <div className={styles.tabs} role="tablist" aria-label="Library">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={activeTab === tab.id ? styles.activeTab : ""}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label} <span>{counts[tab.id]}</span>
-          </button>
-        ))}
-      </div>
     </>
   );
 };

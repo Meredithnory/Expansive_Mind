@@ -185,6 +185,61 @@
         cursor: default;
     }
 
+    .inkColor_pink {
+        .ink {
+            background: rgba(255, 0, 132, 0.34);
+            box-shadow: inset 0 0 0 1px rgba(255, 114, 248, 0.22);
+        }
+
+        .inkHandle {
+            background: $main-pink;
+            box-shadow:
+                0 0 0 3px rgba(255, 0, 132, 0.28),
+                0 0 10px rgba(255, 0, 132, 0.55);
+        }
+
+        .inkActions {
+            border-color: rgba(255, 114, 248, 0.45);
+        }
+    }
+
+    .inkColor_blue {
+        .ink {
+            background: rgba(10, 177, 255, 0.36);
+            box-shadow: inset 0 0 0 1px rgba(10, 177, 255, 0.4);
+        }
+
+        .inkHandle {
+            background: $highlight-blue;
+            box-shadow:
+                0 0 0 3px rgba(10, 177, 255, 0.28),
+                0 0 10px rgba(10, 177, 255, 0.5);
+        }
+
+        .inkActions {
+            border-color: rgba(10, 177, 255, 0.5);
+        }
+    }
+
+    .inkColor_yellow {
+        .ink {
+            background: rgba(245, 200, 66, 0.42);
+            box-shadow: inset 0 0 0 1px rgba(255, 224, 120, 0.45);
+            mix-blend-mode: normal;
+        }
+
+        .inkHandle {
+            background: #f5c842;
+            box-shadow:
+                0 0 0 3px rgba(245, 200, 66, 0.32),
+                0 0 10px rgba(245, 200, 66, 0.45);
+        }
+
+        .inkActions {
+            border-color: rgba(245, 200, 66, 0.55);
+        }
+    }
+
     .inkEnd {
         position: absolute;
         z-index: 4;
@@ -209,11 +264,19 @@
         width: 11px;
         height: 11px;
         flex-shrink: 0;
+        padding: 0;
+        border: 0;
         border-radius: 999px;
-        background: #ff0084;
+        background: $main-pink;
         box-shadow:
             0 0 0 3px rgba(255, 0, 132, 0.28),
             0 0 10px rgba(255, 0, 132, 0.55);
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 3px;
+        }
     }
 
     .inkActions {
@@ -222,9 +285,12 @@
         top: 50%;
         display: flex;
         align-items: center;
-        gap: 2px;
-        padding: 3px;
-        border-radius: 999px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 4px;
+        max-width: min(220px, calc(100vw - 24px));
+        padding: 4px;
+        border-radius: 14px;
         background: rgba(7, 16, 28, 0.94);
         border: 1px solid rgba(255, 114, 248, 0.45);
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
@@ -234,6 +300,59 @@
         transition:
             opacity 0.14s ease,
             transform 0.14s ease;
+    }
+
+    .inkColors {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .inkColorSwatch {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        cursor: pointer;
+
+        &::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: rgba(215, 235, 255, 0.12);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 1px;
+        }
+    }
+
+    .inkColorSwatchActive {
+        background: rgba(215, 235, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.72);
+    }
+
+    .inkSwatch_pink::before {
+        background: $main-pink;
+    }
+
+    .inkSwatch_blue::before {
+        background: $highlight-blue;
+    }
+
+    .inkSwatch_yellow::before {
+        background: #f5c842;
     }
 
     .inkMarkOpen .inkActions,
@@ -281,6 +400,27 @@
             opacity: 1;
             pointer-events: auto;
             transform: translate(0, -50%);
+            max-width: min(280px, calc(100vw - 16px));
+            gap: 2px;
+            border-radius: 16px;
+        }
+
+        .inkColorSwatch,
+        .inkSend,
+        .inkDismiss {
+            width: 44px;
+            height: 44px;
+        }
+
+        .inkColorSwatch::before {
+            width: 18px;
+            height: 18px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .inkActions {
+            transition: none;
         }
     }
 

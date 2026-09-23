@@ -5,26 +5,47 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 1120px;
+    max-width: 100%;
     min-height: 0;
     height: auto;
-    flex: 1;
+    flex: 0 0 auto;
     margin: 0 auto;
-    padding: 24px 20px 64px;
-    gap: 32px;
+    padding: 12px 0 0;
+    gap: 16px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: visible;
     overflow-anchor: none;
 }
 
 .initialPage {
     justify-content: flex-start;
-    gap: clamp(22px, 3.5vh, 34px);
-    padding-block: clamp(40px, 7vh, 80px) 72px;
+    gap: 14px;
+    padding-block: 8px 0;
+    padding-inline: 0;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
 }
 
 .reportPage {
     justify-content: flex-start;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 24px 0 64px;
+    overflow-y: auto;
+}
+
+.modeChrome {
+    display: flex;
+    justify-content: center;
+    width: min(760px, 100%);
+    margin: 0 auto;
+}
+
+.modeChromeCompact {
+    width: 100%;
+    margin-bottom: 4px;
 }
 
 .hero {
@@ -86,135 +107,198 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: min(820px, 100%);
+    width: 100%;
+    max-width: 100%;
     margin: 0 auto;
 }
 
 .initialPage .form {
-    width: min(740px, 100%);
-    gap: 9px;
-    padding: 10px;
-    overflow: hidden;
-    border: 1px solid rgba(215, 235, 255, 0.095);
-    border-radius: 18px;
-    background: #070709;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    width: 100%;
+    max-width: 100%;
+    gap: 6px;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .initialPage .promptShell {
-    gap: 3px;
-    padding: 5px;
-    border-radius: 13px;
+    gap: 2px;
+    padding: 6px 8px 6px;
+    border-radius: 18px;
+    border: 1px solid rgba(215, 235, 255, 0.08);
+    border-color: rgba(215, 235, 255, 0.08);
+    background: rgba(7, 7, 9, 0.88);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        0 10px 28px rgba(0, 0, 0, 0.18);
+
+    &:hover,
+    &:focus-within {
+        border-color: rgba(255, 0, 132, 0.4);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 0 0 1px rgba(255, 0, 132, 0.16),
+            0 12px 32px rgba(0, 0, 0, 0.2);
+    }
 }
 
 .initialPage .textarea {
-    height: 70px;
-    min-height: 70px;
-    padding: 9px 11px;
-    font-size: 0.88rem;
-    line-height: 1.5;
+    height: 58px;
+    min-height: 58px;
+    padding: 10px 12px 4px;
+    font-size: 0.98rem;
+    line-height: 1.45;
 }
 
 .initialPage .composerBar {
-    min-height: 36px;
-    padding: 0 1px 1px 5px;
+    min-height: 40px;
+    padding: 0 2px 0 4px;
+}
+
+.initialPage .formHeading {
+    padding-inline: 4px 6px;
+}
+
+.initialPage .characterCount {
+    font-size: 0.68rem;
+    color: rgba(215, 235, 255, 0.38);
+}
+
+.databaseCatalog {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    max-width: 720px;
+    margin: 10px auto 0;
+    overflow: hidden;
 }
 
 .initialPage .voiceButton {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
 
     svg {
-        width: 17px;
-        height: 17px;
+        width: 18px;
+        height: 18px;
     }
 }
 
 .initialPage .submit {
-    min-width: 132px;
-    min-height: 36px;
+    min-width: 104px;
+    min-height: 40px;
     margin: 0;
-    padding: 5px 5px 5px 12px;
-    border-radius: 9px;
-    font-size: 0.76rem;
+    padding: 5px 6px 5px 14px;
+    border-radius: 11px;
+    font-size: 0.84rem;
 }
 
 .initialPage .submitIcon {
-    width: 25px;
-    height: 25px;
-    border-radius: 7px;
-    font-size: 0.86rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 0.9rem;
 }
 
-.guestStatus {
+.quotaLine {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    width: min(820px, 100%);
-    min-height: 42px;
-    margin: -16px auto -18px;
-    padding: 10px 16px;
-    border: 1px solid rgba(255, 0, 132, 0.2);
-    border-radius: 12px;
-    background: rgba(255, 0, 132, 0.04);
-    color: rgba(215, 235, 255, 0.62);
+    justify-content: center;
+    gap: 8px 12px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    color: rgba(215, 235, 255, 0.52);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.quotaMessage {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.58);
+    font-size: inherit;
+    line-height: inherit;
+}
+
+.quotaUnlock {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 0, 132, 0.55);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ff2a96 0%, #ff0084 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 0 0 1px rgba(255, 0, 132, 0.12),
+        0 8px 22px rgba(255, 0, 132, 0.28);
+    color: #fff;
     font: inherit;
     font-size: 0.78rem;
+    font-weight: 680;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    white-space: nowrap;
     cursor: pointer;
-
-    strong {
-        color: #ff85bd;
-        white-space: nowrap;
-    }
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        filter 160ms ease;
 
     &:hover {
-        border-color: rgba(255, 0, 132, 0.38);
-        background: rgba(255, 0, 132, 0.07);
+        filter: brightness(1.06);
+        border-color: rgba(255, 140, 200, 0.7);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.28),
+            0 0 0 1px rgba(255, 0, 132, 0.18),
+            0 10px 26px rgba(255, 0, 132, 0.34);
     }
 
     &:focus-visible {
-        outline: 2px solid #ff1682;
+        outline: 2px solid #0ab1ff;
         outline-offset: 3px;
     }
 }
 
-.lockedPrompt {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    width: 100%;
-    min-height: 78px;
-    padding: 15px 18px;
-    border: 1px solid rgba(255, 0, 132, 0.48);
-    border-radius: 18px;
-    background:
-        linear-gradient(105deg, rgba(255, 0, 132, 0.14), transparent 72%),
-        #09090b;
-    color: #ff9ccc;
+.quotaLink {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #ff6aab;
     font: inherit;
-    font-weight: 700;
-    text-align: left;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
 
-    > span:first-child {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        color: rgba(215, 235, 255, 0.58);
-        font-size: 0.78rem;
-        font-weight: 500;
+    &:hover {
+        color: #ff8ec4;
     }
 
-    strong {
-        color: white;
-        font-size: 0.94rem;
+    &:focus-visible {
+        outline: 2px solid #ff0084;
+        outline-offset: 3px;
+        border-radius: 3px;
     }
+}
 
-    > span:last-child {
-        white-space: nowrap;
-    }
+.guestStatus {
+    display: none;
+}
+
+.guestLimitBanner {
+    display: none;
 }
 
 .dockedForm {
@@ -304,13 +388,18 @@
     }
 
     .queryFeedback {
-        padding-inline: 4px;
+        padding-inline: 0;
     }
 
     .didYouMean,
     .queryWarning,
     .spellingChecking {
         font-size: 0.72rem;
+    }
+
+    .queryWarning {
+        padding: 9px 11px 9px 10px;
+        gap: 8px;
     }
 
     .spellingGate {
@@ -328,6 +417,13 @@
     justify-content: space-between;
     gap: 16px;
     padding-inline: 2px;
+}
+
+.initialPage .formHeading {
+    justify-content: flex-end;
+    min-height: 0;
+    margin: 0;
+    padding: 0 4px;
 }
 
 .founderControls {
@@ -550,8 +646,23 @@
 .queryFeedback {
     display: flex;
     align-items: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 0;
-    padding: 0 4px;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@keyframes query-feedback-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .didYouMean {
@@ -587,20 +698,47 @@
 .queryWarning,
 .spellingChecking {
     margin: 0;
-    padding: 6px 10px;
-    border-radius: 10px;
-    font-size: 0.76rem;
-    line-height: 1.4;
+    font-size: 0.8rem;
+    line-height: 1.45;
 }
 
 .queryWarning {
-    border: 1px solid rgba(255, 180, 90, 0.28);
-    background: rgba(255, 160, 60, 0.08);
-    color: #ffd6a8;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 11px 13px 11px 12px;
+    border: 1px solid rgba(215, 235, 255, 0.12);
+    border-left: 2px solid $main-pink;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: rgba(215, 235, 255, 0.88);
+    box-sizing: border-box;
+    animation: query-feedback-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.queryWarningIcon {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: $main-pink;
+    opacity: 0.9;
+}
+
+.queryWarningText {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .spellingChecking {
+    padding: 6px 10px;
     border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.03);
     color: rgba(215, 235, 255, 0.58);
 }
@@ -701,35 +839,41 @@
 .rotatingExample {
     position: absolute;
     z-index: 2;
-    top: 13px;
-    right: 18px;
-    left: 18px;
+    top: 12px;
+    right: 16px;
+    left: 16px;
     overflow: hidden;
     padding: 0;
     border: 0;
     background: transparent;
-    color: rgba(215, 235, 255, 0.42);
+    color: rgba(215, 235, 255, 0.34);
     font: inherit;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     line-height: 1.4;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
     animation: rotating-example 3.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    pointer-events: auto;
+
+    /* While the example is visible, suppress the native placeholder underneath. */
+    & ~ .textarea::placeholder {
+        color: transparent;
+    }
 
     span {
         display: block;
-        margin-bottom: 3px;
-        color: rgba(215, 235, 255, 0.25);
-        font-size: 0.57rem;
+        margin-bottom: 2px;
+        color: rgba(215, 235, 255, 0.2);
+        font-size: 0.54rem;
         font-weight: 700;
-        letter-spacing: 0.09em;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
     }
 
     &:hover {
-        color: rgba(215, 235, 255, 0.7);
+        color: rgba(215, 235, 255, 0.58);
     }
 
     &:focus-visible {
@@ -760,11 +904,11 @@
 .formFooter {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 14px 24px;
     flex-wrap: wrap;
     min-width: 0;
-    padding: 2px 3px 0;
+    padding: 4px 3px 0;
     color: rgba(215, 235, 255, 0.44);
     font-size: 0.67rem;
 }
@@ -2392,15 +2536,15 @@
 @media (max-width: 620px) {
     .page {
         height: auto;
-        min-height: 100%;
-        padding: 10px 0 180px;
+        min-height: 0;
+        padding: 8px 0 0;
         overflow: visible;
     }
 
     .initialPage {
         justify-content: flex-start;
-        gap: 28px;
-        padding: clamp(42px, 9vh, 72px) 14px 88px;
+        gap: 14px;
+        padding: 4px 0 0;
     }
 
     .initialPage .hero {
@@ -2418,27 +2562,45 @@
     }
 
     .initialPage .form {
-        padding: 8px;
+        padding: 0;
+        border-radius: 0;
+    }
+
+    .initialPage .promptShell {
+        padding: 6px;
         border-radius: 16px;
+    }
+
+    .initialPage .textarea {
+        height: 64px;
+        min-height: 64px;
+        padding: 10px 10px 4px;
+        font-size: 0.94rem;
+    }
+
+    .databaseCatalog {
+        margin-top: 8px;
     }
 
     .resultsWithPreview {
         padding-bottom: min(52dvh, 440px);
     }
 
-    .guestStatus {
+    .guestStatus,
+    .guestLimitBanner,
+    .quotaLine {
         width: calc(100% - 20px);
-        margin: -12px auto -16px;
-        padding-inline: 13px;
-
-        span {
-            text-align: left;
-        }
+        margin-inline: auto;
+        flex-direction: column;
+        gap: 10px;
     }
 
-    .lockedPrompt {
-        min-height: 68px;
-        padding: 12px 14px;
+    .quotaUnlock {
+        min-height: 44px;
+        width: 100%;
+        max-width: 320px;
+        padding: 0 18px;
+        font-size: 0.8rem;
     }
 
     .promptShell {
@@ -2448,8 +2610,8 @@
     }
 
     .textarea {
-        min-height: 128px;
-        padding: 13px 12px;
+        min-height: 72px;
+        padding: 12px 12px;
         font-size: 0.92rem;
     }
 
@@ -2560,8 +2722,11 @@
 @media (prefers-reduced-motion: reduce) {
     .answerPreview,
     .projectSpinner,
-    .rotatingExample {
+    .rotatingExample,
+    .queryWarning,
+    .quotaUnlock {
         animation: none;
+        transition: none;
     }
 }
 

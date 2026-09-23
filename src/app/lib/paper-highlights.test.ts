@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     parseHighlightCitation,
+    parseHighlightColor,
     parseHighlightExcerpt,
     parseHighlightLookup,
     serializePaperHighlight,
@@ -69,6 +70,19 @@ describe("parseHighlightExcerpt", () => {
     });
 });
 
+describe("parseHighlightColor", () => {
+    it("accepts pink, blue, and yellow", () => {
+        expect(parseHighlightColor("pink")).toBe("pink");
+        expect(parseHighlightColor("blue")).toBe("blue");
+        expect(parseHighlightColor("yellow")).toBe("yellow");
+    });
+
+    it("defaults unknown values to pink", () => {
+        expect(parseHighlightColor(undefined)).toBe("pink");
+        expect(parseHighlightColor("green")).toBe("pink");
+    });
+});
+
 describe("serializePaperHighlight", () => {
     it("returns a client record keyed by document id", () => {
         expect(
@@ -81,6 +95,7 @@ describe("serializePaperHighlight", () => {
                     endLine: 28,
                     lines: ["Sample size was 42."],
                 },
+                color: "blue",
                 createdAt: new Date("2026-08-27T00:00:00.000Z"),
             }),
         ).toEqual({
@@ -92,7 +107,23 @@ describe("serializePaperHighlight", () => {
                 endLine: 28,
                 lines: ["Sample size was 42."],
             },
+            color: "blue",
             createdAt: "2026-08-27T00:00:00.000Z",
         });
+    });
+
+    it("defaults missing color to pink", () => {
+        expect(
+            serializePaperHighlight({
+                _id: { toString: () => "abc123" },
+                excerpt: "Sample size was 42.",
+                citation: {
+                    sectionTitle: "Abstract",
+                    startLine: 28,
+                    endLine: 28,
+                    lines: ["Sample size was 42."],
+                },
+            }).color,
+        ).toBe("pink");
     });
 });

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { LoadingOverlay } from "../components/Loading";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
+import { safeInternalPath } from "../lib/safe-internal-path";
 
 const perks = [
     { label: "Search", detail: "NIH, Nature, and Scholar" },
@@ -15,10 +16,9 @@ const perks = [
 ];
 
 function signupDestination() {
-    const requested = new URLSearchParams(window.location.search).get("next");
-    return requested === "/pricing?intent=monthly"
-        ? requested
-        : "/discover";
+    return safeInternalPath(
+        new URLSearchParams(window.location.search).get("next"),
+    );
 }
 
 const SignupPage = () => {

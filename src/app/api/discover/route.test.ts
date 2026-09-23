@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-const mocks = vi.hoisted(() => ({ agent: vi.fn(), retrieve: vi.fn(), build: vi.fn(), quota: vi.fn(), cache: vi.fn(), save: vi.fn() }));
+const mocks = vi.hoisted(() => ({ agent: vi.fn(), retrieve: vi.fn(), build: vi.fn(), quota: vi.fn(), cache: vi.fn(), save: vi.fn(), recordGuest: vi.fn() }));
+vi.mock("server-only", () => ({}));
 vi.mock("../authMiddleware", () => ({ withAuth: (handler: unknown) => handler, withOptionalAuth: (handler: unknown) => handler }));
 vi.mock("../../lib/rate-limit", () => ({ consumeRateLimit: async () => ({ allowed: true }), requestIp: () => "test-ip" }));
 vi.mock("../../lib/request-security", () => ({ hasValidMutationOrigin: () => true }));
 vi.mock("../../models/SavedDiscovery", () => ({ default: { create: mocks.save } }));
+vi.mock("../../lib/guest-discovery-log", () => ({ recordGuestDiscovery: mocks.recordGuest }));
 vi.mock("./agent", () => ({ runDiscoverAgent: mocks.agent, DiscoverAgentError: class extends Error { status = 400; } }));
 vi.mock("./assess-query", () => ({ UNCLEAR_QUESTION_ERROR: "Unclear" }));
 vi.mock("../../lib/query-quality", () => ({ looksLikeUnclearResearchQuestion: () => false }));

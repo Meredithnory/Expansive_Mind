@@ -78,6 +78,21 @@ const BackArrowIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+const ShareIcon = () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <circle cx="6.5" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="7" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="17" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path
+            d="M8.4 11.1 14.5 8.1M8.4 12.9 14.5 15.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
 type PaperChatClientProps = {
     database: string;
     paperId: string;
@@ -251,6 +266,28 @@ const PaperChatClient = ({
         setActiveTool((current) => (current === tool ? null : tool));
     };
 
+    const handleShare = async () => {
+        if (!researchPaper) return;
+        const title = researchPaper.title || "Research paper";
+        const url =
+            typeof window !== "undefined" ? window.location.href : "";
+        if (
+            typeof navigator !== "undefined" &&
+            typeof navigator.share === "function" &&
+            url
+        ) {
+            try {
+                await navigator.share({ title, text: title, url });
+                return;
+            } catch (error) {
+                if (error instanceof DOMException && error.name === "AbortError") {
+                    return;
+                }
+            }
+        }
+        setBriefOpen(true);
+    };
+
     const handleHighlight = (citation: PaperCitation) => {
         setPendingInsert(citation);
     };
@@ -331,9 +368,10 @@ const PaperChatClient = ({
                         type="button"
                         className={styles.searchbutton}
                         onClick={() => router.back()}
+                        aria-label="Back"
                     >
                         <BackArrowIcon />
-                        <span className={styles.text}>Back to research</span>
+                        <span className={styles.text}>Back</span>
                     </button>
                 </div>
                 {(canUseChatTools || canSharePaper) && (
@@ -362,16 +400,21 @@ const PaperChatClient = ({
                                 className={styles.toolButtonPrimary}
                                 onClick={() => setShareOpen(true)}
                             >
+                                <ShareIcon />
                                 Share paper
                             </button>
                         )}
                         {researchPaper?.access.canSendToAI && (
                             <button
                                 type="button"
-                                className={styles.toolButton}
-                                onClick={() => setBriefOpen(true)}
+                                className={styles.toolButtonX}
+                                onClick={() => {
+                                    void handleShare();
+                                }}
+                                aria-label="Share this paper"
                             >
-                                AI summary
+                                <ShareIcon />
+                                Share
                             </button>
                         )}
                     </div>

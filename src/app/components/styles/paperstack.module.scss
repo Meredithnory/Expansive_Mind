@@ -1,0 +1,141 @@
+@use "../../variables" as *;
+
+.stack {
+    position: relative;
+    display: inline-block;
+    width: 2.15em;
+    height: 1.65em;
+    flex-shrink: 0;
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.large {
+    font-size: 28px;
+}
+
+.sheetBack,
+.sheetMid,
+.page {
+    position: absolute;
+    width: 1.15em;
+    height: 1.4em;
+    border-radius: 0.12em 0.18em 0.18em 0.12em;
+    background: #f7fbff;
+}
+
+.sheetBack {
+    left: 0.75em;
+    top: 0.18em;
+    background: rgba(10, 177, 255, 0.35);
+    transform: rotate(9deg);
+}
+
+.sheetMid {
+    left: 0.42em;
+    top: 0.1em;
+    background: rgba(247, 251, 255, 0.55);
+    transform: rotate(4deg);
+}
+
+.page {
+    left: 0;
+    top: 0.06em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18em;
+    padding: 0.26em 0.18em 0;
+    overflow: hidden;
+    box-shadow: 0 0.3em 0.6em rgba(0, 0, 0, 0.32);
+    transform-origin: 80% 100%;
+    animation: read-page 3.2s ease-in-out infinite;
+
+    &:last-child {
+        animation-delay: -1.6s;
+    }
+
+    span {
+        display: block;
+        height: 0.12em;
+        border-radius: 1px;
+        background: rgba(10, 177, 255, 0.95);
+
+        &:nth-child(2) {
+            width: 68%;
+            background: $main-pink;
+        }
+
+        &:nth-child(3) {
+            width: 84%;
+            background: rgba(10, 177, 255, 0.45);
+        }
+    }
+
+    i {
+        position: absolute;
+        left: 0.12em;
+        right: 0.12em;
+        height: 0.12em;
+        border-radius: 1px;
+        background: #fff;
+        box-shadow: 0 0 0.4em rgba(255, 0, 132, 0.9);
+        animation: read-line 3.2s linear infinite;
+    }
+
+    &:last-child i {
+        animation-delay: -1.6s;
+    }
+}
+
+@keyframes read-page {
+    0%,
+    18% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+    }
+
+    40% {
+        transform: translate(-0.5em, -0.62em) rotate(-16deg);
+        opacity: 0;
+    }
+
+    41%,
+    62% {
+        transform: translate(0.12em, 0.18em) rotate(0deg);
+        opacity: 0;
+    }
+
+    78%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes read-line {
+    0% {
+        top: 0.18em;
+        opacity: 0;
+    }
+
+    5% {
+        opacity: 1;
+    }
+
+    16% {
+        top: 1em;
+        opacity: 0;
+    }
+
+    100% {
+        top: 1em;
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page,
+    .page i {
+        animation: none;
+    }
+}

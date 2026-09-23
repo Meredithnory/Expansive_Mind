@@ -89,7 +89,7 @@ function applyDocumentDirection(direction: NavDirection) {
     directionResetTimer = setTimeout(() => {
         delete document.documentElement.dataset.navDirection;
         directionResetTimer = null;
-    }, 450);
+    }, 250);
 }
 
 function readNavigationApi(): NavigationLike | null {

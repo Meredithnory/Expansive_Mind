@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAdmin } from "../../../lib/admin";
+import { allowancesForUsers } from "../../../lib/account-usage-report";
 import User from "../../../models/User";
-import UsageCounter from "../../../models/UsageCounter";
 import { resolvePlan } from "../../../lib/plan-config";
 
 function escapeRegExp(value: string) {
@@ -37,24 +37,9 @@ export const GET = withAdmin(async (request: NextRequest) => {
         User.countDocuments(filter),
     ]);
 
-    const ids = users.map((user) => user._id);
-    const usage = await UsageCounter.aggregate([
-        { $match: { userID: { $in: ids } } },
-        {
-            $group: {
-                _id: { userID: "$userID", feature: "$feature" },
-                used: { $sum: "$count" },
-            },
-        },
-    ]);
-    const usageByUser = usage.reduce<Record<string, Record<string, number>>>(
-        (result, row) => {
-            const id = String(row._id.userID);
-            result[id] ||= {};
-            result[id][row._id.feature] = row.used;
-            return result;
-        },
-        {},
+    const allowances = await allowancesForUsers(users);
+    const usageByUser = new Map(
+        allowances.map((account) => [account.id, account.features]),
     );
 
     return NextResponse.json(
@@ -63,7 +48,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
                 ...user,
                 _id: String(user._id),
                 effectivePlan: resolvePlan(user),
-                usage: usageByUser[String(user._id)] || {},
+                usage: usageByUser.get(String(user._id)) || [],
             })),
             page,
             pages: Math.max(1, Math.ceil(total / limit)),

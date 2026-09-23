@@ -1,0 +1,74 @@
+@use "../variables" as *;
+
+/* Shared Research reading column — chrome + composer share this width. */
+$research-column: 720px;
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    /* Hug content — do not stretch to fill the viewport. */
+    flex: 0 0 auto;
+    align-self: center;
+    align-items: stretch;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: $research-column;
+    margin-inline: auto;
+    /* Modest gaps under the nav and below the card. */
+    padding-block: 28px 28px;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+}
+
+/* Search results need a wider frame than the landing composer column. */
+.shell:has([data-search-paper-page]:not([data-search-landing])) {
+    max-width: min(1240px, 100%);
+}
+
+.chromeSlot {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    padding: 0;
+    /* Fixed chrome height so Discovery ↔ Search never shifts the composer. */
+    position: relative;
+    z-index: 2;
+    min-height: 124px;
+}
+
+.modePane {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+}
+
+@media (max-width: 720px) {
+    .shell {
+        justify-content: flex-start;
+        /* Modest padding only — body already clears the fixed bottom nav. */
+        padding-block: 16px 16px;
+        padding-inline: 0;
+        max-width: 100%;
+    }
+
+    .chromeSlot {
+        padding: 0 12px;
+        min-height: 176px;
+    }
+
+    .modePane {
+        padding-inline: 12px;
+        box-sizing: border-box;
+    }
+}

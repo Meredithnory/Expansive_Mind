@@ -76,8 +76,12 @@ const ContactPage = () => {
             }
 
             if (data.delivered === "mailto") {
-                window.location.href =
-                    data.mailto || `mailto:${DEVELOPER_EMAIL}`;
+                const mailto =
+                    typeof data.mailto === "string" &&
+                    data.mailto.startsWith(`mailto:${DEVELOPER_EMAIL}`)
+                        ? data.mailto
+                        : `mailto:${DEVELOPER_EMAIL}`;
+                window.location.href = mailto;
                 setStatus("success");
                 setMessage(
                     "Your email app should open with the note addressed to Meredith.",

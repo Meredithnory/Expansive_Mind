@@ -46,6 +46,11 @@ const paperHighlightSchema = new Schema(
             required: true,
             maxlength: 4_000,
         },
+        color: {
+            type: String,
+            enum: ["pink", "blue", "yellow"],
+            default: "pink",
+        },
         citation: {
             type: highlightCitationSchema,
             required: true,
