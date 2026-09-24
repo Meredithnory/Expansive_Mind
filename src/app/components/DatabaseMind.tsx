@@ -89,6 +89,10 @@ const FOCUS_CLASS: Record<SearchableMindSource, string> = {
     scholar: styles.focusScholar,
 };
 
+function isSearchableSource(value: MindSource): value is SearchableMindSource {
+    return value === "nih" || value === "springer" || value === "scholar";
+}
+
 const COPIES = 3;
 const LOOP = Array.from({ length: COPIES }, (_, copy) =>
     SOURCES.map((source) => ({ ...source, copy })),
@@ -301,13 +305,14 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
                                             styles.chipCarouselActive,
                                     )}
                                     data-value={source.value}
-                                    onClick={() =>
+                                    onClick={() => {
+                                        if (!isSearchableSource(source.value)) return;
                                         onSelect(
                                             activeSource === source.value
                                                 ? "all"
                                                 : source.value,
-                                        )
-                                    }
+                                        );
+                                    }}
                                     aria-pressed={isSelected}
                                     aria-hidden={source.copy !== 1}
                                 >
