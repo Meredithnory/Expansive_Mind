@@ -41,9 +41,10 @@ $research-column: 720px;
 .chromeSlot {
     flex: 0 0 auto;
     box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
-    margin-inline: 0;
+    /* Wider than the composer so the title and mode switch are not cramped, still under the nav. */
+    width: min(880px, 100%);
+    max-width: 880px;
+    margin-inline: auto;
     padding: 0;
     /* Fixed chrome height so Discovery ↔ Search never shifts the composer. */
     position: relative;

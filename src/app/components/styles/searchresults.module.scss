@@ -52,7 +52,23 @@
         }
     }
 
-    .paper:not(.naturePaper):not(.scholarPaper) {
+    .europePmcPaper {
+        &:hover {
+            .title {
+                color: #f6a623;
+            }
+        }
+    }
+
+    .crossrefPaper {
+        &:hover {
+            .title {
+                color: #c7d2fe;
+            }
+        }
+    }
+
+    .paper:not(.naturePaper):not(.scholarPaper):not(.europePmcPaper):not(.crossrefPaper) {
         &:hover {
             .sourceTag {
                 border: 1px solid rgba(255, 0, 132, 0.45);
@@ -173,6 +189,14 @@
         background-color: $highlight-blue;
         box-shadow: 0 0 0 4px rgba(10, 177, 255, 0.2);
     }
+    .europePmcDot {
+        background-color: #f6a623;
+        box-shadow: 0 0 0 4px rgba(246, 166, 35, 0.2);
+    }
+    .crossrefDot {
+        background-color: #c7d2fe;
+        box-shadow: 0 0 0 4px rgba(199, 210, 254, 0.2);
+    }
     .sourceText {
         white-space: nowrap;
         color: #fff;
@@ -270,6 +294,34 @@
     }
     .scholarHighlight {
         color: $highlight-blue;
+    }
+
+    .nihAbstractHighlight,
+    .natureAbstractHighlight,
+    .scholarAbstractHighlight {
+        color: inherit;
+        font: inherit;
+        border-radius: 2px;
+        padding: 0 0.12em;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .nihAbstractHighlight {
+        background-color: rgba(255, 0, 132, 0.28);
+        color: #ffb3d7;
+    }
+
+    .natureAbstractHighlight {
+        background-color: rgba(255, 78, 78, 0.28);
+        color: #ffb0b0;
+    }
+
+    .scholarAbstractHighlight {
+        background-color: rgba(10, 177, 255, 0.28);
+        color: #9adfff;
     }
     .button {
         background: none;

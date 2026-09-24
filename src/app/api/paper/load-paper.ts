@@ -3,7 +3,7 @@ import { cached } from "../../lib/provider-cache";
 import type { SourceDatabase } from "../../lib/paper-sources";
 import { fetchPaperBySource } from "./sources";
 
-export const PAPER_DETAIL_CACHE_NAMESPACE = "paper-detail-v4";
+export const PAPER_DETAIL_CACHE_NAMESPACE = "paper-detail-v5";
 export const PAPER_DETAIL_CACHE_TTL_SECONDS = 6 * 60 * 60;
 
 export type PaperFallback = {

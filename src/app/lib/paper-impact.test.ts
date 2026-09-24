@@ -3,6 +3,8 @@ import {
     citationCountSourceLine,
     citationCredibilityNote,
     citationPopularity,
+    citationRankReason,
+    citationRankingGuide,
     citationSourceLabel,
     formatCitationCount,
     mergePaperImpact,
@@ -40,6 +42,13 @@ describe("paper impact helpers", () => {
         });
         expect(citationPopularity(8).label).toBe("Emerging");
         expect(citationPopularity(240).label).toBe("Highly cited");
+        expect(citationRankReason(1)).toBe(
+            "Emerging means fewer than 10 citations.",
+        );
+        expect(citationRankReason(15)).toContain("10 to 49");
+        expect(citationRankingGuide()).toBe(
+            "1–9 Emerging · 10–49 Cited · 50–199 Widely cited · 200+ Highly cited.",
+        );
         expect(formatCitationCount(1)).toBe("1 citation");
         expect(formatCitationCount(1204)).toBe("1,204 citations");
         expect(citationCredibilityNote("crossref")).toContain(

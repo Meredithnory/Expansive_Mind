@@ -31,6 +31,10 @@ import {
     resolvePmcMediaUrl,
 } from "../../lib/pmc-media";
 import { buildSpringerImageUrl } from "../../lib/springer-media";
+import {
+    loadOpenFullTextForSpringerDoi,
+    paperHasBodySections,
+} from "./springer-body-fallback";
 //Base URL and NIH KEY
 const NIH_API_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 const NIH_EUTILS_BASE =
@@ -472,6 +476,31 @@ const normalizeDoi = (doi: string) =>
         .replace(/^doi:\s*/i, "")
         .replace(/^https?:\/\/doi\.org\//i, "");
 
+/**
+ * When Springer JATS has no <body>, load the same DOI from PMC if Europe PMC
+ * indexes an open PMC copy. Reuses getPaperDetails (license-checked NIH path).
+ */
+const tryOpenFullTextForSpringerDoi = async (input: {
+    doi: string;
+    title: string;
+    authors: string[];
+    primarySource: string;
+    idName: string;
+    abstract?: string;
+    publicationDate?: string;
+    canonicalUrl: string;
+}): Promise<FormattedPaper | null> => {
+    try {
+        await enforceOutboundLimit("europepmc", 40, 60_000);
+        return await loadOpenFullTextForSpringerDoi({
+            ...input,
+            loadPmcPaper: getPaperDetails,
+        });
+    } catch {
+        return null;
+    }
+};
+
 export const getSpringerPaperDetails = async (
     doi: string,
     primarySource: string,
@@ -540,8 +569,20 @@ export const getSpringerPaperDetails = async (
     const res = await fetchWithTimeout(
         `${SPRINGER_JATS_URL}?${params.toString()}`,
     );
-    // JATS is often missing even when JSON metadata exists; fall back to abstract.
+    // JATS is often missing even when JSON metadata exists; try PMC, else abstract.
     if (!res.ok) {
+        const openFullText = await tryOpenFullTextForSpringerDoi({
+            doi: normalizedDoi,
+            title,
+            authors,
+            primarySource,
+            idName,
+            abstract: abstract || undefined,
+            publicationDate: jsonMetadata?.publicationDate,
+            canonicalUrl,
+        });
+        if (openFullText) return openFullText;
+
         return {
             title,
             authors,
@@ -607,6 +648,17 @@ export const getSpringerPaperDetails = async (
             : authors;
     const resolvedAbstract = jatsMetadata?.abstract || abstract;
 
+    const springerIdentity = {
+        doi: normalizedDoi,
+        title: resolvedTitle,
+        authors: resolvedAuthors,
+        primarySource,
+        idName,
+        abstract: resolvedAbstract || undefined,
+        publicationDate: jsonMetadata?.publicationDate,
+        canonicalUrl,
+    };
+
     const contentNotice = jatsMetadata
         ? buildSpringerContentNotice(
               jatsMetadata.hasBody,
@@ -615,6 +667,11 @@ export const getSpringerPaperDetails = async (
         : undefined;
 
     if (!hasArticle || !access.canDisplayFullText) {
+        if (access.canDisplayFullText) {
+            const openFullText =
+                await tryOpenFullTextForSpringerDoi(springerIdentity);
+            if (openFullText) return openFullText;
+        }
         return {
             title: resolvedTitle,
             authors: resolvedAuthors,
@@ -633,12 +690,30 @@ export const getSpringerPaperDetails = async (
         };
     }
 
+    if (!jatsMetadata?.hasBody) {
+        const openFullText =
+            await tryOpenFullTextForSpringerDoi(springerIdentity);
+        if (openFullText) return openFullText;
+    }
+
     const paperSections = prependAbstractSection(
         parseArticleXml(dataAsXML, (sourceRef) =>
             buildSpringerImageUrl(sourceRef, normalizedDoi),
         ),
         resolvedAbstract,
     );
+
+    // Body tag missing but parser still produced only abstract-like sections —
+    // try open repository once more if we have not already (hasBody path above).
+    if (
+        jatsMetadata?.hasBody &&
+        !paperHasBodySections(paperSections)
+    ) {
+        const openFullText =
+            await tryOpenFullTextForSpringerDoi(springerIdentity);
+        if (openFullText) return openFullText;
+    }
+
     const figures = applyFigureRights(paperSections, access.canUseImages);
 
     return {

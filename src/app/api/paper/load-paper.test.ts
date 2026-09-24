@@ -45,7 +45,7 @@ describe("cached paper loading", () => {
 
         expect(mocks.cached).toHaveBeenCalledWith(
             expect.objectContaining({
-                namespace: "paper-detail-v4",
+                namespace: "paper-detail-v5",
                 key: "springer:10.1000/example:doi",
                 ttlSeconds: 6 * 60 * 60,
                 load: expect.any(Function),

@@ -227,9 +227,31 @@
     --search-accent-fill: rgba(10, 177, 255, 0.16);
 }
 
+.europePmc {
+    --search-accent: #f6a623;
+    --search-accent-hover: rgba(246, 166, 35, 0.42);
+    --search-accent-ring: rgba(246, 166, 35, 0.55);
+    --search-accent-mid: rgba(246, 166, 35, 0.28);
+    --search-accent-inset: rgba(246, 166, 35, 0.12);
+    --search-accent-glow: rgba(246, 166, 35, 0.18);
+    --search-accent-fill: rgba(246, 166, 35, 0.16);
+}
+
+.crossref {
+    --search-accent: #c7d2fe;
+    --search-accent-hover: rgba(199, 210, 254, 0.42);
+    --search-accent-ring: rgba(199, 210, 254, 0.55);
+    --search-accent-mid: rgba(199, 210, 254, 0.28);
+    --search-accent-inset: rgba(199, 210, 254, 0.12);
+    --search-accent-glow: rgba(199, 210, 254, 0.18);
+    --search-accent-fill: rgba(199, 210, 254, 0.16);
+}
+
 .nih,
 .springer,
-.scholar {
+.scholar,
+.europePmc,
+.crossref {
     border-color: var(--search-accent-hover);
     box-shadow: inset 0 0 0 1px var(--search-accent-inset);
 }

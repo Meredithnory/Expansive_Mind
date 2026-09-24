@@ -7,7 +7,10 @@ import {
     buildPaperPath,
     resolveSourceFromSearch,
 } from "../lib/paper-sources";
-import { HighlightSearchTitle } from "../lib/highlight-search";
+import {
+    HighlightSearchAbstract,
+    HighlightSearchTitle,
+} from "../lib/highlight-search";
 import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import type { CitationSource } from "../lib/paper-impact";
 import PaperImpactBadge from "./PaperImpactBadge";
@@ -26,7 +29,8 @@ interface SearchResult {
     date: string;
     abstract: string | string[] | null;
     matchTier?: MatchTier;
-    source?: "nih" | "nature" | "scholar";
+    source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
+    pmcid?: string;
     sourceLabel?: string;
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
@@ -116,7 +120,26 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
     params.append("q", searchValue);
 
     const handlePaperClick = (paper: SearchResult) => {
-        const sourceConfig = resolveSourceFromSearch(paper.source);
+        if (paper.source === "europepmc" && paper.pmcid) {
+            const paperPath = buildPaperPath("nih", paper.pmcid, "pmcid");
+            const separator = paperPath.includes("?") ? "&" : "?";
+            router.push(`${paperPath}${separator}${params}`);
+            return;
+        }
+        if (
+            (paper.source === "europepmc" || paper.source === "crossref") &&
+            paper.doi
+        ) {
+            const paperPath = buildPaperPath("springer", paper.doi, "doi");
+            const separator = paperPath.includes("?") ? "&" : "?";
+            router.push(`${paperPath}${separator}${params}`);
+            return;
+        }
+        const sourceConfig = resolveSourceFromSearch(
+            paper.source === "europepmc" || paper.source === "crossref"
+                ? undefined
+                : paper.source,
+        );
         const idName = sourceConfig.defaultIdName;
         const paperId =
             paper.source === "nature"
@@ -134,13 +157,22 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
         router.push(`${paperPath}${separator}${params}`);
     };
 
+    const getHighlightClass = (paper: SearchResult) =>
+        paper.source === "nature"
+            ? styles.natureHighlight
+            : paper.source === "scholar"
+              ? styles.scholarHighlight
+              : styles.nihHighlight;
+
+    const getAbstractHighlightClass = (paper: SearchResult) =>
+        paper.source === "nature"
+            ? styles.natureAbstractHighlight
+            : paper.source === "scholar"
+              ? styles.scholarAbstractHighlight
+              : styles.nihAbstractHighlight;
+
     const renderTitle = (paper: SearchResult) => {
-        const highlightClass =
-            paper.source === "nature"
-                ? styles.natureHighlight
-                : paper.source === "scholar"
-                  ? styles.scholarHighlight
-                  : styles.nihHighlight;
+        const highlightClass = getHighlightClass(paper);
 
         const titleNode = (
             <div className={clsx(styles.title, styles.text)}>
@@ -178,6 +210,8 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                         styles.paper,
                         paper.source === "nature" && styles.naturePaper,
                         paper.source === "scholar" && styles.scholarPaper,
+                        paper.source === "europepmc" && styles.europePmcPaper,
+                        paper.source === "crossref" && styles.crossrefPaper,
                     )}
                 >
                     <div className={styles.paperMeta}>
@@ -188,6 +222,9 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                 styles.text,
                                 paper.source === "nature" && styles.natureTag,
                                 paper.source === "scholar" && styles.scholarTag,
+                                paper.source === "europepmc" &&
+                                    styles.europePmcTag,
+                                paper.source === "crossref" && styles.crossrefTag,
                             )}
                             aria-label={paper.sourceLabel || "NIH PubMed"}
                         >
@@ -198,6 +235,10 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                         styles.natureDot,
                                     paper.source === "scholar" &&
                                         styles.scholarDot,
+                                    paper.source === "europepmc" &&
+                                        styles.europePmcDot,
+                                    paper.source === "crossref" &&
+                                        styles.crossrefDot,
                                 )}
                             />
                             <span className={styles.sourceText}>
@@ -257,14 +298,25 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                             ? paper.authors.join(", ")
                             : "No authors listed."}
                     </div>
-                    {normalizeAbstract(paper.abstract) && (
-                        <div className={clsx(styles.abstract, styles.text)}>
-                            <strong>
-                                {paper.contentLabel || "Abstract"}:
-                            </strong>{" "}
-                            {normalizeAbstract(paper.abstract)}
-                        </div>
-                    )}
+                    {(() => {
+                        const abstractText = normalizeAbstract(paper.abstract);
+                        if (!abstractText) return null;
+                        return (
+                            <div className={clsx(styles.abstract, styles.text)}>
+                                <strong>
+                                    {paper.contentLabel || "Abstract"}:
+                                </strong>{" "}
+                                <HighlightSearchAbstract
+                                    abstract={abstractText}
+                                    searchValue={searchValue}
+                                    title={paper.title}
+                                    highlightClass={getAbstractHighlightClass(
+                                        paper,
+                                    )}
+                                />
+                            </div>
+                        );
+                    })()}
                     {paper.sourceUrl &&
                         !paper.access?.canDisplayFullText && (
                             <a

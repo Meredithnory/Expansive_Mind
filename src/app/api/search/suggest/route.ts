@@ -11,7 +11,13 @@ import {
 import { consumeRateLimit } from "../../../lib/rate-limit";
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
-    if (value === "nih" || value === "springer" || value === "scholar") {
+    if (
+        value === "nih" ||
+        value === "springer" ||
+        value === "scholar" ||
+        value === "europe-pmc" ||
+        value === "crossref"
+    ) {
         return value;
     }
     return "all";

@@ -5,7 +5,12 @@ import Image from "next/image";
 import clsx from "clsx";
 import styles from "./styles/databasemind.module.scss";
 
-export type SearchableMindSource = "nih" | "springer" | "scholar";
+export type SearchableMindSource =
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
 export type MindSource =
     | SearchableMindSource
     | "europe-pmc"
@@ -47,7 +52,7 @@ const SOURCES: {
         value: "europe-pmc",
         name: "Europe PMC",
         detail: "Discovery + PMC index",
-        filterable: false,
+        filterable: true,
         logo: "/source-logos/europe-pmc.png",
         logoStyle: "light",
     },
@@ -55,7 +60,7 @@ const SOURCES: {
         value: "crossref",
         name: "Crossref",
         detail: "DOI metadata index",
-        filterable: false,
+        filterable: true,
         logo: "/source-logos/crossref.svg",
         logoStyle: "light",
     },
@@ -87,10 +92,18 @@ const FOCUS_CLASS: Record<SearchableMindSource, string> = {
     nih: styles.focusNih,
     springer: styles.focusSpringer,
     scholar: styles.focusScholar,
+    "europe-pmc": styles.focusEuropePmc,
+    crossref: styles.focusCrossref,
 };
 
 function isSearchableSource(value: MindSource): value is SearchableMindSource {
-    return value === "nih" || value === "springer" || value === "scholar";
+    return (
+        value === "nih" ||
+        value === "springer" ||
+        value === "scholar" ||
+        value === "europe-pmc" ||
+        value === "crossref"
+    );
 }
 
 const COPIES = 3;

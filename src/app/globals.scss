@@ -136,6 +136,8 @@ body:has([data-research-workspace]) .main-content {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
+    container-type: size;
+    container-name: research-main;
 }
 
 body:has([data-research-workspace]) .page-transition-shell {

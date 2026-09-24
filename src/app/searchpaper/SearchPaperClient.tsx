@@ -22,7 +22,13 @@ import Link from "next/link";
 import posthog from "posthog-js";
 import DatabaseMind from "../components/DatabaseMind";
 
-export type SourceFilter = "all" | "nih" | "springer" | "scholar";
+export type SourceFilter =
+    | "all"
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
 type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
 
 const SOURCE_FILTERS: {
@@ -35,7 +41,7 @@ const SOURCE_FILTERS: {
         value: "all",
         label: "All sources",
         shortName: "All",
-        description: "NIH and Springer Nature open access",
+        description: "NIH, Springer, Scholar, Europe PMC, Crossref",
     },
     {
         value: "nih",
@@ -55,6 +61,18 @@ const SOURCE_FILTERS: {
         shortName: "Scholar",
         description: "Ranked by relevance",
     },
+    {
+        value: "europe-pmc",
+        label: "Europe PMC",
+        shortName: "Europe PMC",
+        description: "Discovery and PMC index",
+    },
+    {
+        value: "crossref",
+        label: "Crossref",
+        shortName: "Crossref",
+        description: "DOI metadata index",
+    },
 ];
 
 const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
@@ -62,6 +80,8 @@ const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
     nih: styles.filterOptionNih,
     springer: styles.filterOptionSpringer,
     scholar: styles.filterOptionScholar,
+    "europe-pmc": styles.filterOptionEuropePmc,
+    crossref: styles.filterOptionCrossref,
 };
 
 const DATE_FILTERS: { value: DateFilter; label: string }[] = [
@@ -80,7 +100,8 @@ interface SearchResult {
     date: string;
     abstract: string | string[] | null;
     matchTier?: "title" | "abstract" | "body";
-    source?: "nih" | "nature" | "scholar";
+    source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
+    pmcid?: string;
     sourceLabel?: string;
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
@@ -91,7 +112,13 @@ interface SearchResult {
 }
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
-    if (value === "nih" || value === "springer" || value === "scholar") {
+    if (
+        value === "nih" ||
+        value === "springer" ||
+        value === "scholar" ||
+        value === "europe-pmc" ||
+        value === "crossref"
+    ) {
         return value;
     }
     return "all";
@@ -677,7 +704,8 @@ const SearchPaperClient = ({
                                     </button>
                                 );
                             })}
-                            <div className={styles.dateFilter}>
+                        </div>
+                        <div className={styles.dateFilter}>
                                 <span className={styles.dateFilterTitle}>
                                     Published
                                 </span>
@@ -703,7 +731,6 @@ const SearchPaperClient = ({
                                     ))}
                                 </div>
                             </div>
-                        </div>
                     </aside>
 
                     {hasCommittedSearch && (

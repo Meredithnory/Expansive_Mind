@@ -16,7 +16,7 @@ import {
     type CitingWorksSource,
 } from "./citing-works";
 
-const CROSSREF = "https://api.crossref.org/works";
+const EUROPE_PMC = "https://www.ebi.ac.uk/europepmc/webservices/rest";
 const SERPAPI_URL = "https://serpapi.com/search.json";
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
 const CACHE_TTL_SECONDS = 24 * 60 * 60;
@@ -39,22 +39,6 @@ function yearFromParts(parts: unknown): number | undefined {
         : undefined;
 }
 
-function yearFromCrossrefDate(field: unknown): number | undefined {
-    const parts = record(field)["date-parts"];
-    if (!Array.isArray(parts) || !Array.isArray(parts[0])) return undefined;
-    return yearFromParts(parts[0]);
-}
-
-function crossrefHeaders() {
-    const mailto = process.env.CROSSREF_MAILTO?.trim();
-    return {
-        Accept: "application/json",
-        ...(mailto
-            ? { "User-Agent": `ExpansiveMind/1.0 (mailto:${mailto})` }
-            : {}),
-    };
-}
-
 async function enforceOutboundLimit(
     scope: string,
     limit: number,
@@ -67,44 +51,6 @@ async function enforceOutboundLimit(
         windowMs,
     });
     if (!result.allowed) throw new Error(`${scope} request limit reached.`);
-}
-
-function mapCrossrefWork(item: unknown): CitingWork | null {
-    const row = record(item);
-    const titleList = row.title;
-    const title = Array.isArray(titleList)
-        ? asString(titleList[0])
-        : asString(titleList);
-    if (!title) return null;
-
-    const authors: string[] = [];
-    if (Array.isArray(row.author)) {
-        for (const author of row.author) {
-            const entry = record(author);
-            const name = [asString(entry.given), asString(entry.family)]
-                .filter(Boolean)
-                .join(" ");
-            if (name) authors.push(name);
-            else if (asString(entry.name)) authors.push(asString(entry.name));
-        }
-    }
-
-    const year =
-        yearFromCrossrefDate(row.issued) ||
-        yearFromCrossrefDate(row["published-print"]) ||
-        yearFromCrossrefDate(row["published-online"]);
-
-    const doi = normalizePaperDoi(row.DOI);
-    const url =
-        asString(row.URL) || (doi ? `https://doi.org/${doi}` : undefined);
-
-    return {
-        title,
-        authors,
-        ...(year != null ? { year } : {}),
-        ...(url ? { url } : {}),
-        ...(doi ? { doi } : {}),
-    };
 }
 
 function mapScholarWork(item: unknown): CitingWork | null {
@@ -189,46 +135,107 @@ function finalizePage(input: {
     };
 }
 
-async function fetchCrossrefCitingWorks(
+function mapEuropePmcCitation(item: unknown): CitingWork | null {
+    const row = record(item);
+    const title = asString(row.title);
+    if (!title) return null;
+
+    const authors = asString(row.authorString)
+        .replace(/\.\s*$/, "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+    const year = Number(row.pubYear);
+    const validYear =
+        Number.isFinite(year) && year >= 1000 && year <= 3000
+            ? Math.trunc(year)
+            : undefined;
+    const doi = normalizePaperDoi(row.doi);
+    const id = asString(row.id);
+    const source = asString(row.source);
+    const url =
+        (id && source
+            ? `https://europepmc.org/article/${encodeURIComponent(source)}/${encodeURIComponent(id)}`
+            : "") || (doi ? `https://doi.org/${doi}` : "");
+
+    return {
+        title,
+        authors,
+        ...(validYear != null ? { year: validYear } : {}),
+        ...(url ? { url } : {}),
+        ...(doi ? { doi } : {}),
+    };
+}
+
+async function resolveEuropePmcRecord(
+    doi: string,
+): Promise<{ source: string; id: string } | null> {
+    const params = new URLSearchParams({
+        query: `DOI:${doi}`,
+        format: "json",
+        resultType: "lite",
+        pageSize: "1",
+    });
+    const response = await fetch(`${EUROPE_PMC}/search?${params}`, {
+        signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    const data = record(await response.json());
+    const results = record(data.resultList).result;
+    const first = Array.isArray(results) ? record(results[0]) : null;
+    if (!first) return null;
+    const id = asString(first.id);
+    const source = asString(first.source);
+    return id && source ? { source, id } : null;
+}
+
+async function fetchEuropePmcCitingWorks(
     doi: string,
     limit: number,
     offset: number,
 ): Promise<CitingWorksResult> {
-    await enforceOutboundLimit("crossref", 40, 60_000);
-    const params = new URLSearchParams({
-        filter: `references:${doi}`,
-        rows: String(limit),
-        offset: String(offset),
-        select: "DOI,title,author,issued,published-print,published-online,URL",
-        sort: "published",
-        order: "desc",
-    });
-    if (process.env.CROSSREF_MAILTO) {
-        params.set("mailto", process.env.CROSSREF_MAILTO);
+    await enforceOutboundLimit("europepmc", 40, 60_000);
+    const recordId = await resolveEuropePmcRecord(doi);
+    if (!recordId) {
+        return {
+            works: [],
+            total: 0,
+            hasMore: false,
+            source: "europepmc",
+            unavailableReason:
+                "Europe PMC has no citing-paper list for this DOI.",
+        };
     }
 
-    const response = await fetch(`${CROSSREF}?${params}`, {
-        signal: AbortSignal.timeout(10_000),
-        headers: crossrefHeaders(),
+    const page = Math.floor(offset / limit) + 1;
+    const params = new URLSearchParams({
+        format: "json",
+        page: String(page),
+        pageSize: String(limit),
     });
+    const response = await fetch(
+        `${EUROPE_PMC}/${encodeURIComponent(recordId.source)}/${encodeURIComponent(recordId.id)}/citations?${params}`,
+        { signal: AbortSignal.timeout(10_000) },
+    );
     if (!response.ok) {
         return {
             works: [],
             total: 0,
             hasMore: false,
-            source: "crossref",
+            source: "europepmc",
             unavailableReason:
-                "Crossref did not return a citing-works list for this DOI.",
+                "Europe PMC did not return the citing papers for this DOI.",
         };
     }
 
     const data = record(await response.json());
-    const message = record(data.message);
-    const items = Array.isArray(message.items) ? message.items : [];
-    const totalReported = Number(message["total-results"]);
-    const works = items
-        .map(mapCrossrefWork)
+    const items = record(data.citationList).citation;
+    const citations = Array.isArray(items) ? items : items ? [items] : [];
+    const works = citations
+        .map(mapEuropePmcCitation)
         .filter((work): work is CitingWork => Boolean(work));
+    const totalReported = Number(data.hitCount);
     const total = Number.isFinite(totalReported)
         ? Math.max(totalReported, offset + works.length)
         : offset + works.length;
@@ -238,9 +245,9 @@ async function fetchCrossrefCitingWorks(
             works: [],
             total: 0,
             hasMore: false,
-            source: "crossref",
+            source: "europepmc",
             unavailableReason:
-                "Crossref has a citation count for some papers, but no retrievable citing-works list for this DOI.",
+                "Europe PMC has a record for this DOI, but no citing papers to list.",
         };
     }
 
@@ -249,8 +256,8 @@ async function fetchCrossrefCitingWorks(
         total,
         offset,
         pageSize: limit,
-        rawReturned: items.length,
-        source: "crossref",
+        rawReturned: citations.length,
+        source: "europepmc",
     });
 }
 
@@ -374,7 +381,7 @@ export async function lookupCitingWorks(input: {
 
     try {
         const { value } = await cached({
-            namespace: "citing-works-v3",
+            namespace: "citing-works-v4",
             key: `${cacheKey}:offset:${offset}:limit:${limit}`,
             ttlSeconds: CACHE_TTL_SECONDS,
             load: async () => {
@@ -382,7 +389,7 @@ export async function lookupCitingWorks(input: {
                     return fetchScholarCitingWorks(citesId, limit, offset);
                 }
                 if (doi) {
-                    return fetchCrossrefCitingWorks(doi, limit, offset);
+                    return fetchEuropePmcCitingWorks(doi, limit, offset);
                 }
                 return emptyUnavailable(
                     "Citing papers are not available for this result.",
@@ -404,7 +411,7 @@ export async function lookupCitingWorks(input: {
             source,
             unavailableReason: citesId
                 ? "Google Scholar citing papers could not be loaded right now."
-                : "Crossref citing papers could not be loaded right now.",
+                : "Citing papers could not be loaded right now.",
         };
     }
 }

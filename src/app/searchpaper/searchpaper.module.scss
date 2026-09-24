@@ -505,7 +505,7 @@
 
     .filterSidebar {
         position: sticky;
-        top: 20px;
+        top: 16px;
         z-index: 4;
         align-self: flex-start;
         flex: 0 0 228px;
@@ -529,10 +529,10 @@
             0 0 48px rgba(10, 177, 255, 0.06),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(12px);
-        overflow-x: hidden;
-        overflow-y: auto;
-        /* Stay under the nav and above the footer while stuck. */
-        max-height: calc(100dvh - 40px);
+        overflow: hidden;
+        /* Fit the visible main-content area, not the full window. */
+        max-height: calc(100dvh - 160px);
+        max-height: calc(100cqh - 36px);
         opacity: 1;
         transform: translate3d(0, 0, 0);
         transition:
@@ -689,8 +689,12 @@
         position: relative;
         z-index: 1;
         display: flex;
+        flex: 1 1 auto;
         flex-direction: column;
         gap: 8px;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .filterOption {
@@ -763,6 +767,16 @@
         box-shadow: 0 0 0 3px rgba(10, 177, 255, 0.14);
     }
 
+    .filterOptionEuropePmc .filterDot {
+        background: #f6a623;
+        box-shadow: 0 0 0 3px rgba(246, 166, 35, 0.16);
+    }
+
+    .filterOptionCrossref .filterDot {
+        background: #c7d2fe;
+        box-shadow: 0 0 0 3px rgba(199, 210, 254, 0.16);
+    }
+
     .filterOptionActive {
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
     }
@@ -800,6 +814,20 @@
         box-shadow: 0 10px 24px rgba(10, 177, 255, 0.12);
     }
 
+    .filterOptionEuropePmc.filterOptionActive {
+        border-left-color: #f6a623;
+        border-color: rgba(246, 166, 35, 0.34);
+        background: rgba(246, 166, 35, 0.1);
+        box-shadow: 0 10px 24px rgba(246, 166, 35, 0.12);
+    }
+
+    .filterOptionCrossref.filterOptionActive {
+        border-left-color: #c7d2fe;
+        border-color: rgba(199, 210, 254, 0.34);
+        background: rgba(199, 210, 254, 0.1);
+        box-shadow: 0 10px 24px rgba(199, 210, 254, 0.12);
+    }
+
     .filterLabel {
         flex: 1;
         font-size: 13px;
@@ -826,12 +854,16 @@
     }
 
     .dateFilter {
+        position: relative;
+        z-index: 1;
         display: flex;
+        flex: 0 0 auto;
         flex-direction: column;
         gap: 8px;
         margin-top: 4px;
         padding: 13px 2px 2px;
         border-top: 1px solid rgba(180, 92, 255, 0.16);
+        background: rgba(8, 4, 10, 0.72);
     }
 
     .dateFilterTitle {
@@ -1284,10 +1316,12 @@
                 margin 260ms ease;
         }
 
-        .filterListCollapsed {
+        .filterListCollapsed,
+        .filterSidebarCollapsed .dateFilter {
             max-height: 0;
             margin: 0;
             opacity: 0;
+            overflow: hidden;
             pointer-events: none;
         }
 

@@ -85,12 +85,39 @@ export function formatCitationCount(count: number): string {
     return count === 1 ? "1 citation" : `${formatted} citations`;
 }
 
+const EMERGING_BELOW = 10;
+const CITED_BELOW = 50;
+const WIDELY_CITED_BELOW = 200;
+
 export function citationPopularity(count: number): CitationPopularity {
     if (count <= 0) return { level: "none", label: "Not yet cited" };
-    if (count < 10) return { level: "emerging", label: "Emerging" };
-    if (count < 50) return { level: "cited", label: "Cited" };
-    if (count < 200) return { level: "widely-cited", label: "Widely cited" };
+    if (count < EMERGING_BELOW) return { level: "emerging", label: "Emerging" };
+    if (count < CITED_BELOW) return { level: "cited", label: "Cited" };
+    if (count < WIDELY_CITED_BELOW) {
+        return { level: "widely-cited", label: "Widely cited" };
+    }
     return { level: "highly-cited", label: "Highly cited" };
+}
+
+/** Why this count received its label. The index supplies the number; we supply the word. */
+export function citationRankReason(count: number): string {
+    const { label } = citationPopularity(count);
+    if (count <= 0) return "Not yet cited means the index reports zero citations.";
+    if (count < EMERGING_BELOW) {
+        return `${label} means fewer than ${EMERGING_BELOW} citations.`;
+    }
+    if (count < CITED_BELOW) {
+        return `${label} means ${EMERGING_BELOW} to ${CITED_BELOW - 1} citations.`;
+    }
+    if (count < WIDELY_CITED_BELOW) {
+        return `${label} means ${CITED_BELOW} to ${WIDELY_CITED_BELOW - 1} citations.`;
+    }
+    return `${label} means ${WIDELY_CITED_BELOW} or more citations.`;
+}
+
+/** The full scale, so the bands stay next to the thresholds above. */
+export function citationRankingGuide(): string {
+    return `1–${EMERGING_BELOW - 1} Emerging · ${EMERGING_BELOW}–${CITED_BELOW - 1} Cited · ${CITED_BELOW}–${WIDELY_CITED_BELOW - 1} Widely cited · ${WIDELY_CITED_BELOW}+ Highly cited.`;
 }
 
 export function citationSourceLabel(

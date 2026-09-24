@@ -19,6 +19,8 @@ import {
     citationCountSourceLine,
     citationCredibilityNote,
     citationPopularity,
+    citationRankReason,
+    citationRankingGuide,
     formatCitationCount,
     parseCitationCount,
     type CitationSource,
@@ -66,7 +68,7 @@ function pageCacheKey(
     offset: number,
     limit: number,
 ): string {
-    return `${identityKey}:v3:offset:${offset}:limit:${limit}`;
+    return `${identityKey}:v4:offset:${offset}:limit:${limit}`;
 }
 
 function useTapToggleMode() {
@@ -469,10 +471,16 @@ export default function PaperImpactBadge({
                       onWheel={(event) => event.stopPropagation()}
                   >
                       <div className={styles.menuHeader}>
-                          <span className={styles.menuTitle}>Cited by</span>
-                          <span className={styles.menuSource}>
-                              {countSourceLine}
-                          </span>
+                          <div className={styles.menuHeaderRow}>
+                              <span className={styles.menuTitle}>Cited by</span>
+                              <span className={styles.menuSource}>
+                                  {countSourceLine}
+                              </span>
+                          </div>
+                          <p className={styles.menuRank}>
+                              {citationRankReason(count)}{" "}
+                              {citationRankingGuide()}
+                          </p>
                       </div>
                       <div
                           ref={bodyRef}
@@ -624,8 +632,8 @@ export default function PaperImpactBadge({
                     [styles.badgeOpen]: open,
                     [styles.badgeInteractive]: canOpen,
                 })}
-                title={`${formatCitationCount(count)} · ${popularity.label}. ${countSourceLine}. ${citationCredibilityNote(citationSource)}`}
-                aria-label={`${formatCitationCount(count)}. ${popularity.label}. ${citationCredibilityNote(citationSource)}${canOpen ? " Show citing papers." : ""}`}
+                title={`${formatCitationCount(count)} · ${popularity.label}. ${citationRankReason(count)} ${citationRankingGuide()} ${countSourceLine}. ${citationCredibilityNote(citationSource)}`}
+                aria-label={`${formatCitationCount(count)}. ${popularity.label}. ${citationRankReason(count)} ${citationCredibilityNote(citationSource)}${canOpen ? " Show citing papers." : ""}`}
                 aria-haspopup={canOpen ? "true" : undefined}
                 aria-expanded={canOpen ? open : undefined}
                 aria-controls={canOpen ? menuId : undefined}

@@ -4,6 +4,8 @@ import {
     getNIHPaperResults,
     searchSpringerNaturePapers,
     searchGoogleScholarPapers,
+    searchEuropePmcPapers,
+    searchCrossrefPapers,
     mergeResultsByTier,
     isNihApiConfigured,
 } from "./utils";
@@ -24,7 +26,13 @@ import {
 import { isAdminUser } from "../../lib/admin";
 import { attachPaperImpact } from "../../lib/paper-impact-lookup";
 
-type SourceFilter = "all" | "nih" | "springer" | "scholar";
+type SourceFilter =
+    | "all"
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
 type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
 
 const DATE_FILTERS = new Set<DateFilter>([
@@ -48,7 +56,9 @@ const getDateRange = (filter: DateFilter) => {
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
     includeSpringer: sourceFilter === "all" || sourceFilter === "springer",
-    includeScholar: sourceFilter === "scholar",
+    includeScholar: sourceFilter === "all" || sourceFilter === "scholar",
+    includeEuropePmc: sourceFilter === "all" || sourceFilter === "europe-pmc",
+    includeCrossref: sourceFilter === "all" || sourceFilter === "crossref",
 });
 
 async function runSearch(
@@ -56,14 +66,24 @@ async function runSearch(
     page: number,
     sourceFilter: string,
     dateFilter: DateFilter,
-    options?: { lightweight?: boolean; usageContext?: UsageContext },
+    options?: {
+        lightweight?: boolean;
+        usageContext?: UsageContext;
+        includeScholar?: boolean;
+    },
 ) {
-    const { includeNih, includeSpringer, includeScholar } =
-        getSourceFlags(sourceFilter);
+    const flags = getSourceFlags(sourceFilter);
+    const includeNih = flags.includeNih;
+    const includeSpringer = flags.includeSpringer;
+    const includeScholar =
+        flags.includeScholar && options?.includeScholar !== false;
+    const includeEuropePmc = flags.includeEuropePmc;
+    const includeCrossref = flags.includeCrossref;
     const lightweight = options?.lightweight ?? false;
     const dateRange = getDateRange(dateFilter);
 
-    const [nihSearch, springerSearch, scholarSearch] = await Promise.all([
+    const [nihSearch, springerSearch, scholarSearch, europePmcSearch, crossrefSearch] =
+        await Promise.all([
         includeNih
             ? searchNIHPaperIds(searchValue, page, dateRange)
             : Promise.resolve({
@@ -81,6 +101,20 @@ async function runSearch(
               }),
         includeScholar
             ? searchGoogleScholarPapers(searchValue, page, dateRange)
+            : Promise.resolve({
+                  results: [],
+                  totalCount: 0,
+                  totalPages: 0,
+              }),
+        includeEuropePmc
+            ? searchEuropePmcPapers(searchValue, page, dateRange)
+            : Promise.resolve({
+                  results: [],
+                  totalCount: 0,
+                  totalPages: 0,
+              }),
+        includeCrossref
+            ? searchCrossrefPapers(searchValue, page, dateRange)
             : Promise.resolve({
                   results: [],
                   totalCount: 0,
@@ -150,17 +184,29 @@ async function runSearch(
         totalPages = Math.max(totalPages, scholarSearch.totalPages);
     }
 
-    const mergedResults =
+    if (includeEuropePmc) {
+        sourceResults.push(europePmcSearch.results);
+        totalCount += europePmcSearch.totalCount;
+        totalPages = Math.max(totalPages, europePmcSearch.totalPages);
+    }
+
+    if (includeCrossref) {
+        sourceResults.push(crossrefSearch.results);
+        totalCount += crossrefSearch.totalCount;
+        totalPages = Math.max(totalPages, crossrefSearch.totalPages);
+    }
+
+    // All sources rotates NIH, Springer, Scholar, Europe PMC, then Crossref.
+    const paperResults =
         sourceResults.length > 1
             ? mergeResultsByTier(...sourceResults)
-            : sourceResults[0] || [];
-    const paperResults = lightweight
-        ? mergedResults
-        : await rankSearchResults(
-              searchValue,
-              mergedResults,
-              options?.usageContext,
-          );
+            : lightweight
+              ? sourceResults[0] || []
+              : await rankSearchResults(
+                    searchValue,
+                    sourceResults[0] || [],
+                    options?.usageContext,
+                );
     const results = await attachPaperImpact(
         paperResults.map((paper: any) => ({
             ...paper,
@@ -225,7 +271,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         }
 
         if (
-            !["all", "nih", "springer", "scholar"].includes(sourceFilter) ||
+            !["all", "nih", "springer", "scholar", "europe-pmc", "crossref"].includes(sourceFilter) ||
             !DATE_FILTERS.has(requestedDate) ||
             page < 0 ||
             page > 100
@@ -259,7 +305,10 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        if (sourceFilter === "scholar" && entitlements.scholar_search > 0) {
+        const wantsScholar =
+            sourceFilter === "all" || sourceFilter === "scholar";
+        let includeScholar = wantsScholar;
+        if (wantsScholar && entitlements.scholar_search > 0) {
             const scholarQuota = await consumeQuota({
                 plan,
                 feature: "scholar_search",
@@ -268,15 +317,20 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 unlimited: isAdmin,
             });
             if (!scholarQuota.allowed) {
-                return NextResponse.json(
-                    {
-                        error: "Monthly Scholar search limit reached.",
-                        code: "QUOTA_EXCEEDED",
-                        quota: scholarQuota,
-                    },
-                    { status: 403 },
-                );
+                if (sourceFilter === "scholar") {
+                    return NextResponse.json(
+                        {
+                            error: "Monthly Scholar search limit reached.",
+                            code: "QUOTA_EXCEEDED",
+                            quota: scholarQuota,
+                        },
+                        { status: 403 },
+                    );
+                }
+                includeScholar = false;
             }
+        } else if (wantsScholar && !isAdmin && entitlements.scholar_search <= 0) {
+            includeScholar = false;
         }
 
         const normalizedQuery = searchValue.trim().toLowerCase();
@@ -288,13 +342,14 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             metadata: { source: sourceFilter, date: requestedDate },
         };
         const cachedSearch = await cached({
-            namespace: "paper-search-v2",
-            key: `${normalizedQuery}:${page}:${sourceFilter}:${requestedDate}:${plan === "guest" ? "lexical" : "semantic"}`,
+            namespace: "paper-search-v4",
+            key: `${normalizedQuery}:${page}:${sourceFilter}:${includeScholar ? "scholar" : "no-scholar"}:${requestedDate}:${plan === "guest" ? "lexical" : "semantic"}`,
             ttlSeconds: sourceFilter === "scholar" ? 3_600 : 6 * 60 * 60,
             load: () =>
                 runSearch(searchValue, page, sourceFilter, requestedDate, {
                     lightweight: plan === "guest",
                     usageContext,
+                    includeScholar,
                 }),
         });
         const search = cachedSearch.value;
@@ -308,7 +363,9 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 operation: "search",
                 callCount:
                     sourceFilter === "all"
-                        ? 3
+                        ? includeScholar
+                            ? 6
+                            : 5
                         : sourceFilter === "nih"
                           ? 2
                           : 1,

@@ -474,7 +474,9 @@
 
 .focusNih .nih,
 .focusSpringer .springer,
-.focusScholar .scholar {
+.focusScholar .scholar,
+.focusEuropePmc .europePmc,
+.focusCrossref .crossref {
     &.satelliteArm,
     &.absorbArm {
         opacity: 1;

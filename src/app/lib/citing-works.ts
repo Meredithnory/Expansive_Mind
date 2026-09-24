@@ -1,4 +1,4 @@
-export type CitingWorksSource = "scholar" | "crossref";
+export type CitingWorksSource = "scholar" | "crossref" | "europepmc";
 
 export type CitingWork = {
     title: string;

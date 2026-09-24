@@ -6,12 +6,20 @@ import {
     searchQueriesMatch,
 } from "../lib/search-suggest";
 
-export type SearchAccentSource = "all" | "nih" | "springer" | "scholar";
+export type SearchAccentSource =
+    | "all"
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
 
 const ACCENT_CLASS: Record<Exclude<SearchAccentSource, "all">, string> = {
     nih: styles.nih,
     springer: styles.springer,
     scholar: styles.scholar,
+    "europe-pmc": styles.europePmc,
+    crossref: styles.crossref,
 };
 
 interface SearchProps {

@@ -610,7 +610,184 @@ export const searchGoogleScholarPapers = async (
     }
 };
 
-export type SourceFilter = "all" | "nih" | "springer" | "scholar";
+const stripMarkup = (value: string) =>
+    value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+export const searchEuropePmcPapers = async (
+    searchValue: string,
+    page: number = 0,
+    dateRange?: PublicationDateRange,
+) => {
+    const PAGE_SIZE = 10;
+    const dated = dateRange
+        ? `(${searchValue}) AND (PUB_YEAR:[${dateRange.fromYear} TO ${dateRange.toYear}])`
+        : searchValue;
+    const params = new URLSearchParams({
+        query: dated,
+        format: "json",
+        resultType: "lite",
+        pageSize: String(PAGE_SIZE),
+        page: String(page + 1),
+    });
+
+    try {
+        const response = await fetch(
+            `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params}`,
+            { signal: AbortSignal.timeout(12_000) },
+        );
+        if (!response.ok) {
+            return { results: [], totalCount: 0, totalPages: 0 };
+        }
+        const data = await response.json();
+        const rows = data?.resultList?.result;
+        const items = Array.isArray(rows) ? rows : [];
+        const totalCount = Number(data?.hitCount) || 0;
+        const results = items
+            .map((record: any, index: number) => {
+                const title = String(record?.title || "").trim();
+                if (!title) return null;
+                const pmcid = String(record?.pmcid || "")
+                    .replace(/^PMC/i, "")
+                    .trim();
+                const doi = String(record?.doi || "").trim();
+                const id = String(record?.id || "").trim();
+                const source = String(record?.source || "MED").trim();
+                const authors = String(record?.authorString || "")
+                    .replace(/\.\s*$/, "")
+                    .split(",")
+                    .map((name: string) => name.trim())
+                    .filter(Boolean);
+                const year = record?.pubYear ? String(record.pubYear) : "";
+                return {
+                    sourceId: pmcid || doi || id || `europepmc-${page}-${index}`,
+                    doi: doi || undefined,
+                    pmcid: pmcid || undefined,
+                    title,
+                    authors,
+                    date: year,
+                    abstract: record?.abstractText || null,
+                    matchTier: inferMatchTier(
+                        searchValue,
+                        title,
+                        record?.abstractText || "",
+                    ),
+                    source: "europepmc" as const,
+                    sourceLabel: "Europe PMC",
+                    sourceUrl: id
+                        ? `https://europepmc.org/article/${encodeURIComponent(source)}/${encodeURIComponent(id)}`
+                        : doi
+                          ? `https://doi.org/${doi}`
+                          : undefined,
+                    contentLabel: "Abstract" as const,
+                };
+            })
+            .filter(Boolean);
+
+        return {
+            results,
+            totalCount,
+            totalPages:
+                totalCount > 0
+                    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+                    : 0,
+        };
+    } catch (err) {
+        console.error("Europe PMC search failed:", err);
+        return { results: [], totalCount: 0, totalPages: 0 };
+    }
+};
+
+export const searchCrossrefPapers = async (
+    searchValue: string,
+    page: number = 0,
+    dateRange?: PublicationDateRange,
+) => {
+    const PAGE_SIZE = 10;
+    const params = new URLSearchParams({
+        query: searchValue,
+        rows: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+        select: "DOI,title,author,issued,abstract,URL",
+    });
+    if (dateRange) {
+        params.set(
+            "filter",
+            `from-pub-date:${dateRange.fromYear}-01-01,until-pub-date:${dateRange.toYear}-12-31`,
+        );
+    }
+
+    try {
+        const response = await fetch(
+            `https://api.crossref.org/works?${params}`,
+            { signal: AbortSignal.timeout(12_000) },
+        );
+        if (!response.ok) {
+            return { results: [], totalCount: 0, totalPages: 0 };
+        }
+        const data = await response.json();
+        const message = data?.message || {};
+        const items = Array.isArray(message.items) ? message.items : [];
+        const totalCount = Number(message["total-results"]) || 0;
+        const results = items
+            .map((record: any, index: number) => {
+                const title = Array.isArray(record?.title)
+                    ? String(record.title[0] || "").trim()
+                    : String(record?.title || "").trim();
+                if (!title) return null;
+                const doi = String(record?.DOI || "").trim();
+                const authors = Array.isArray(record?.author)
+                    ? record.author
+                          .map((author: any) =>
+                              [author?.given, author?.family]
+                                  .filter(Boolean)
+                                  .join(" ")
+                                  .trim(),
+                          )
+                          .filter(Boolean)
+                    : [];
+                const year = record?.issued?.["date-parts"]?.[0]?.[0];
+                const abstract = record?.abstract
+                    ? stripMarkup(String(record.abstract))
+                    : null;
+                return {
+                    sourceId: doi || `crossref-${page}-${index}`,
+                    doi: doi || undefined,
+                    title,
+                    authors,
+                    date: year ? String(year) : "",
+                    abstract,
+                    matchTier: inferMatchTier(searchValue, title, abstract || ""),
+                    source: "crossref" as const,
+                    sourceLabel: "Crossref",
+                    sourceUrl: doi
+                        ? `https://doi.org/${doi}`
+                        : record?.URL || undefined,
+                    contentLabel: "Abstract" as const,
+                };
+            })
+            .filter(Boolean);
+
+        return {
+            results,
+            totalCount,
+            totalPages:
+                totalCount > 0
+                    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+                    : 0,
+        };
+    } catch (err) {
+        console.error("Crossref search failed:", err);
+        return { results: [], totalCount: 0, totalPages: 0 };
+    }
+};
+
+export type SourceFilter =
+    | "all"
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
 
 export const getCombinedSearchTotalCount = async (
     searchValue: string,
@@ -621,8 +798,13 @@ export const getCombinedSearchTotalCount = async (
         sourceFilter === "all" || sourceFilter === "springer";
     const includeScholar =
         sourceFilter === "all" || sourceFilter === "scholar";
+    const includeEuropePmc =
+        sourceFilter === "all" || sourceFilter === "europe-pmc";
+    const includeCrossref =
+        sourceFilter === "all" || sourceFilter === "crossref";
 
-    const [nihSearch, springerSearch, scholarSearch] = await Promise.all([
+    const [nihSearch, springerSearch, scholarSearch, europePmcSearch, crossrefSearch] =
+        await Promise.all([
         includeNih
             ? searchNIHPaperIds(searchValue, 0)
             : Promise.resolve({ totalCount: 0 }),
@@ -632,11 +814,19 @@ export const getCombinedSearchTotalCount = async (
         includeScholar
             ? searchGoogleScholarPapers(searchValue, 0)
             : Promise.resolve({ totalCount: 0 }),
+        includeEuropePmc
+            ? searchEuropePmcPapers(searchValue, 0)
+            : Promise.resolve({ totalCount: 0 }),
+        includeCrossref
+            ? searchCrossrefPapers(searchValue, 0)
+            : Promise.resolve({ totalCount: 0 }),
     ]);
 
     return (
         nihSearch.totalCount +
         springerSearch.totalCount +
-        scholarSearch.totalCount
+        scholarSearch.totalCount +
+        europePmcSearch.totalCount +
+        crossrefSearch.totalCount
     );
 };

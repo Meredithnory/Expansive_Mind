@@ -150,14 +150,28 @@
 
 .menuHeader {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    flex-direction: column;
     flex-shrink: 0;
-    gap: 8px;
+    gap: 6px;
     margin: 0;
     padding: 10px 12px 8px;
     border-bottom: 1px solid rgba(215, 235, 255, 0.1);
     background: #0b1220;
+}
+
+.menuHeaderRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.menuRank {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .menuTitle {
