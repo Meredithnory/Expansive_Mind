@@ -8,6 +8,7 @@ import {
     citingWorksCacheKey,
     citingWorksTruncatedNote,
     extractDoiFromText,
+    extractScholarCitesId,
     extractScholarClusterId,
     parseScholarCitesId,
     type CitingWork,
