@@ -781,6 +781,91 @@
     gap: 8px;
 }
 
+.handoffPrompt {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 14px 15px;
+    border: 1px solid rgba(255, 0, 132, 0.35);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(255, 0, 132, 0.1), transparent 58%),
+        rgba(255, 255, 255, 0.035);
+    box-sizing: border-box;
+}
+
+.handoffTitle {
+    margin: 0;
+    color: #ff8ec4;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.handoffQuestion {
+    margin: 0;
+    color: rgba(243, 248, 255, 0.92);
+    font-size: 0.95rem;
+    font-weight: 550;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.handoffActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.handoffDecline,
+.handoffConfirm {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 16px;
+    border-radius: 11px;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 650;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.handoffDecline {
+    border: 1px solid rgba(215, 235, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(215, 235, 255, 0.78);
+
+    &:hover {
+        border-color: rgba(215, 235, 255, 0.28);
+        color: #fff;
+    }
+}
+
+.handoffConfirm {
+    border: 1px solid rgba(255, 0, 132, 0.55);
+    background: $main-pink;
+    color: #fff;
+
+    &:hover {
+        filter: brightness(1.06);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+        filter: none;
+    }
+}
+
 .spellingAccept,
 .spellingKeep {
     appearance: none;
@@ -1533,9 +1618,9 @@
 
 .reportLayout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 248px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
     align-items: start;
-    gap: 26px;
+    gap: 28px 32px;
     margin-top: 6px;
 }
 
@@ -2505,6 +2590,7 @@
 @media (max-width: 850px) {
     .reportLayout {
         grid-template-columns: 1fr;
+        gap: 20px;
     }
 
     .progressSteps {
@@ -2513,19 +2599,17 @@
 
     .evidenceRail {
         position: static;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
     }
 
     .evidenceCard {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        align-items: end;
-        gap: 12px;
-
-        .sectionKicker {
-            grid-column: 1 / -1;
-        }
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .metricDivider {
@@ -2539,6 +2623,99 @@
         min-height: 0;
         padding: 8px 0 0;
         overflow: visible;
+    }
+
+    .reportPage {
+        padding-inline: 0;
+        gap: 14px;
+    }
+
+    .reportPage .results {
+        gap: 18px;
+        /* Docked ask box (~150) + fixed bottom nav (~72) + breathing room */
+        padding-bottom: calc(240px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .reportTitle {
+        max-width: none;
+        font-size: clamp(1.15rem, 5.6vw, 1.45rem);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .handoffPrompt {
+        padding: 14px;
+    }
+
+    .handoffActions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .handoffDecline,
+    .handoffConfirm {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .reportSummary {
+        gap: 4px 10px;
+    }
+
+    .reportHeaderActions {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .shareButton,
+    .completeBadge {
+        min-height: 44px;
+        padding-inline: 14px;
+        box-sizing: border-box;
+    }
+
+    .reportTabs {
+        flex-wrap: wrap;
+        gap: 8px;
+
+        button {
+            min-height: 44px;
+            flex: 1 1 auto;
+        }
+    }
+
+    .briefSection,
+    .evidenceRail,
+    .groundingNote,
+    .savedNotice,
+    .briefCard,
+    .outlineCard,
+    .evidenceCard,
+    .legendCard {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .brief,
+    .briefCard,
+    .sectionTitle,
+    .outlineTitle {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .paperCitation {
+        white-space: normal;
+    }
+
+    .outlineLink {
+        min-height: 44px;
+        align-items: center;
+        padding-block: 10px;
+    }
+
+    .metric strong {
+        font-size: 1.35rem;
     }
 
     .initialPage {
@@ -2589,7 +2766,7 @@
     .guestStatus,
     .guestLimitBanner,
     .quotaLine {
-        width: calc(100% - 20px);
+        width: 100%;
         margin-inline: auto;
         flex-direction: column;
         gap: 10px;
@@ -2628,10 +2805,14 @@
     }
 
     .dockedForm {
-        bottom: max(10px, env(safe-area-inset-bottom));
-        width: calc(100vw - 20px);
-        max-height: min(46dvh, 360px);
+        /* Sit above the fixed bottom nav (~68px) + gap */
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        width: calc(100% - 24px);
+        max-width: none;
+        max-height: min(42dvh, 320px);
         overflow-y: auto;
+        left: 50%;
+        transform: translateX(-50%);
 
         .promptShell {
             flex-direction: column;
@@ -2640,16 +2821,29 @@
 
         .composerBar {
             flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .modeSwitch,
+        .modeButton {
+            min-height: 44px;
         }
 
         .paperSelect {
             max-width: none;
+            min-height: 44px;
+        }
+
+        .voiceButton {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
         }
 
         .submit {
-            width: 40px;
-            min-width: 40px;
-            min-height: 40px;
+            width: 44px;
+            min-width: 44px;
+            min-height: 44px;
 
             span:first-child {
                 display: none;

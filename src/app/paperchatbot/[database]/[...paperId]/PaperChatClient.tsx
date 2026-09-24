@@ -24,6 +24,10 @@ import {
 } from "../../../lib/paper-sources";
 import type { PaperCitation } from "../../../lib/paper-citation";
 import type { PaperTool } from "../../../lib/region-capture";
+import {
+    consumeCiteFocusSource,
+    findCitedSourceInPaper,
+} from "../../../lib/cite-source-focus";
 import ResearchBot from "../../../components/ResearchBot";
 
 const ResponsiveChatPanel = dynamic(
@@ -100,6 +104,7 @@ type PaperChatClientProps = {
     focusExcerpt: string | null;
     locateMethod: boolean;
     requestedIdName: string | null;
+    citeFocus: boolean;
 };
 
 const PaperChatClient = ({
@@ -109,6 +114,7 @@ const PaperChatClient = ({
     focusExcerpt,
     locateMethod,
     requestedIdName,
+    citeFocus,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -199,6 +205,31 @@ const PaperChatClient = ({
             fetchPaperInfo();
         }
     }, [database, paperId, fetchPaperInfo]);
+
+    useEffect(() => {
+        if (!citeFocus || !researchPaper || loading) return;
+
+        const source = consumeCiteFocusSource();
+        if (source) {
+            const citation = findCitedSourceInPaper(researchPaper, source);
+            if (citation && citation.lines.join(" ").trim()) {
+                setFocusCitation(citation);
+                setFocusRequestId((current) => current + 1);
+            }
+        }
+
+        // Drop citeFocus from the URL so a refresh does not keep re-applying.
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("citeFocus")) {
+                url.searchParams.delete("citeFocus");
+                const next = `${url.pathname}${url.search}${url.hash}`;
+                router.replace(next, { scroll: false });
+            }
+        } catch {
+            // Ignore malformed URL edge cases.
+        }
+    }, [citeFocus, researchPaper, loading, router]);
 
     const buildRedirectPath = useCallback((related: RelatedResearchArticle) => {
         const basePath = buildPaperPath("nih", related.pmcid);

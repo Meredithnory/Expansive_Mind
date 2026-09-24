@@ -157,6 +157,14 @@ body:has([data-research-workspace]) .page-transition-shell:has(
     [data-search-paper-page]:not([data-search-landing])
 ) {
     justify-content: flex-start;
+    align-items: center;
+}
+
+body:has([data-research-workspace]) .page-transition-shell:has(
+    [data-discover-page]:not([data-discover-landing])
+) {
+    justify-content: flex-start;
+    align-items: center;
 }
 
 button,

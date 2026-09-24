@@ -3,10 +3,19 @@
 .resultsContainer {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 auto;
+    align-items: center;
     gap: 18px;
+    width: 100%;
     min-width: 0;
     animation: results-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Readable card column centered in the space beside the filters. */
+    > * {
+        width: 100%;
+        max-width: 760px;
+        box-sizing: border-box;
+    }
 }
 
 .resultsSkeleton {
@@ -101,6 +110,19 @@
     .page .filterTitle {
         animation: none;
     }
+
+    .page .filterSidebar {
+        transition:
+            opacity 700ms ease,
+            max-height 700ms ease,
+            flex-basis 700ms ease,
+            padding 700ms ease,
+            border-color 700ms ease;
+    }
+
+    .page .filterSidebarStuck {
+        animation: none;
+    }
 }
 
 .page {
@@ -108,12 +130,22 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    align-items: center;
     width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
     height: 100%;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
     animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Results: let .main-content be the scrollport so sticky filters can follow. */
+    &:not(.pageLanding) {
+        flex: 0 0 auto;
+        height: auto;
+        overflow: visible;
+    }
 
     .srOnly {
         position: absolute;
@@ -412,10 +444,11 @@
         flex-direction: column;
         align-items: center;
         gap: 10px;
-        max-width: min(1500px, 98%);
         width: 100%;
-        padding: 0 20px;
-        margin: 0 auto;
+        max-width: 100%;
+        padding: 0;
+        margin-inline: auto;
+        box-sizing: border-box;
     }
 
     .modeChrome {
@@ -435,6 +468,9 @@
         gap: 22px;
         padding-top: 12px;
         align-items: stretch;
+        width: 100%;
+        max-width: 100%;
+        margin-inline: auto;
     }
 
     .searchbar {
@@ -456,8 +492,11 @@
         .searchLayout {
             display: flex;
             align-items: flex-start;
-            gap: 14px;
+            gap: 0;
             width: 100%;
+            max-width: 100%;
+            margin-inline: auto;
+            box-sizing: border-box;
         }
 
         .searchLayoutHidden {
@@ -466,12 +505,15 @@
 
     .filterSidebar {
         position: sticky;
-        top: 12px;
+        top: 20px;
+        z-index: 4;
+        align-self: flex-start;
         flex: 0 0 228px;
         display: flex;
         flex-direction: column;
         gap: 12px;
         isolation: isolate;
+        margin-right: 0;
         padding: 16px 14px;
         border-radius: 20px;
         border: 1px solid transparent;
@@ -489,12 +531,14 @@
         backdrop-filter: blur(12px);
         overflow-x: hidden;
         overflow-y: auto;
-        max-height: calc(100dvh - 48px);
+        /* Stay under the nav and above the footer while stuck. */
+        max-height: calc(100dvh - 40px);
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
         transition:
             opacity 700ms ease,
-            transform 700ms ease,
+            transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 260ms ease,
             max-height 700ms ease,
             flex-basis 700ms ease,
             padding 700ms ease,
@@ -554,11 +598,29 @@
         flex-basis: 0;
         max-height: 0;
         opacity: 0;
-        transform: translateX(-12px);
+        transform: translate3d(-12px, 0, 0);
         padding-top: 0;
         padding-bottom: 0;
         border-color: transparent;
         pointer-events: none;
+    }
+
+    .filterSidebarStuck {
+        box-shadow:
+            0 22px 48px rgba(0, 0, 0, 0.34),
+            0 0 36px rgba(255, 0, 132, 0.1),
+            0 0 52px rgba(10, 177, 255, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        animation: filter-sidebar-slide 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes filter-sidebar-slide {
+        from {
+            transform: translate3d(0, -10px, 0);
+        }
+        to {
+            transform: translate3d(0, 0, 0);
+        }
     }
 
     .filterHeader {
@@ -835,6 +897,7 @@
         gap: 28px;
         width: 100%;
         max-width: 720px;
+        margin-inline: auto;
         overflow: hidden;
         max-height: 820px;
         opacity: 1;
@@ -856,9 +919,10 @@
 
     .showingResults {
         width: 100%;
+        max-width: 760px;
         padding: 0;
         font-size: 16px;
-        align-self: stretch;
+        align-self: center;
         line-height: 1.45;
         color: rgba(215, 235, 255, 0.86);
     }
@@ -935,6 +999,8 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
+        width: 100%;
+        max-width: 760px;
         margin: 2px auto 20px;
     }
 

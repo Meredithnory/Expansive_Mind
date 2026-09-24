@@ -5,6 +5,7 @@ import {
     normalizePaperDoi,
     parseCitationCount,
 } from "../../lib/paper-impact";
+import { extractScholarCitesId } from "../../lib/citing-works";
 import { consumeRateLimit } from "../../lib/rate-limit";
 import {
     buildSpringerFallbackQuery,
@@ -502,6 +503,7 @@ const mapScholarRecord = (
     const citationCount = parseCitationCount(
         record?.inline_links?.cited_by?.total,
     );
+    const scholarCitesId = extractScholarCitesId(record);
 
     return {
         sourceId: stableId,
@@ -516,6 +518,7 @@ const mapScholarRecord = (
         sourceUrl: externalUrl,
         contentLabel: "Search snippet",
         access,
+        ...(scholarCitesId ? { scholarCitesId } : {}),
         ...(citationCount != null
             ? { citationCount, citationSource: "scholar" as const }
             : {}),

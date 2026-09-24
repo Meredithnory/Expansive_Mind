@@ -467,6 +467,12 @@
             object-fit: contain;
             max-height: 400px;
         }
+
+        &.graphicCaptionOnly {
+            gap: 8px;
+            padding: 12px 14px;
+            min-height: 0;
+        }
     }
 
     .figureImage {
@@ -565,9 +571,12 @@
         }
 
         .graphicSection {
-            min-height: 240px;
             padding: 12px;
             border-radius: 10px;
+
+            &:not(.graphicCaptionOnly) {
+                min-height: 240px;
+            }
         }
 
         .figureImage {

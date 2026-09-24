@@ -33,6 +33,7 @@ interface SearchResult {
     access?: ContentAccessPolicy;
     citationCount?: number;
     citationSource?: CitationSource;
+    scholarCitesId?: string;
 }
 
 // this function takes the abstract from the API and turns it into a plain string
@@ -217,6 +218,16 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                             <PaperImpactBadge
                                 citationCount={paper.citationCount}
                                 citationSource={paper.citationSource}
+                                doi={paper.doi}
+                                scholarCitesId={paper.scholarCitesId}
+                                sourcePaper={{
+                                    title: paper.title,
+                                    doi: paper.doi,
+                                    authors: Array.isArray(paper.authors)
+                                        ? paper.authors
+                                        : [],
+                                    year: paper.date,
+                                }}
                             />
                         </span>
                         {paper.date && (

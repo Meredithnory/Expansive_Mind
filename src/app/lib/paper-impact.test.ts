@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+    citationCountSourceLine,
     citationCredibilityNote,
     citationPopularity,
+    citationSourceLabel,
     formatCitationCount,
     mergePaperImpact,
     normalizePaperDoi,
@@ -44,5 +46,12 @@ describe("paper impact helpers", () => {
             "not quality or correctness",
         );
         expect(citationCredibilityNote("crossref")).toContain("Crossref");
+        expect(citationSourceLabel("scholar")).toBe("Google Scholar");
+        expect(citationSourceLabel(undefined)).toBeNull();
+        expect(citationCountSourceLine("crossref")).toBe("Count via Crossref");
+        expect(citationCountSourceLine(null)).toBe("Count source unknown");
+        expect(citationCredibilityNote(undefined)).toContain(
+            "Count source unknown",
+        );
     });
 });

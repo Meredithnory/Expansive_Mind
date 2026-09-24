@@ -17,6 +17,7 @@ export interface DiscoverCandidate extends PaperImpact {
     sourceLabel: string;
     sourceUrl: string;
     doi?: string;
+    scholarCitesId?: string;
     indexedBy?: string[];
     access: ContentAccessPolicy;
 }

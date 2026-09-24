@@ -87,6 +87,7 @@ interface SearchResult {
     access?: ContentAccessPolicy;
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
+    scholarCitesId?: string;
 }
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
@@ -144,8 +145,10 @@ const SearchPaperClient = ({
     const [error, setError] = useState("");
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
+    const [filterSidebarStuck, setFilterSidebarStuck] = useState(false);
     const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
+    const filterSidebarRef = useRef<HTMLElement>(null);
     const previousPageRef = useRef<number | null>(null);
     const searchTransitionStartedAtRef = useRef<number | null>(null);
     const searchTransitionTimerRef =
@@ -410,25 +413,81 @@ const SearchPaperClient = ({
 
     useEffect(() => {
         const scrollContainer = pageRef.current;
-        if (!scrollContainer) return;
+        const mainContent = document.querySelector(".main-content");
+        if (!scrollContainer && !(mainContent instanceof HTMLElement)) return;
 
         const handleScroll = () => {
+            const pageTop = scrollContainer?.scrollTop ?? 0;
+            const mainTop =
+                mainContent instanceof HTMLElement ? mainContent.scrollTop : 0;
             const scrolled =
-                scrollContainer.scrollTop > 240 || window.scrollY > 240;
+                pageTop > 240 || mainTop > 240 || window.scrollY > 240;
             setShowScrollTop(scrolled);
         };
 
         handleScroll();
-        scrollContainer.addEventListener("scroll", handleScroll, {
+        scrollContainer?.addEventListener("scroll", handleScroll, {
             passive: true,
         });
+        if (mainContent instanceof HTMLElement) {
+            mainContent.addEventListener("scroll", handleScroll, {
+                passive: true,
+            });
+        }
         window.addEventListener("scroll", handleScroll, { passive: true });
 
         return () => {
-            scrollContainer.removeEventListener("scroll", handleScroll);
+            scrollContainer?.removeEventListener("scroll", handleScroll);
+            if (mainContent instanceof HTMLElement) {
+                mainContent.removeEventListener("scroll", handleScroll);
+            }
             window.removeEventListener("scroll", handleScroll);
         };
     }, [loading]);
+
+    useEffect(() => {
+        if (!hasCommittedSearch) {
+            setFilterSidebarStuck(false);
+            return;
+        }
+        if (typeof window === "undefined") return;
+        if (window.matchMedia("(max-width: 900px)").matches) {
+            setFilterSidebarStuck(false);
+            return;
+        }
+
+        const sidebar = filterSidebarRef.current;
+        const layout = sidebar?.parentElement;
+        if (!sidebar || !layout) return;
+
+        const probe = document.createElement("div");
+        probe.setAttribute("aria-hidden", "true");
+        probe.style.cssText =
+            "width:1px;height:1px;margin:0;padding:0;pointer-events:none;";
+        layout.insertBefore(probe, sidebar);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setFilterSidebarStuck(!entry.isIntersecting);
+            },
+            {
+                root:
+                    document.querySelector(".main-content") instanceof
+                    HTMLElement
+                        ? document.querySelector(".main-content")
+                        : null,
+                // Match sticky top so "stuck" fires when the card pins under the nav.
+                rootMargin: "-20px 0px 0px 0px",
+                threshold: [1],
+            },
+        );
+        observer.observe(probe);
+
+        return () => {
+            observer.disconnect();
+            probe.remove();
+        };
+    }, [hasCommittedSearch, loading]);
 
     const activeQuery = pastSearchValue;
     const initialLoading =
@@ -519,9 +578,12 @@ const SearchPaperClient = ({
                     })}
                 >
                     <aside
+                        ref={filterSidebarRef}
                         className={clsx(styles.filterSidebar, {
                             [styles.filterSidebarHidden]: !hasCommittedSearch,
                             [styles.filterSidebarCollapsed]: !filtersExpanded,
+                            [styles.filterSidebarStuck]:
+                                filterSidebarStuck && hasCommittedSearch,
                         })}
                     >
                         <div className={styles.filterHeader}>

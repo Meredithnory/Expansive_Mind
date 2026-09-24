@@ -15,16 +15,27 @@ $research-column: 720px;
     width: 100%;
     max-width: $research-column;
     margin-inline: auto;
-    /* Modest gaps under the nav and below the card. */
-    padding-block: 28px 28px;
+    /* Tighter under the nav; keep bottom breathing room. Same for both modes. */
+    padding: 14px 0 28px;
     min-width: 0;
     min-height: 0;
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
 }
 
 /* Search results need a wider frame than the landing composer column. */
 .shell:has([data-search-paper-page]:not([data-search-landing])) {
-    max-width: min(1240px, 100%);
+    width: 100%;
+    max-width: min(1160px, calc(100% - 56px));
+    margin-inline: auto;
+}
+
+/* Discovery report: widen for article + sidebar; landing stays at 720. */
+.shell:has([data-discover-page]:not([data-discover-landing])) {
+    width: 100%;
+    max-width: min(1160px, calc(100% - 56px));
+    margin-inline: auto;
+    padding-inline: 0;
 }
 
 .chromeSlot {
@@ -50,7 +61,9 @@ $research-column: 720px;
     margin-inline: 0;
     min-width: 0;
     min-height: 0;
-    overflow-x: hidden;
+    /* clip (not hidden) so sticky filters can follow .main-content scroll */
+    overflow-x: clip;
+    overflow-y: visible;
 }
 
 @media (max-width: 720px) {
@@ -62,13 +75,21 @@ $research-column: 720px;
         max-width: 100%;
     }
 
+    /* Report must use the full mobile column (body already has ~16px pad). */
+    .shell:has([data-discover-page]:not([data-discover-landing])),
+    .shell:has([data-search-paper-page]:not([data-search-landing])) {
+        max-width: 100%;
+        width: 100%;
+        padding-inline: 0;
+    }
+
     .chromeSlot {
-        padding: 0 12px;
+        padding: 0;
         min-height: 176px;
     }
 
     .modePane {
-        padding-inline: 12px;
+        padding-inline: 0;
         box-sizing: border-box;
     }
 }

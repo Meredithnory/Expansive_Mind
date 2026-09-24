@@ -30,6 +30,7 @@ export type PreviewPaper = {
     doi?: string;
     citationCount?: number;
     citationSource?: CitationSource;
+    scholarCitesId?: string;
 };
 
 type PaperPreviewDrawerProps = {
@@ -159,6 +160,14 @@ export default function PaperPreviewDrawer({
                         <PaperImpactBadge
                             citationCount={paper.citationCount}
                             citationSource={paper.citationSource}
+                            doi={paper.doi}
+                            scholarCitesId={paper.scholarCitesId}
+                            sourcePaper={{
+                                title: paper.title,
+                                doi: paper.doi,
+                                authors: paper.authors,
+                                year: paper.date,
+                            }}
                         />
                         {year ? (
                             <span className={styles.yearChip}>{year}</span>

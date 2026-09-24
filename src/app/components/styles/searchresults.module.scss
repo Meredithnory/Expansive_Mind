@@ -4,6 +4,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
     gap: 18px;
 
     .paper {
@@ -14,7 +16,7 @@
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background-color: #000;
-        overflow: hidden;
+        overflow: visible;
         transition: border-color 180ms ease;
 
         &:hover {
@@ -87,6 +89,9 @@
     .impactTag {
         display: inline-flex;
         max-width: 100%;
+        overflow: visible;
+        position: relative;
+        z-index: 2;
 
         &:empty {
             display: none;

@@ -134,4 +134,29 @@ describe("parseArticleXml figures", () => {
             caption: "Uncited figure.",
         });
     });
+
+    it("keeps citation xref markers inline instead of orphan newlines", () => {
+        const xml = `<?xml version="1.0"?>
+<article>
+  <body>
+    <sec>
+      <title>Photoprotection</title>
+      <p>Sunscreens that treat and prevent hyperpigmentary disorders must not only cover UVB.<xref ref-type="bibr" rid="CR14">14</xref>
+,
+<xref ref-type="bibr" rid="CR15">15</xref>
+Sunscreens that treat and prevent hyperpigmentary disorders must not only cover UVB but also longwave UVA and high-energy visible light (HEVL).</p>
+      <p>In physiological conditions.<xref ref-type="bibr" rid="CR16">16</xref>
+,
+<xref ref-type="bibr" rid="CR17">17</xref>
+In physiological conditions, visible light (VL) induces hyperpigmentation.</p>
+    </sec>
+  </body>
+</article>`;
+        const section = parseArticleXml(xml, () => "")[0];
+        expect(section.content).toContain("14, 15");
+        expect(section.content).toContain("16, 17");
+        expect(section.content).not.toMatch(/\n\s*,\s*\n/);
+        expect(section.content).not.toMatch(/\n14\n/);
+        expect(section.content).toContain("\n\n");
+    });
 });

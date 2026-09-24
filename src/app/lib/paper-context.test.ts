@@ -93,4 +93,69 @@ describe("selectPaperContext", () => {
             6_001,
         );
     });
+
+    it("includes figure captions when the question asks about figures", () => {
+        const withFigures = {
+            ...paper,
+            figures: [
+                {
+                    id: "fig-1",
+                    label: "FIGURE 1",
+                    caption:
+                        "Consensual algorithm for the management of melasma.",
+                    sectionTitle: "Results",
+                    hasSeparateRights: false,
+                    canAnalyzeSourceImage: false,
+                },
+            ],
+        };
+        const context = selectPaperContext(
+            withFigures,
+            "Walk me through the key figure.",
+        );
+        expect(context).toContain("## Figures in this paper");
+        expect(context).toContain("FIGURE 1");
+        expect(context).toContain("Consensual algorithm");
+    });
+
+    it("states when no figure captions exist for a figure question", () => {
+        const context = selectPaperContext(
+            paper,
+            "Walk me through the key figure.",
+        );
+        expect(context).toContain("No figure captions are present");
+    });
+
+    it("keeps figure captions ahead of the context budget when asked about figures", () => {
+        const oversized = {
+            ...paper,
+            figures: [
+                {
+                    id: "fig-1",
+                    label: "FIGURE 1",
+                    caption:
+                        "Consensual algorithm for the management of melasma.",
+                    sectionTitle: "Results",
+                    hasSeparateRights: false,
+                    canAnalyzeSourceImage: false,
+                },
+            ],
+            paper: Array.from({ length: 8 }, (_, index) => ({
+                title: `Results ${index}`,
+                content: "Finding about figures and algorithms. ".repeat(2_000),
+                subSections: [],
+            })),
+        };
+        const context = selectPaperContext(
+            oversized,
+            "What does FIGURE 1 show?",
+        );
+        expect(context).toContain("FIGURE 1");
+        expect(context).toContain("Consensual algorithm");
+        expect(context.indexOf("FIGURE 1")).toBeLessThan(
+            context.indexOf("## Abstract") === -1
+                ? context.length
+                : context.indexOf("## Abstract"),
+        );
+    });
 });

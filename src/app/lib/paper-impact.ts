@@ -93,13 +93,25 @@ export function citationPopularity(count: number): CitationPopularity {
     return { level: "highly-cited", label: "Highly cited" };
 }
 
-export function citationSourceLabel(source?: CitationSource): string {
+export function citationSourceLabel(
+    source?: CitationSource | null,
+): string | null {
     if (source === "crossref") return "Crossref";
     if (source === "europepmc") return "Europe PMC";
     if (source === "scholar") return "Google Scholar";
-    return "the source index";
+    return null;
 }
 
-export function citationCredibilityNote(source?: CitationSource): string {
-    return `${CITATION_NOTE} Count via ${citationSourceLabel(source)}.`;
+/** Short visible label for where the citation count was pulled from. */
+export function citationCountSourceLine(
+    source?: CitationSource | null,
+): string {
+    const label = citationSourceLabel(source);
+    return label ? `Count via ${label}` : "Count source unknown";
+}
+
+export function citationCredibilityNote(
+    source?: CitationSource | null,
+): string {
+    return `${CITATION_NOTE} ${citationCountSourceLine(source)}.`;
 }

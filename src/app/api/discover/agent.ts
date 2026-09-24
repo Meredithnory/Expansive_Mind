@@ -53,6 +53,7 @@ export interface DiscoverPaperCard extends PaperImpact {
     sourceUrl: string;
     href: string;
     doi?: string;
+    scholarCitesId?: string;
     indexedBy?: string[];
 }
 
@@ -207,6 +208,10 @@ function mapScholarResults(results: any[]): DiscoverCandidate[] {
             sourceLabel: PAPER_SOURCES.scholar.label,
             sourceUrl,
             doi: result.doi ? String(result.doi).trim() : undefined,
+            scholarCitesId:
+                typeof result.scholarCitesId === "string"
+                    ? result.scholarCitesId.trim() || undefined
+                    : undefined,
             indexedBy: ["Google Scholar"],
             citationCount: result.citationCount,
             citationSource: result.citationSource,
@@ -405,6 +410,7 @@ async function readPaperExcerpts(
                     paper.idName || candidate.idName,
                 ),
                 doi: candidate.doi || paper.access.attribution.doi,
+                scholarCitesId: candidate.scholarCitesId,
                 indexedBy: candidate.indexedBy,
                 citationCount: candidate.citationCount,
                 citationSource: candidate.citationSource,

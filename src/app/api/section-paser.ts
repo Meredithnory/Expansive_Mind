@@ -20,7 +20,15 @@ export function parseArticleXml(
 ): Section[] {
     const doc = new DOMParser().parseFromString(xmlString, "application/xml");
     const out: Section[] = [];
-    const text = (n: Node | null) => n?.textContent?.trim() || "";
+    // Collapse XML formatting whitespace so citation xrefs like
+    // "14\n,\n15" stay inline instead of becoming orphan lines in the UI.
+    const text = (n: Node | null) =>
+        n?.textContent
+            ?.replace(/\s+/g, " ")
+            .replace(/\s+([,.;:!?])/g, "$1")
+            .replace(/([(\[])\s+/g, "$1")
+            .replace(/\s+([)\]])/g, "$1")
+            .trim() || "";
     const localName = (el: Element) => el.tagName.replace(/^.*:/, "");
     const stableFigureId = (value: string) => {
         let hash = 2166136261;

@@ -288,7 +288,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             metadata: { source: sourceFilter, date: requestedDate },
         };
         const cachedSearch = await cached({
-            namespace: "paper-search-v1",
+            namespace: "paper-search-v2",
             key: `${normalizedQuery}:${page}:${sourceFilter}:${requestedDate}:${plan === "guest" ? "lexical" : "semantic"}`,
             ttlSeconds: sourceFilter === "scholar" ? 3_600 : 6 * 60 * 60,
             load: () =>

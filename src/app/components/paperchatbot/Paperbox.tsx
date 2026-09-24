@@ -62,7 +62,7 @@ const ensureAgentHighlightStyle = () => {
     const style = document.createElement("style");
     style.id = AGENT_HIGHLIGHT_STYLE_ID;
     style.textContent =
-        "::highlight(agent-focus){color:inherit;background-color:rgba(255,195,122,.48)}";
+        "::highlight(agent-focus){color:inherit;background-color:rgba(255,0,132,.28)}";
     document.head.appendChild(style);
 };
 
@@ -152,17 +152,31 @@ const FigureList = ({
         const title = [figure.label, figure.captionTitle]
             .filter(Boolean)
             .join(". ");
+        const hasImage = Boolean(
+            figure.imageUrl && figure.canAnalyzeSourceImage,
+        );
+        // Caption-only figures: short label/caption, no empty image hole.
+        // Skip entirely when the source has neither caption nor analyzable image.
+        if (!hasImage && !figure.caption && !title) {
+            return null;
+        }
         return (
-            <figure className={styles.graphicSection} key={figure.id}>
+            <figure
+                className={clsx(
+                    styles.graphicSection,
+                    !hasImage && styles.graphicCaptionOnly,
+                )}
+                key={figure.id}
+            >
                 {title && (
                     <figcaption className={styles.graphicTitle}>
                         {title}
                     </figcaption>
                 )}
-                {figure.imageUrl && figure.canAnalyzeSourceImage && (
+                {hasImage && (
                     <div className={styles.figureImage}>
                         <Image
-                            src={figure.imageUrl}
+                            src={figure.imageUrl!}
                             alt={title || "Research paper figure"}
                             fill
                             unoptimized
@@ -172,7 +186,7 @@ const FigureList = ({
                     </div>
                 )}
                 {figure.caption && <p>{figure.caption}</p>}
-                {figure.canAnalyzeSourceImage && (
+                {hasImage && (
                     <div className={styles.figureActions}>
                         <button
                             type="button"
@@ -732,6 +746,13 @@ const Paperbox = ({
             <PaperImpactBadge
                 citationCount={paper.citationCount}
                 citationSource={paper.citationSource}
+                doi={paper.access?.attribution?.doi}
+                sourcePaper={{
+                    title: paper.title,
+                    doi: paper.access?.attribution?.doi,
+                    authors: paper.authors,
+                    year: paper.publicationDate,
+                }}
                 className={styles.impactBadge}
             />
             <div className={styles.pmcid}>

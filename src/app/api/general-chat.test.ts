@@ -23,4 +23,10 @@ describe("paper chat discovery context",()=>{
  it("still rejects papers not approved for AI processing",async()=>{
   await expect(respondToMessage("Explain",{access:{canSendToAI:false}} as FormattedPaper,[])).rejects.toThrow("not approved");
  });
+ it("instructs the model not to invent figures or ask users to share them",async()=>{
+  await respondToMessage("Explain the figures",{access:{canSendToAI:true},title:"Study"} as FormattedPaper,[]);
+  const {messages}=completion.mock.calls.at(-1)![0];
+  expect(messages[0].content).toContain("Do not claim figures");
+  expect(messages[0].content).toContain("Never ask the user to upload");
+ });
 });

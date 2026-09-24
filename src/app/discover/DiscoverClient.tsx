@@ -70,7 +70,7 @@ const OpportunityReportView = dynamic(
 const PaperPreviewDrawer = dynamic(() => import("./PaperPreviewDrawer"));
 const FounderReportView = dynamic(() => import("./FounderReportView"));
 
-const autoStartedQueries = new Set<string>();
+const handoffHandledQueries = new Set<string>();
 
 type DiscoveryQuota = {
     limit: number | null;
@@ -94,6 +94,7 @@ type DiscoverPaper = {
     indexedBy?: string[];
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
+    scholarCitesId?: string;
 };
 
 type DiscoverResponse = {
@@ -343,6 +344,7 @@ function DiscoverClient({
     const [mindSource, setMindSource] = useState<"all" | SearchableMindSource>(
         "all",
     );
+    const [handoffPrompt, setHandoffPrompt] = useState<string | null>(null);
 
     const isRunning = step !== "idle" && step !== "done";
     const isCheckingSpelling = spellingCheck === "checking";
@@ -1013,23 +1015,45 @@ function DiscoverClient({
         void runDiscovery(original);
     }, [isCheckingSpelling, isRunning, runDiscovery, spellingPrompt]);
 
-    useEffect(() => {
-        if (sessionLoading || historyLoading || isRunning || result) return;
-        const query = qParam.trim();
-        if (!query) return;
-        if (!isLoggedIn && discoveryQuota == null) return;
-        if (!isLoggedIn && discoveryQuota?.remaining === 0) return;
-        if (autoStartedQueries.has(query)) return;
-        autoStartedQueries.add(query);
+    const confirmHandoffDiscovery = useCallback(() => {
+        const query = handoffPrompt?.trim();
+        if (!query || isRunning || isCheckingSpelling) return;
+        handoffHandledQueries.add(query);
+        setHandoffPrompt(null);
         void confirmSpellingThenDiscover(query);
     }, [
         confirmSpellingThenDiscover,
+        handoffPrompt,
+        isCheckingSpelling,
+        isRunning,
+    ]);
+
+    const declineHandoffDiscovery = useCallback(() => {
+        const query = handoffPrompt?.trim();
+        if (query) handoffHandledQueries.add(query);
+        setHandoffPrompt(null);
+    }, [handoffPrompt]);
+
+    useEffect(() => {
+        if (sessionLoading || historyLoading || isRunning || result) return;
+        if (savedParam) return;
+        const query = qParam.trim();
+        if (!query) {
+            setHandoffPrompt(null);
+            return;
+        }
+        if (!isLoggedIn && discoveryQuota == null) return;
+        if (!isLoggedIn && discoveryQuota?.remaining === 0) return;
+        if (handoffHandledQueries.has(query)) return;
+        setHandoffPrompt(query);
+    }, [
         discoveryQuota,
         historyLoading,
         isLoggedIn,
         isRunning,
         qParam,
         result,
+        savedParam,
         sessionLoading,
     ]);
 
@@ -1041,6 +1065,8 @@ function DiscoverClient({
                 [styles.reportPage]: Boolean(result),
                 [styles.reportPageChatOpen]: paperChatOpen,
             })}
+            data-discover-page
+            data-discover-landing={result ? undefined : "true"}
             data-page-scroll
         >
             {modeChrome ? (
@@ -1085,6 +1111,45 @@ function DiscoverClient({
                 )
             )}
 
+            {handoffPrompt && !isRunning && !result ? (
+                <div
+                    className={styles.handoffPrompt}
+                    role="dialog"
+                    aria-labelledby="discover-handoff-title"
+                    aria-describedby="discover-handoff-question"
+                >
+                    <p
+                        id="discover-handoff-title"
+                        className={styles.handoffTitle}
+                    >
+                        Run Discovery with this question?
+                    </p>
+                    <p
+                        id="discover-handoff-question"
+                        className={styles.handoffQuestion}
+                    >
+                        {handoffPrompt}
+                    </p>
+                    <div className={styles.handoffActions}>
+                        <button
+                            type="button"
+                            className={styles.handoffDecline}
+                            onClick={declineHandoffDiscovery}
+                        >
+                            Not now
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.handoffConfirm}
+                            onClick={confirmHandoffDiscovery}
+                            disabled={isCheckingSpelling}
+                        >
+                            Run discovery
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
             {!isRunning && (
             <form
                 className={clsx(styles.form, {
@@ -1104,6 +1169,14 @@ function DiscoverClient({
                         return;
                     }
                     speech.stop();
+                    const trimmedQuestion = question.trim();
+                    if (trimmedQuestion) {
+                        handoffHandledQueries.add(trimmedQuestion);
+                    }
+                    if (qParam.trim()) {
+                        handoffHandledQueries.add(qParam.trim());
+                    }
+                    setHandoffPrompt(null);
                     void confirmSpellingThenDiscover(event);
                 }}
             >
@@ -2018,6 +2091,14 @@ function DiscoverClient({
                                         <PaperImpactBadge
                                             citationCount={paper.citationCount}
                                             citationSource={paper.citationSource}
+                                            doi={paper.doi}
+                                            scholarCitesId={paper.scholarCitesId}
+                                            sourcePaper={{
+                                                title: paper.title,
+                                                doi: paper.doi,
+                                                authors: paper.authors,
+                                                year: paper.date,
+                                            }}
                                         />
                                         {paper.indexedBy?.length ? <span className={styles.evidenceBadge}>Found via {paper.indexedBy.join(" · ")}</span> : null}
                                         {extraction?.evidenceType ? (
