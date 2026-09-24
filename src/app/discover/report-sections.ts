@@ -110,6 +110,75 @@ export function reportSectionAnchor(id: ReportSectionId): string {
     return `discover-section-${id}`;
 }
 
+export type ReportRoadmapStepKind = "section" | "gap" | "sources";
+
+export interface ReportRoadmapStep {
+    key: string;
+    /** Element id to scroll to. */
+    anchor: string;
+    /** Short index label such as "01" or "Gap 1". */
+    number: string;
+    /** Truncated title taken from the live report, never invented copy. */
+    label: string;
+    kind: ReportRoadmapStepKind;
+}
+
+function truncateRoadmapLabel(text: string, max = 36): string {
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (cleaned.length <= max) return cleaned;
+    const slice = cleaned.slice(0, max - 1);
+    const breakAt = slice.lastIndexOf(" ");
+    const base = breakAt > 12 ? slice.slice(0, breakAt) : slice;
+    return `${base}…`;
+}
+
+/**
+ * Compact reading path for the opportunity report. Mirrors present outline
+ * sections; the gaps section expands into one step per gap so readers can
+ * jump to Gap 1, Gap 2, … Sources is appended when the report has body
+ * sections.
+ */
+export function reportRoadmapSteps(
+    report: OpportunityReport,
+): ReportRoadmapStep[] {
+    const outline = reportOutline(report);
+    if (outline.length === 0) return [];
+
+    const steps: ReportRoadmapStep[] = [];
+    for (const entry of outline) {
+        if (entry.id === "gaps" && report.sections.gaps.length > 0) {
+            report.sections.gaps.forEach((gap, index) => {
+                const gapNumber = index + 1;
+                steps.push({
+                    key: `gap-${gapNumber}`,
+                    anchor: `discover-gap-${gapNumber}`,
+                    number: `Gap ${gapNumber}`,
+                    label: truncateRoadmapLabel(gap.title),
+                    kind: "gap",
+                });
+            });
+            continue;
+        }
+        steps.push({
+            key: entry.id,
+            anchor: reportSectionAnchor(entry.id),
+            number: entry.number,
+            label: truncateRoadmapLabel(entry.title, 28),
+            kind: "section",
+        });
+    }
+
+    steps.push({
+        key: "sources",
+        anchor: "discover-sources",
+        number: String(outline.length + 1).padStart(2, "0"),
+        label: "Sources",
+        kind: "sources",
+    });
+
+    return steps;
+}
+
 export const CONFIDENCE_GUIDE: Record<
     ReportConfidence,
     { label: string; meaning: string }

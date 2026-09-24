@@ -67,6 +67,7 @@ const OpportunityReportView = dynamic(
         ),
     },
 );
+const ReportRoadmap = dynamic(() => import("./ReportRoadmap"));
 const PaperPreviewDrawer = dynamic(() => import("./PaperPreviewDrawer"));
 const FounderReportView = dynamic(() => import("./FounderReportView"));
 
@@ -1754,6 +1755,9 @@ function DiscoverClient({
                     </div>
 
                     <div className={styles.reportLayout}>
+                        {structuredReport ? (
+                            <ReportRoadmap report={structuredReport} />
+                        ) : null}
                         <main className={styles.briefSection}>
                             {!structuredReport && (
                                 <div className={styles.sectionHeading}>

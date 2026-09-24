@@ -1624,6 +1624,173 @@
     margin-top: 6px;
 }
 
+.reportRoadmap {
+    grid-column: 1 / -1;
+    position: relative;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 2px;
+    padding: 12px 14px 14px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, rgba(12, 14, 18, 0.97), rgba(10, 11, 14, 0.94));
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.roadmapHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+}
+
+.roadmapHint {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.45);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.roadmapTrack {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 2px 2px 4px;
+    list-style: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(215, 235, 255, 0.18);
+    }
+}
+
+.roadmapItem {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.roadmapConnector {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 1px;
+    margin-inline: 2px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 0, 132, 0.15),
+        rgba(10, 177, 255, 0.45),
+        rgba(255, 0, 132, 0.15)
+    );
+}
+
+.roadmapStep {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: min(148px, 72vw);
+    max-width: 200px;
+    min-height: 44px;
+    padding: 8px 11px;
+    border: 1px solid rgba(215, 235, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(228, 241, 255, 0.78);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease;
+
+    &:hover {
+        border-color: rgba(255, 0, 132, 0.35);
+        background: rgba(255, 0, 132, 0.08);
+        color: #fff;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #ff1682;
+        outline-offset: 2px;
+    }
+}
+
+.roadmapStepGap {
+    border-color: rgba(10, 177, 255, 0.22);
+    background: rgba(10, 177, 255, 0.05);
+
+    .roadmapNumber {
+        color: #0ab1ff;
+    }
+
+    &:hover {
+        border-color: rgba(10, 177, 255, 0.45);
+        background: rgba(10, 177, 255, 0.1);
+    }
+}
+
+.roadmapStepActive {
+    border-color: rgba(255, 0, 132, 0.55);
+    background:
+        linear-gradient(135deg, rgba(255, 0, 132, 0.16), transparent 70%),
+        rgba(255, 255, 255, 0.03);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 0, 132, 0.12);
+
+    .roadmapNumber {
+        color: #ff0084;
+    }
+}
+
+.roadmapStepActive.roadmapStepGap {
+    border-color: rgba(10, 177, 255, 0.55);
+    background:
+        linear-gradient(135deg, rgba(10, 177, 255, 0.16), transparent 70%),
+        rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 0 0 1px rgba(10, 177, 255, 0.12);
+
+    .roadmapNumber {
+        color: #0ab1ff;
+    }
+}
+
+.roadmapNumber {
+    color: rgba(255, 0, 132, 0.72);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+}
+
+.roadmapLabel {
+    display: -webkit-box;
+    overflow: hidden;
+    color: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .sectionTitle {
     margin: 0;
     font-size: 1.2rem;
@@ -2593,6 +2760,19 @@
         gap: 20px;
     }
 
+    .reportRoadmap {
+        padding: 11px 12px 12px;
+    }
+
+    .roadmapTrack {
+        margin-inline: -4px;
+        padding-inline: 4px;
+    }
+
+    .roadmapStep {
+        min-width: min(156px, 68vw);
+    }
+
     .progressSteps {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -2691,7 +2871,8 @@
     .briefCard,
     .outlineCard,
     .evidenceCard,
-    .legendCard {
+    .legendCard,
+    .reportRoadmap {
         min-width: 0;
         max-width: 100%;
     }
@@ -2918,9 +3099,14 @@
     .projectSpinner,
     .rotatingExample,
     .queryWarning,
-    .quotaUnlock {
+    .quotaUnlock,
+    .roadmapStep {
         animation: none;
         transition: none;
+    }
+
+    .roadmapTrack {
+        scroll-snap-type: none;
     }
 }
 
