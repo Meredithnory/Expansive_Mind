@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import {
     focusedFieldScrollDelta,
+    headingNeedsPin,
     resolveKeyboardChrome,
 } from "../lib/keyboard-inset";
 
@@ -27,6 +28,53 @@ function virtualKeyboard(): VirtualKeyboardHandle | null {
         navigator as Navigator & { virtualKeyboard?: VirtualKeyboardHandle }
     ).virtualKeyboard;
     return keyboard ?? null;
+}
+
+function pageHeading(): HTMLElement | null {
+    const headings = document.querySelectorAll(".main-content h1");
+    for (const node of headings) {
+        if (!(node instanceof HTMLElement)) continue;
+        if (node.closest("[data-app-nav]")) continue;
+        if (node.className.includes("srOnly")) continue;
+        const rect = node.getBoundingClientRect();
+        if (rect.height < 8 || rect.width < 8) continue;
+        return node;
+    }
+    return null;
+}
+
+function clearPinnedHeadings() {
+    document.querySelectorAll("[data-keyboard-pin]").forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        node.style.position = "";
+        node.style.top = "";
+        node.style.left = "";
+        node.style.width = "";
+        node.style.zIndex = "";
+        node.style.background = "";
+        node.style.margin = "";
+        node.removeAttribute("data-keyboard-pin");
+    });
+    document
+        .querySelectorAll("[data-keyboard-pin-spacer]")
+        .forEach((node) => node.remove());
+}
+
+function pinHeading(heading: HTMLElement) {
+    if (heading.hasAttribute("data-keyboard-pin")) return;
+    const rect = heading.getBoundingClientRect();
+    const spacer = document.createElement("div");
+    spacer.setAttribute("data-keyboard-pin-spacer", "");
+    spacer.style.height = `${rect.height}px`;
+    heading.after(spacer);
+    heading.setAttribute("data-keyboard-pin", "");
+    heading.style.position = "fixed";
+    heading.style.top = "12px";
+    heading.style.left = `${Math.max(16, rect.left)}px`;
+    heading.style.width = `${rect.width}px`;
+    heading.style.zIndex = "6";
+    heading.style.background = "#000";
+    heading.style.margin = "0";
 }
 
 function isField(target: EventTarget | null): target is HTMLElement {
@@ -73,6 +121,7 @@ export default function KeyboardInset() {
         let frame = 0;
         let locked: LockedScroll | null = null;
         let correcting = false;
+        let focused: HTMLElement | null = null;
 
         try {
             if (keyboard) keyboard.overlaysContent = true;
@@ -107,7 +156,10 @@ export default function KeyboardInset() {
 
         const schedule = () => {
             window.cancelAnimationFrame(frame);
-            frame = window.requestAnimationFrame(apply);
+            frame = window.requestAnimationFrame(() => {
+                apply();
+                nudgeFocused();
+            });
         };
 
         const restoreLockedScroll = () => {
@@ -137,21 +189,49 @@ export default function KeyboardInset() {
                 8,
                 bandBottom,
             );
-            if (Math.abs(delta) <= 1) return;
+            if (delta <= 1) return;
+            const heading = pageHeading();
+            if (
+                heading &&
+                headingNeedsPin(heading.getBoundingClientRect().top, delta)
+            ) {
+                pinHeading(heading);
+            }
+            const nextRect = field.getBoundingClientRect();
+            const nextDelta = focusedFieldScrollDelta(
+                nextRect.top,
+                nextRect.bottom,
+                8,
+                bandBottom,
+            );
+            if (nextDelta <= 1) return;
             const scroller = scrollableAncestors(field)[0];
-            if (scroller) scroller.scrollTop += delta;
-            else window.scrollBy(0, delta);
+            const before = scroller ? scroller.scrollTop : window.scrollY;
+            correcting = true;
+            if (scroller) scroller.scrollTop += nextDelta;
+            else window.scrollBy(0, nextDelta);
+            const after = scroller ? scroller.scrollTop : window.scrollY;
             locked = snapshotScroll(field);
+            correcting = false;
+            if (after === before) return;
         };
+
+        function nudgeFocused() {
+            if (!focused || !focused.isConnected) return;
+            if (document.activeElement !== focused) return;
+            if (!window.matchMedia(PHONE_QUERY).matches) return;
+            nudgeField(focused);
+        }
 
         const onFocusIn = (event: FocusEvent) => {
             if (!isField(event.target)) return;
             if (!window.matchMedia(PHONE_QUERY).matches) return;
+            focused = event.target;
             locked = snapshotScroll(event.target);
             const field = event.target;
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
-                    if (!locked || !field.isConnected) return;
+                    if (focused !== field || !field.isConnected) return;
                     restoreLockedScroll();
                     nudgeField(field);
                 });
@@ -160,7 +240,9 @@ export default function KeyboardInset() {
 
         const onFocusOut = (event: FocusEvent) => {
             if (!isField(event.target)) return;
+            if (focused === event.target) focused = null;
             locked = null;
+            clearPinnedHeadings();
             schedule();
         };
 
@@ -190,6 +272,7 @@ export default function KeyboardInset() {
             root.style.removeProperty("--stable-viewport-height");
             root.removeAttribute("data-keyboard-open");
             root.removeAttribute("data-vv-pan");
+            clearPinnedHeadings();
         };
     }, []);
 

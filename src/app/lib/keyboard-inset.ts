@@ -66,7 +66,16 @@ export function resolveKeyboardChrome(
     };
 }
 
-/** Pixels to add to the nearest scroll offset so the field stays in band. */
+/** True when scrolling the field into view would push the heading off screen. */
+export function headingNeedsPin(
+    headingTop: number,
+    scrollDelta: number,
+    pinLine = 8,
+): boolean {
+    if (!Number.isFinite(headingTop) || !Number.isFinite(scrollDelta)) return false;
+    return scrollDelta > 1 && headingTop - scrollDelta < pinLine;
+}
+
 export function focusedFieldScrollDelta(
     fieldTop: number,
     fieldBottom: number,

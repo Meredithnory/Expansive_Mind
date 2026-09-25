@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     focusedFieldScrollDelta,
+    headingNeedsPin,
     keyboardInsetFromViewport,
     resolveKeyboardChrome,
 } from "./keyboard-inset";
@@ -67,5 +68,19 @@ describe("focusedFieldScrollDelta", () => {
 
     it("scrolls a field back down when it sits above the band", () => {
         expect(focusedFieldScrollDelta(-40, 20, 8, 456)).toBe(-48);
+    });
+});
+
+describe("headingNeedsPin", () => {
+    it("pins a heading the scroll would carry off screen", () => {
+        expect(headingNeedsPin(50, 151)).toBe(true);
+    });
+
+    it("leaves a heading alone when the field is already in view", () => {
+        expect(headingNeedsPin(50, 0)).toBe(false);
+    });
+
+    it("leaves a heading that stays on screen after a small scroll", () => {
+        expect(headingNeedsPin(120, 40)).toBe(false);
     });
 });
