@@ -14,7 +14,7 @@ Read [architecture.md](architecture.md) only if the feature spans auth, quota, o
 - Grep `.` or `src/` with a vague term (`paper`, `user`, `search`, `admin`) to “learn the app.”
 - Open the god-file list in FEATURES.md for orientation.
 - `@`-mention whole directories.
-- Re-derive the Discover pipeline from `DiscoverClient.tsx`. Pipeline is `agent.ts` + the files it imports; UI types are `discover-types.ts`.
+- Re-derive the Discover pipeline, share link, briefs, admin MFA, quotas, billing, or licenses from a god file. Open [complex.md](complex.md) and the one file it links.
 - Duplicate types that already live in `report-types.ts`, `project-types.ts`, or `session-types.ts`.
 
 ## Targeted search

@@ -26,7 +26,7 @@ Home tagline in code: “Evidence, made actionable.”
 | --- | ---: | ---: | ---: | ---: | ---: |
 | guest | 3 | 1 (lifetime) | 0 | 0 | 0 |
 | free | 20 | 2 (lifetime) | 5 | 0 | 3 |
-| pro | 300 | 40 | 100 | 25 | 50 |
+| pro | 300 | 20 | 100 | 25 | 50 |
 
 Admin can override amounts in `/admin`. Researcher Pro list prices in code defaults: **$12 / month**, **$99 / year**. Stripe webhook — not the browser redirect — grants Pro.
 
@@ -70,7 +70,6 @@ Complimentary Pro, refunds, who may be in `ADMIN_EMAILS`, and when to flip `CONT
 
 ## Product rules (locked)
 
-- **Claim ledger is Must-have before share.** Every claim on a Discover opportunity brief must have a quote from verified home full text, a resolvable citation (DOI, paper id, or href), and a commercial-friendly home license URI (CC0 / CC BY / CC BY-SA / CC BY-ND) before Share synthesis is allowed. Unpaywall does not widen that license.
-- Once the ledger is built, do not enable or ship Share synthesis without it.
-- Until the ledger ships, treat current share as **incomplete vs the product bar** — not a finished Discover trust surface.
-- Next Discover trust work is the ledger: reshape existing gaps + citations into rows. Do not rewrite the opportunity report to get there.
+- Share synthesis for a signed-in saved discovery does not wait on claim-excerpt completeness. Ledger shape and the quote gate: [claim-ledger.md](claim-ledger.md) and [content-access.md](content-access.md).
+- The ledger reshapes existing gaps, problems, and ventures. Do not rewrite the opportunity report to get rows.
+- Quota numbers, including the stored pro-discover `40` coercion back to 20: [quotas.md](quotas.md).

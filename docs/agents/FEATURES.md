@@ -17,7 +17,7 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Auth / session | `src/app/login/page.tsx`, `signup` | `src/app/api/login`, `signup`, `logout`, `session`, `account/password` | `src/app/api/authMiddleware.ts`, `src/app/lib/use-session.tsx`, `session-version.ts` | `src/middleware.test.ts`, `session-version.test.ts`, `src/app/api/authMiddleware.test.ts`, `src/app/api/session/route.test.ts`, `src/app/api/signup/route.test.ts`, `src/app/api/logout/route.test.ts`, `src/app/api/logout/all/route.test.ts`, `src/app/api/account/password/route.test.ts` | — |
 | Billing | `src/app/pricing/page.tsx` | `src/app/api/billing/checkout`, `portal`, `webhook` | `src/app/lib/stripe.ts`, `billing-subscription.ts`, `plan-config.ts` | `billing-subscription.test.ts`, `stripe-webhook-signature.test.ts` | — |
 | Quotas | — | consumed in discover/search/chat/projects routes | `src/app/lib/entitlements.ts`, `guest-usage.ts`, `guest-cost-cap.ts` | `entitlements.test.ts`, `guest-*.test.ts`, `src/app/lib/quota-identity.test.ts` | — |
-| Admin | `src/app/admin/(protected)/page.tsx`, `admin/(protected)/usage`, `admin/login` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts`, `admin-session.ts` | `admin.test.ts`, `admin-identity.test.ts`, `src/app/admin/admin-mobile.test.ts`, `src/middleware.test.ts` | — |
+| Admin | `src/app/admin/(protected)/page.tsx`, `admin/(protected)/usage`, `admin/login` | `src/app/api/admin/*` | `src/app/lib/admin.ts`, `admin-identity.ts`, `admin-audit.ts`, `admin-session.ts`, `admin-totp.ts` | `admin.test.ts`, `admin-identity.test.ts`, `admin-totp.test.ts`, `src/app/admin/admin-mobile.test.ts`, `src/middleware.test.ts` | — |
 | Contact | `src/app/contact/page.tsx` | `src/app/api/contact/route.ts` | `src/app/lib/contact.ts` | `src/app/lib/contact.test.ts` | — |
 | Analytics | `instrumentation-client.ts` | — | PostHog in Discover/Search/pricing/signup/`use-session` | — | — |
 | Marketing pages | `src/app/page.tsx`, `about`, `get-started` | — | copy is product-intent | `src/app/home-video.test.ts` | restyle without OWNER-EDIT |
@@ -25,6 +25,8 @@ Launch priority: Discover → shareable brief. Open the **entry** and **tests** 
 | Agent verification | `.cursor/skills/verify-expansive-mind/SKILL.md` | doctor script in that skill | feature map next to the skill | — | product runtime |
 
 **Share bar:** signed-in saved discovery (Mongo ObjectId) can create a share link. Claim-excerpt completeness does not gate Share synthesis. Quote/license rules for displaying paper body on shared pages stay in `quote-eligibility` / paper reader paths. See [product-intent.md](product-intent.md).
+
+Pipeline, ledger, briefs, admin MFA, quotas, billing, and licenses: [complex.md](complex.md).
 
 ## God files (do not load for orientation)
 

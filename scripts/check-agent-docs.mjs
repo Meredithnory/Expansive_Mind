@@ -16,6 +16,14 @@ const DOC_FILES = [
     "docs/agents/gates.md",
     "docs/agents/token-efficiency.md",
     "docs/agents/env.md",
+    "docs/agents/complex.md",
+    "docs/agents/discover-pipeline.md",
+    "docs/agents/claim-ledger.md",
+    "docs/agents/briefs.md",
+    "docs/agents/admin-auth.md",
+    "docs/agents/quotas.md",
+    "docs/agents/billing.md",
+    "docs/agents/content-access.md",
 ];
 
 const REQUIRED_PATHS = [

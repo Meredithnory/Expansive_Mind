@@ -7,7 +7,7 @@ Use this checklist. e.m. assistant scopes which boxes apply before Builder start
 - [ ] Feature exists (or clearly fits) in [FEATURES.md](FEATURES.md). If new, add one row.
 - [ ] Change does not invent brand copy. New user-facing strings: Meredith `OWNER-EDIT` or e.m. approve.
 - [ ] Money / quota / admin / license behavior: stop and get Meredith / e.m. approval.
-- [ ] Discover share: claim ledger (home-full-text quote + citation + commercial-friendly home license URI) is the trust bar — reshape existing gaps/citations; do not rewrite the report. Unpaywall does not widen quotes.
+- [ ] Discover share: a signed-in saved discovery gets a slug. Do not gate that route on ledger completeness. Reshape gaps into ledger rows; do not rewrite the report. Unpaywall does not widen quotes. See [claim-ledger.md](claim-ledger.md).
 
 ## 2. Place the code
 

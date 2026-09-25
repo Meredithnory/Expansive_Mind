@@ -22,7 +22,7 @@ Agents do **not** merge. Wait for the GitHub Actions **CI** check (`.github/work
 4. Tests cover the new branch. `npm test` and `npm run lint` pass. Discover or brief claims also have verify-expansive-mind evidence.
 5. `.env.example` updated if a new variable appeared. No secrets in the diff.
 6. Agent docs still true. If a path moved, update FEATURES / architecture / lib-index.
-7. Share / brief: no Share synthesis without every claim linked (home-full-text quote + citation + commercial-friendly home license URI). Unpaywall does not widen that license.
+7. Share link: `POST` `src/app/api/discover/share/route.ts` stays a saved-discovery slug. Do not require a complete ledger. Quote text still uses the strict home-license gate. See [claim-ledger.md](claim-ledger.md) and [content-access.md](content-access.md).
 
 ## Owner / e.m. approve when
 
