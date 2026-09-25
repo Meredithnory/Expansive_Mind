@@ -3,12 +3,29 @@ import User from "../../models/User";
 import connectDB from "../../db/connectDB";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import jwt from "jsonwebtoken";
+import {
+    hasAcceptableContentLength,
+    hasValidMutationOrigin,
+} from "../../lib/request-security";
+import { sessionVersion } from "../../lib/session-version";
 
 const maxAge = 24 * 60 * 60;
 
 //POST Handler
 export async function POST(request: NextRequest) {
     try {
+        if (!hasValidMutationOrigin(request)) {
+            return NextResponse.json(
+                { success: false, error: "Invalid origin." },
+                { status: 403 },
+            );
+        }
+        if (!hasAcceptableContentLength(request, 32 * 1024)) {
+            return NextResponse.json(
+                { success: false, error: "Signup request is too large." },
+                { status: 413 },
+            );
+        }
         const rateLimit = await consumeRateLimit({
             scope: "signup",
             identity: requestIp(request),
@@ -36,17 +53,30 @@ export async function POST(request: NextRequest) {
         const formData = await request.formData();
 
         //Extract fields from FormData
-        const firstName = formData.get("first_name") as string;
-        const lastName = formData.get("last_name") as string;
-        const email = formData.get("email") as string;
-        const password = formData.get("password") as string;
+        const firstName = formData.get("first_name");
+        const lastName = formData.get("last_name");
+        const email = formData.get("email");
+        const password = formData.get("password");
 
         //Validate required fields
-        if (!email || !password) {
+        if (
+            typeof firstName !== "string" ||
+            typeof lastName !== "string" ||
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !firstName.trim() ||
+            !lastName.trim() ||
+            !email.trim() ||
+            !password.trim() ||
+            firstName.length > 100 ||
+            lastName.length > 100 ||
+            email.length > 254 ||
+            password.length > 128
+        ) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: "Email and password are required",
+                    error: "Please check your name, email, and password.",
                 },
                 { status: 400 }
             );
@@ -67,8 +97,8 @@ export async function POST(request: NextRequest) {
 
         //Create new document using the MODEL(User)
         const newSubmission = new User({
-            firstName: firstName?.trim(),
-            lastName: lastName?.trim(),
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
             email: normalizedEmail,
             password: password.trim(),
         });
@@ -78,9 +108,13 @@ export async function POST(request: NextRequest) {
 
         //Return success response
         const token = jwt.sign(
-            { id: savedSubmission._id.toString() },
+            {
+                id: savedSubmission._id.toString(),
+                email: savedSubmission.email,
+                tokenVersion: sessionVersion(savedSubmission.tokenVersion),
+            },
             process.env.JWT_SECRET!,
-            { expiresIn: maxAge },
+            { algorithm: "HS256", expiresIn: maxAge },
         );
         const response = NextResponse.json(
             {

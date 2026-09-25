@@ -1,45 +1,78 @@
 import type { NextRequest } from "next/server";
 
 export function hasValidMutationOrigin(request: NextRequest) {
-    const site = request.headers.get("sec-fetch-site");
-    if (site && site !== "same-origin" && site !== "none") return false;
     const origin = request.headers.get("origin");
     if (origin) return origin === request.nextUrl.origin;
-    const referer = request.headers.get("referer");
-    if (referer) {
-        try { return new URL(referer).origin === request.nextUrl.origin; }
-        catch { return false; }
+
+    // Browsers that omit Origin still send Fetch Metadata. Reject requests
+    // with neither signal instead of treating an unverifiable request as
+    // same-origin. Stripe webhooks do not use this browser-only helper.
+    const fetchSite = request.headers.get("sec-fetch-site");
+    return fetchSite === "same-origin" || fetchSite === "none";
+}
+
+export function hasAcceptableContentLength(
+    request: NextRequest,
+    maxBytes: number,
+) {
+    const raw = request.headers.get("content-length");
+    if (!raw) return true;
+    const length = Number(raw);
+    return Number.isInteger(length) && length >= 0 && length <= maxBytes;
+}
+
+export async function readLimitedJsonBody(
+    request: NextRequest,
+    maxBytes: number,
+): Promise<
+    | { ok: true; value: unknown }
+    | { ok: false; status: 400 | 413 }
+> {
+    if (!hasAcceptableContentLength(request, maxBytes)) {
+        return { ok: false, status: 413 };
     }
-    // Non-browser clients have no ambient browser cookies or Fetch Metadata.
-    return true;
-}
+    if (!request.body) return { ok: false, status: 400 };
 
-export class InvalidJsonRequest extends Error {
-    constructor(public status: number, message: string) { super(message); }
-}
-
-/** Bound actual bytes, including chunked bodies without a Content-Length header. */
-export async function readBoundedJson(request: Request, maxBytes = 32768): Promise<Record<string, unknown>> {
-    if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") throw new InvalidJsonRequest(415, "Expected application/json.");
-    const reader = request.body?.getReader();
-    if (!reader) throw new InvalidJsonRequest(400, "JSON body required.");
-    const chunks: Uint8Array[] = [];
-    let size = 0;
+    const reader = request.body.getReader();
+    const decoder = new TextDecoder();
+    let bytesRead = 0;
+    let text = "";
     try {
         while (true) {
-            const {value,done} = await reader.read();
+            const { done, value } = await reader.read();
             if (done) break;
-            size += value.byteLength;
-            if (size > maxBytes) { await reader.cancel(); throw new InvalidJsonRequest(413, "Request body too large."); }
-            chunks.push(value);
+            bytesRead += value.byteLength;
+            if (bytesRead > maxBytes) {
+                await reader.cancel();
+                return { ok: false, status: 413 };
+            }
+            text += decoder.decode(value, { stream: true });
         }
-    } finally { reader.releaseLock(); }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+        text += decoder.decode();
+    } finally {
+        reader.releaseLock();
+    }
+
     try {
-        const value = JSON.parse(new TextDecoder().decode(bytes));
-        if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();
-        return value;
-    } catch { throw new InvalidJsonRequest(400, "Expected a JSON object."); }
+        return { ok: true, value: JSON.parse(text) };
+    } catch {
+        return { ok: false, status: 400 };
+    }
+}
+
+export function trustedApplicationOrigin(request: NextRequest) {
+    const configured = process.env.APP_URL;
+    if (!configured && process.env.NODE_ENV === "production") {
+        throw new Error("APP_URL is required in production.");
+    }
+    const url = new URL(configured || request.nextUrl.origin);
+    if (
+        url.username ||
+        url.password ||
+        !["http:", "https:"].includes(url.protocol) ||
+        (process.env.NODE_ENV === "production" && url.protocol !== "https:")
+    ) {
+        throw new Error("APP_URL is invalid.");
+    }
+    return url.origin;
 }

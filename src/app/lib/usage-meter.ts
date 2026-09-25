@@ -24,6 +24,7 @@ const MODEL_PRICES_PER_MILLION: Record<
     { input: number; output: number }
 > = {
     "openai/gpt-4.1-mini": { input: 0.4, output: 1.6 },
+    "openai/gpt-4.1-nano": { input: 0.1, output: 0.4 },
     "openai/text-embedding-3-small": { input: 0.02, output: 0 },
 };
 

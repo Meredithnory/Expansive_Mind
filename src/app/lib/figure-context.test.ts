@@ -64,7 +64,7 @@ describe("figure context", () => {
     it("finds stable figure references and includes nearby evidence", () => {
         expect(findPaperFigure(paper, "fig-2")).toEqual(figure);
         const context = buildFigureContext(paper, figure);
-        expect(context).toContain("Figure: Figure 2");
+        expect(context).toContain('Figure: "Figure 2"');
         expect(context).toContain("bars are confidence intervals");
         expect(context).toContain("treatment group improved");
         expect(context).toContain("excluded zero");
@@ -77,7 +77,7 @@ describe("figure context", () => {
             "Screenshot caption supplied by the user.",
         );
         expect(context).toContain(
-            "Selected excerpt or caption: Screenshot caption supplied by the user.",
+            'Selected excerpt or caption: "Screenshot caption supplied by the user."',
         );
         expect(context).not.toContain("treatment group improved");
     });

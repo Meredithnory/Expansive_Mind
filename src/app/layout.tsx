@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
 import AudienceTracker from "./components/AudienceTracker";
 import ScrollTheme from "./components/ScrollTheme";
+import SiteStatus from "./components/SiteStatus";
 import { SessionProvider } from "./lib/use-session";
 
 const manrope = Manrope({
@@ -19,6 +20,7 @@ export const viewport: Viewport = {
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",
+    interactiveWidget: "overlays-content",
 };
 
 export const metadata: Metadata = {
@@ -41,6 +43,7 @@ export default function RootLayout({
             <body className="antialiased">
                 <SessionProvider>
                     <ScrollTheme />
+                    <SiteStatus />
                     <AudienceTracker />
                     <NavBar />
                     <div className="main-content">{children}</div>

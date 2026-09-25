@@ -1,61 +1,57 @@
-import {
-    searchNIHPaperIds,
-    getNIHPaperResults,
-    searchSpringerNaturePapers,
-    searchGoogleScholarPapers,
-} from "../search/utils";
 import { rankSearchResults } from "../search/semantic-rank";
-import { evaluateContentAccess } from "../../lib/content-access-policy";
-import { abstractToText } from "../../lib/abstract-text";
-import { attachPaperImpact } from "../../lib/paper-impact-lookup";
-import type { PaperImpact } from "../../lib/paper-impact";
 import { loadCachedPaperBySource } from "../paper/load-paper";
-import { groundDiscoveryEvidence } from "../../lib/claim-evidence";
-import { selectPaperContext } from "../../lib/paper-context";
+import {
+    selectPaperContext,
+    selectQuotableExcerpt,
+} from "../../lib/paper-context";
+import {
+    evaluateQuoteEligibility,
+    isScholarSnippetSource,
+    paperHasFullTextBody,
+    quoteLicenseFromHome,
+} from "../../lib/quote-eligibility";
 import {
     PAPER_SOURCES,
     buildPaperPath,
-    type SourceDatabase,
+    searchSourceTag,
 } from "../../lib/paper-sources";
 import {
     selectDiscoverCandidates,
-    dedupeDiscoverCandidates,
     type DiscoverCandidate,
 } from "./select-candidates";
 import {
-    renderOpportunityReport,
-    synthesizeOpportunityReport,
-} from "./synthesize";
+    enrichOpenAccess,
+    hasConfiguredLiteratureSource,
+    mergeLoadedCitation,
+    retrieve,
+    shouldDropForOaConflict,
+} from "../research/registry";
+import { attachClaimLedger } from "./claim-ledger";
+import { synthesizeOpportunityReport } from "./synthesize";
 import {
     extractPaperFindings,
     fallbackPaperExtraction,
 } from "./analyze";
 import { expandDiscoveryQueries } from "./expand-queries";
 import type {
+    DiscoverPaperCard,
     OpportunityReport,
     PaperExcerptForSynthesis,
     PaperExtraction,
 } from "./report-types";
 import type { UsageContext } from "../../lib/usage-meter";
-import { assessDiscoveryQuestion, UNCLEAR_QUESTION_ERROR } from "./assess-query";
-import { buildNihDiscoveryQuery } from "./discovery-query";
-import { searchEuropePmc, searchCrossref, type IndexSearchStatus } from "./additional-indexes";
+import { suggestSearchQueryNihOnly } from "../search/spell-suggest";
+import {
+    applyDiscoverySpellingSuggestion,
+    buildNihDiscoveryQuery,
+} from "./discovery-query";
+import {
+    judgeResearchQuestion,
+    NO_RESULTS_COPY,
+    shouldSearchLiterature,
+} from "./question-quality";
 
-export interface DiscoverPaperCard extends PaperImpact {
-    index: number;
-    database: SourceDatabase;
-    paperId: string;
-    idName: string;
-    title: string;
-    authors: string[];
-    date: string;
-    sourceLabel: string;
-    sourceUrl: string;
-    href: string;
-    doi?: string;
-    scholarCitesId?: string;
-    indexedBy?: string[];
-}
+export type { DiscoverPaperCard } from "./report-types";
 
 export interface DiscoverAgentResult {
     question: string;
@@ -63,6 +59,8 @@ export interface DiscoverAgentResult {
     brief: string;
     report?: OpportunityReport;
     extractions: PaperExtraction[];
+    noResults?: boolean;
+    message?: string;
     meta: {
         springerCandidateCount: number;
         springerEligibleCount: number;
@@ -77,7 +75,6 @@ export interface DiscoverAgentResult {
         correctedQuery?: string;
         subQueriesUsed: string[];
         extractionFailureCount: number;
-        additionalIndexes?: IndexSearchStatus[];
     };
 }
 
@@ -91,194 +88,6 @@ export class DiscoverAgentError extends Error {
     }
 }
 
-function mapSpringerResults(results: any[]): DiscoverCandidate[] {
-    return results.map((result) => {
-        const doi = String(result.doi || result.sourceId || "").trim();
-        const authors = Array.isArray(result.authors) ? result.authors : [];
-        const title = result.title || "Untitled";
-        const abstract = abstractToText(result.abstract) || "";
-        const sourceUrl =
-            result.sourceUrl || (doi ? `https://doi.org/${doi}` : "");
-        const access =
-            result.access ||
-            evaluateContentAccess({
-                source: "springer",
-                rawLicense: null,
-                attribution: {
-                    title,
-                    authors,
-                    sourceLabel: PAPER_SOURCES.springer.label,
-                    canonicalUrl: sourceUrl,
-                    paperId: doi,
-                    idName: "doi",
-                    doi: doi || undefined,
-                },
-            });
-
-        return {
-            database: PAPER_SOURCES.springer.database,
-            paperId: doi,
-            idName: "doi",
-            title,
-            authors,
-            date: result.date || "",
-            abstract,
-            sourceLabel: PAPER_SOURCES.springer.label,
-            sourceUrl,
-            doi: doi || undefined,
-            indexedBy: ["Springer Nature"],
-            citationCount: result.citationCount,
-            citationSource: result.citationSource,
-            access,
-        };
-    });
-}
-
-function mapNihResults(results: any[]): DiscoverCandidate[] {
-    return results.map((paper) => {
-        const pmcid = String(paper.pmcid || paper.sourceId || "").trim();
-        const sourceUrl = `https://pmc.ncbi.nlm.nih.gov/articles/PMC${pmcid}/`;
-        const authors = Array.isArray(paper.authors) ? paper.authors : [];
-        const title = paper.title || "Untitled";
-        const access = evaluateContentAccess({
-            source: "nih",
-            rawLicense: null,
-            attribution: {
-                title,
-                authors,
-                sourceLabel: PAPER_SOURCES.nih.label,
-                canonicalUrl: sourceUrl,
-                paperId: pmcid,
-                idName: "pmcid",
-                publicationDate: paper.date || undefined,
-            },
-        });
-
-        return {
-            database: PAPER_SOURCES.nih.database,
-            paperId: pmcid,
-            idName: "pmcid",
-            title,
-            authors,
-            date: paper.date || "",
-            abstract: abstractToText(paper.abstract) || "",
-            sourceLabel: PAPER_SOURCES.nih.label,
-            sourceUrl,
-            doi: typeof paper.doi === "string" ? paper.doi : undefined,
-            indexedBy: ["NIH PMC"],
-            citationCount: paper.citationCount,
-            citationSource: paper.citationSource,
-            access,
-        };
-    });
-}
-
-function mapScholarResults(results: any[]): DiscoverCandidate[] {
-    return results.map((result) => {
-        const paperId = String(
-            result.clusterId || result.sourceId || "",
-        ).trim();
-        const authors = Array.isArray(result.authors) ? result.authors : [];
-        const title = result.title || "Untitled";
-        const sourceUrl = result.sourceUrl || "";
-        const access =
-            result.access ||
-            evaluateContentAccess({
-                source: "scholar",
-                rawLicense: null,
-                attribution: {
-                    title,
-                    authors,
-                    sourceLabel: PAPER_SOURCES.scholar.label,
-                    canonicalUrl: sourceUrl,
-                    paperId,
-                    idName: "cluster_id",
-                    publicationDate: result.date || undefined,
-                },
-            });
-
-        return {
-            database: PAPER_SOURCES.scholar.database,
-            paperId,
-            idName: "cluster_id",
-            title,
-            authors,
-            date: result.date || "",
-            abstract: abstractToText(result.abstract) || "",
-            sourceLabel: PAPER_SOURCES.scholar.label,
-            sourceUrl,
-            doi: result.doi ? String(result.doi).trim() : undefined,
-            scholarCitesId:
-                typeof result.scholarCitesId === "string"
-                    ? result.scholarCitesId.trim() || undefined
-                    : undefined,
-            indexedBy: ["Google Scholar"],
-            citationCount: result.citationCount,
-            citationSource: result.citationSource,
-            access,
-        };
-    });
-}
-
-function rankSource(
-    database: SourceDatabase,
-): "nih" | "nature" | "scholar" {
-    if (database === PAPER_SOURCES.nih.database) return "nih";
-    if (database === PAPER_SOURCES.scholar.database) return "scholar";
-    return "nature";
-}
-
-async function searchSpringerForQueries(
-    queries: string[],
-): Promise<DiscoverCandidate[]> {
-    const settled = await Promise.allSettled(
-        queries.map((query) => searchSpringerNaturePapers(query, 0)),
-    );
-    const mapped: DiscoverCandidate[] = [];
-    for (const result of settled) {
-        if (result.status !== "fulfilled") continue;
-        mapped.push(...mapSpringerResults(result.value.results || []));
-    }
-    return dedupeDiscoverCandidates(mapped);
-}
-
-async function searchNihForQueries(
-    queries: string[],
-): Promise<DiscoverCandidate[]> {
-    const settled = await Promise.allSettled(
-        queries.map(async (query) => {
-            const nihQuery = buildNihDiscoveryQuery(query);
-            const nihSearch = await searchNIHPaperIds(nihQuery, 0);
-            const nihPapers =
-                nihSearch.ids.length > 0
-                    ? await getNIHPaperResults(nihSearch.ids, nihQuery)
-                    : [];
-            return mapNihResults(nihPapers);
-        }),
-    );
-    const mapped: DiscoverCandidate[] = [];
-    for (const result of settled) {
-        if (result.status !== "fulfilled") continue;
-        mapped.push(...result.value);
-    }
-    return dedupeDiscoverCandidates(mapped);
-}
-
-async function searchScholarForQuestion(
-    question: string,
-): Promise<DiscoverCandidate[]> {
-    if (!process.env.SERPAPI_KEY) return [];
-    try {
-        const search = await searchGoogleScholarPapers(question, 0);
-        return dedupeDiscoverCandidates(
-            mapScholarResults(search.results || []),
-        );
-    } catch (error) {
-        console.error("Discovery Scholar search failed", error);
-        return [];
-    }
-}
-
 async function rankMergedCandidates(
     question: string,
     candidates: DiscoverCandidate[],
@@ -289,17 +98,17 @@ async function rankMergedCandidates(
     const ranked = await rankSearchResults(
         question,
         candidates.map((candidate) => ({
-            sourceId: `${candidate.database}:${candidate.paperId}`,
+            sourceId: candidate.paperId,
             doi: candidate.doi,
             title: candidate.title,
             abstract: candidate.abstract,
-            source: rankSource(candidate.database),
+            source: searchSourceTag(candidate.database),
             access: candidate.access,
         })),
         usageContext,
     );
     const byId = new Map(
-        candidates.map((candidate) => [`${candidate.database}:${candidate.paperId}`, candidate]),
+        candidates.map((candidate) => [candidate.paperId, candidate]),
     );
     return ranked
         .map((result) => byId.get(result.sourceId))
@@ -320,46 +129,41 @@ async function retrieveCandidates(
     nihEligibleCount: number;
     scholarCandidateCount: number;
     scholarEligibleCount: number;
-    additionalIndexes: IndexSearchStatus[];
 }> {
     const searchQueries = queries.length > 0 ? queries : [question];
-    const [springerMapped, nihMapped, scholarMapped, europe, crossref] = await Promise.all([
-        searchSpringerForQueries(searchQueries),
-        searchNihForQueries(searchQueries),
-        searchScholarForQuestion(question),
-        searchEuropePmc(searchQueries.length > 1 ? searchQueries.slice(1, 3) : searchQueries),
-        searchCrossref(question),
-    ]);
-
-    const merged = dedupeDiscoverCandidates([
-        ...springerMapped,
-        ...nihMapped,
-        ...scholarMapped,
-        ...europe.candidates,
-        ...crossref.candidates,
-    ]);
+    const found = await retrieve({
+        question,
+        queries: searchQueries,
+        nihQueries: searchQueries.map(buildNihDiscoveryQuery),
+        includeScholar: Boolean(process.env.SERPAPI_KEY),
+    });
     const ranked = await rankMergedCandidates(
         question,
-        merged,
+        found.hits,
         usageContext,
     );
     const selected = selectDiscoverCandidates({ ranked });
+    const countFor = (producer: (typeof found.counts)[number]["producer"]) =>
+        found.counts.find((entry) => entry.producer === producer) ?? {
+            candidates: 0,
+            eligible: 0,
+        };
+    const springer = countFor("springer");
+    const nih = countFor("nih");
+    const europepmc = countFor("europepmc");
+    const openalex = countFor("openalex");
+    const scholar = countFor("scholar");
 
     return {
         selected,
-        additionalIndexes: [europe.coverage, crossref.coverage],
-        springerCandidateCount: springerMapped.length,
-        springerEligibleCount: springerMapped.filter(
-            (candidate) => candidate.access.canSendToAI,
-        ).length,
-        nihCandidateCount: nihMapped.length,
-        nihEligibleCount: nihMapped.filter(
-            (candidate) => candidate.access.canSendToAI,
-        ).length,
-        scholarCandidateCount: scholarMapped.length,
-        scholarEligibleCount: scholarMapped.filter(
-            (candidate) => candidate.access.canSendToAI,
-        ).length,
+        springerCandidateCount: springer.candidates,
+        springerEligibleCount: springer.eligible,
+        nihCandidateCount:
+            nih.candidates + europepmc.candidates + openalex.candidates,
+        nihEligibleCount:
+            nih.eligible + europepmc.eligible + openalex.eligible,
+        scholarCandidateCount: scholar.candidates,
+        scholarEligibleCount: scholar.eligible,
     };
 }
 
@@ -385,17 +189,45 @@ async function readPaperExcerpts(
             if (!paper) {
                 throw new Error("Paper not found");
             }
+            const loaded = mergeLoadedCitation(candidate, paper);
+            if (
+                isScholarSnippetSource({
+                    source: paper.source,
+                    database: loaded.locator.database,
+                    contentLabel: paper.contentLabel,
+                })
+            ) {
+                throw new Error("Scholar snippets are discovery-only");
+            }
             if (!paper.access.canSendToAI) {
                 throw new Error("Paper not approved for AI processing");
             }
-            if (paper.status?.isRetracted) throw new Error("Retracted paper excluded from synthesis");
+
+            const oaDoi =
+                paper.access?.attribution?.doi || candidate.doi;
+            const oa = oaDoi ? await enrichOpenAccess(oaDoi) : null;
+            if (shouldDropForOaConflict(paper, oa)) {
+                throw new Error("Conflicting license records");
+            }
 
             const excerpt = selectPaperContext(paper, question);
+            const quoteLicenses = quoteLicenseFromHome(paper.access, oa);
+            const quote = evaluateQuoteEligibility({
+                source: paper.source || loaded.locator.database,
+                database: loaded.locator.database,
+                contentLabel: paper.contentLabel,
+                hasFullTextBody: paperHasFullTextBody(paper),
+                rawLicense: quoteLicenses.rawLicense,
+                licenseUrl: quoteLicenses.licenseUrl,
+            });
+            const quoteExcerpt = quote.allowed
+                ? selectQuotableExcerpt(paper, question)
+                : "";
             const card: DiscoverPaperCard = {
                 index: index + 1,
-                database: candidate.database,
-                paperId: paper.paperId || candidate.paperId,
-                idName: paper.idName || candidate.idName,
+                database: loaded.locator.database,
+                paperId: loaded.locator.paperId,
+                idName: loaded.locator.idName,
                 title: paper.title || candidate.title,
                 authors: paper.authors?.length
                     ? paper.authors
@@ -405,15 +237,16 @@ async function readPaperExcerpts(
                 sourceUrl:
                     paper.access.canonicalUrl || candidate.sourceUrl,
                 href: buildPaperPath(
-                    candidate.database,
-                    paper.paperId || candidate.paperId,
-                    paper.idName || candidate.idName,
+                    loaded.locator.database,
+                    loaded.locator.paperId,
+                    loaded.locator.idName,
                 ),
-                doi: candidate.doi || paper.access.attribution.doi,
-                scholarCitesId: candidate.scholarCitesId,
-                indexedBy: candidate.indexedBy,
-                citationCount: candidate.citationCount,
-                citationSource: candidate.citationSource,
+                ...(loaded.citation.doi
+                    ? { doi: loaded.citation.doi }
+                    : {}),
+                ...(quote.allowed && quote.licenseUrl
+                    ? { licenseUrl: quote.licenseUrl }
+                    : {}),
             };
 
             const synthesisPaper: PaperExcerptForSynthesis = {
@@ -423,6 +256,7 @@ async function readPaperExcerpts(
                 authors: card.authors,
                 publicationDate: card.date || undefined,
                 excerpt,
+                ...(quoteExcerpt ? { quoteExcerpt } : {}),
             };
 
             return { card, synthesisPaper };
@@ -442,17 +276,7 @@ async function readPaperExcerpts(
         });
     }
 
-    const cardsWithImpact = await attachPaperImpact(
-        cards.map((card) => ({
-            ...card,
-            pmcid: card.idName === "pmcid" ? card.paperId : undefined,
-        })),
-    );
-
-    return {
-        cards: cardsWithImpact.map(({ pmcid: _pmcid, ...card }) => card),
-        excerpts,
-    };
+    return { cards, excerpts };
 }
 
 function collectExtractions(
@@ -482,29 +306,77 @@ function collectExtractions(
     return { extractions, extractionFailureCount };
 }
 
+function emptyDiscoveryResult(question: string): DiscoverAgentResult {
+    return {
+        question,
+        papers: [],
+        brief: "",
+        extractions: [],
+        noResults: true,
+        message: NO_RESULTS_COPY,
+        meta: {
+            springerCandidateCount: 0,
+            springerEligibleCount: 0,
+            nihCandidateCount: 0,
+            nihEligibleCount: 0,
+            scholarCandidateCount: 0,
+            scholarEligibleCount: 0,
+            nihFillCount: 0,
+            papersUsed: 0,
+            usedNihFill: false,
+            usedScholar: false,
+            subQueriesUsed: [],
+            extractionFailureCount: 0,
+        },
+    };
+}
+
 export async function runDiscoverAgent(
     question: string,
     usageContext?: UsageContext,
 ): Promise<DiscoverAgentResult> {
-    const assessment = await assessDiscoveryQuestion(question).catch(() => ({
-        status: "ok" as const,
-        suggestion: null,
-    }));
-    if (assessment.status === "unclear") {
-        throw new DiscoverAgentError(UNCLEAR_QUESTION_ERROR, 400);
+    if (!hasConfiguredLiteratureSource()) {
+        throw new DiscoverAgentError(
+            "No literature sources are configured. Add SPRINGER_API_KEY, NIH (API_KEY and NCBI_EMAIL), SERPAPI_KEY, OPENALEX_API_KEY or OPENALEX_MAILTO, or EUROPEPMC_EMAIL to enable discovery.",
+            503,
+        );
     }
-    const correctedQuery =
-        assessment.status === "corrected" && assessment.suggestion
-            ? assessment.suggestion
-            : undefined;
-    const searchQuestion = correctedQuery ?? question;
 
-    const queries = await expandDiscoveryQueries(searchQuestion, usageContext);
-    const candidateResult = await retrieveCandidates(
-        searchQuestion,
+    // Cheap yes/no first. Expanding or eSpell-ing junk turns it into a real
+    // topic, then we go read papers the user never asked for.
+    const quality = await judgeResearchQuestion(question, usageContext);
+    if (!shouldSearchLiterature(quality)) {
+        return emptyDiscoveryResult(question);
+    }
+
+    let queries = await expandDiscoveryQueries(question, usageContext);
+    let candidateResult = await retrieveCandidates(
+        question,
         queries,
         usageContext,
     );
+    let correctedQuery: string | undefined;
+
+    if (candidateResult.selected.length === 0) {
+        const suggestion = await suggestSearchQueryNihOnly(question).catch(
+            () => null,
+        );
+        if (suggestion && suggestion.toLowerCase() !== question.toLowerCase()) {
+            correctedQuery = applyDiscoverySpellingSuggestion(
+                question,
+                suggestion,
+            );
+            queries = await expandDiscoveryQueries(
+                correctedQuery,
+                usageContext,
+            );
+            candidateResult = await retrieveCandidates(
+                correctedQuery,
+                queries,
+                usageContext,
+            );
+        }
+    }
 
     const {
         selected,
@@ -514,7 +386,6 @@ export async function runDiscoverAgent(
         nihEligibleCount,
         scholarCandidateCount,
         scholarEligibleCount,
-        additionalIndexes,
     } = candidateResult;
 
     if (selected.length === 0) {
@@ -524,10 +395,7 @@ export async function runDiscoverAgent(
         );
     }
 
-    const { cards, excerpts } = await readPaperExcerpts(
-        searchQuestion,
-        selected,
-    );
+    const { cards, excerpts } = await readPaperExcerpts(question, selected);
 
     if (excerpts.length === 0) {
         throw new DiscoverAgentError(
@@ -544,15 +412,9 @@ export async function runDiscoverAgent(
         extractionSettled,
     );
 
-    const prepared = groundDiscoveryEvidence({
-        question: searchQuestion,
-        excerpts,
-        extractions,
-        papers: cards,
-    });
     const synthesis = await synthesizeOpportunityReport(
-        searchQuestion,
-        prepared.extractions,
+        question,
+        extractions,
         usageContext,
     );
     if (!synthesis?.brief) {
@@ -561,25 +423,6 @@ export async function runDiscoverAgent(
             502,
         );
     }
-    const grounded = groundDiscoveryEvidence({
-        question: searchQuestion,
-        excerpts,
-        extractions: prepared.extractions,
-        papers: cards,
-        gaps: synthesis.report?.sections.gaps,
-    });
-    const report = synthesis.report
-        ? {
-              ...synthesis.report,
-              sections: {
-                  ...synthesis.report.sections,
-                  gaps: grounded.gaps,
-              },
-          }
-        : undefined;
-    const brief = report
-        ? renderOpportunityReport(report)
-        : synthesis.brief;
 
     const nihFillCount = cards.filter(
         (paper) => paper.database === PAPER_SOURCES.nih.database,
@@ -592,9 +435,11 @@ export async function runDiscoverAgent(
     return {
         question,
         papers: cards,
-        brief,
-        report,
-        extractions: grounded.extractions,
+        brief: synthesis.brief,
+        report: synthesis.report
+            ? attachClaimLedger(synthesis.report, cards, extractions)
+            : undefined,
+        extractions,
         meta: {
             springerCandidateCount,
             springerEligibleCount,
@@ -609,7 +454,6 @@ export async function runDiscoverAgent(
             correctedQuery,
             subQueriesUsed,
             extractionFailureCount,
-            additionalIndexes,
         },
     };
 }

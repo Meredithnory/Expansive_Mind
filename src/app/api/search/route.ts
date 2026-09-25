@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-    searchNIHPaperIds,
-    getNIHPaperResults,
-    searchSpringerNaturePapers,
-    searchGoogleScholarPapers,
+    mergeResultsByTier,
     searchEuropePmcPapers,
     searchCrossrefPapers,
-    mergeResultsByTier,
-    isNihApiConfigured,
 } from "./utils";
 import { rankSearchResults } from "./semantic-rank";
+import { searchHomed } from "../research/registry";
+import type { SourceDatabase } from "../../lib/paper-sources";
+import { attachPaperImpact } from "../../lib/paper-impact-lookup";
 import { withOptionalAuth } from "../authMiddleware";
-import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
     consumeQuota,
@@ -24,215 +21,118 @@ import {
     type UsageContext,
 } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
-import { attachPaperImpact } from "../../lib/paper-impact-lookup";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
-type SourceFilter =
-    | "all"
-    | "nih"
-    | "springer"
-    | "scholar"
-    | "europe-pmc"
-    | "crossref";
-type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
-
-const DATE_FILTERS = new Set<DateFilter>([
-    "any",
-    "this-year",
-    "2-years",
-    "5-years",
-    "10-years",
-]);
-
-const getDateRange = (filter: DateFilter) => {
-    if (filter === "any") return undefined;
-    const toYear = new Date().getUTCFullYear();
-    const years =
-        filter === "this-year"
-            ? 1
-            : Number.parseInt(filter.replace("-years", ""), 10);
-    return { fromYear: toYear - years + 1, toYear };
-};
+type SourceFilter = "all" | "nih" | "springer" | "scholar" | "europe-pmc" | "crossref";
 
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
     includeSpringer: sourceFilter === "all" || sourceFilter === "springer",
-    includeScholar: sourceFilter === "all" || sourceFilter === "scholar",
-    includeEuropePmc: sourceFilter === "all" || sourceFilter === "europe-pmc",
-    includeCrossref: sourceFilter === "all" || sourceFilter === "crossref",
+    includeScholar: sourceFilter === "scholar",
 });
 
 async function runSearch(
     searchValue: string,
     page: number,
     sourceFilter: string,
-    dateFilter: DateFilter,
-    options?: {
-        lightweight?: boolean;
-        usageContext?: UsageContext;
-        includeScholar?: boolean;
-    },
+    options?: { lightweight?: boolean; usageContext?: UsageContext },
 ) {
-    const flags = getSourceFlags(sourceFilter);
-    const includeNih = flags.includeNih;
-    const includeSpringer = flags.includeSpringer;
-    const includeScholar =
-        flags.includeScholar && options?.includeScholar !== false;
-    const includeEuropePmc = flags.includeEuropePmc;
-    const includeCrossref = flags.includeCrossref;
     const lightweight = options?.lightweight ?? false;
-    const dateRange = getDateRange(dateFilter);
 
-    const [nihSearch, springerSearch, scholarSearch, europePmcSearch, crossrefSearch] =
-        await Promise.all([
-        includeNih
-            ? searchNIHPaperIds(searchValue, page, dateRange)
-            : Promise.resolve({
-                  ids: [],
-                  totalCount: 0,
-                  totalPages: 0,
-                  page,
-              }),
-        includeSpringer
-            ? searchSpringerNaturePapers(searchValue, page, dateRange)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-        includeScholar
-            ? searchGoogleScholarPapers(searchValue, page, dateRange)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-        includeEuropePmc
-            ? searchEuropePmcPapers(searchValue, page, dateRange)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-        includeCrossref
-            ? searchCrossrefPapers(searchValue, page, dateRange)
-            : Promise.resolve({
-                  results: [],
-                  totalCount: 0,
-                  totalPages: 0,
-              }),
-    ]);
-
-    const { ids, totalCount: nihTotalCount, totalPages: nihTotalPages } =
-        nihSearch;
-
-    const nihPaperResults =
-        lightweight || ids.length === 0
-            ? []
-            : await getNIHPaperResults(ids, searchValue);
-
-    const formattedNIHResults = nihPaperResults.map((paper: any) => {
-        const sourceUrl = `https://pmc.ncbi.nlm.nih.gov/articles/PMC${paper.pmcid}/`;
+    // Explicit index sources from the research UX branch.
+    if (sourceFilter === "europe-pmc") {
+        const europe = await searchEuropePmcPapers(searchValue, page);
+        const results = lightweight
+            ? europe.results
+            : await rankSearchResults(
+                  searchValue,
+                  europe.results,
+                  options?.usageContext,
+              );
+        const withImpact = lightweight
+            ? results
+            : await attachPaperImpact(results);
         return {
-            sourceId: paper.pmcid,
-            title: paper.title,
-            authors: paper.authors,
-            date: paper.date,
-            abstract: paper.abstract,
-            matchTier: paper.matchTier,
-            source: "nih",
-            sourceLabel: "NIH PubMed Central",
-            sourceUrl,
-            doi: paper.doi,
-            pmcid: paper.pmcid,
-            idName: "pmcid",
-            contentLabel: "Abstract",
-            access: evaluateContentAccess({
-                source: "nih",
-                rawLicense: null,
-                attribution: {
-                    title: paper.title || "Untitled",
-                    authors: paper.authors || [],
-                    sourceLabel: "NIH PubMed Central",
-                    canonicalUrl: sourceUrl,
-                    paperId: paper.pmcid,
-                    idName: "pmcid",
-                    publicationDate: paper.date || undefined,
-                },
-            }),
+            results: withImpact,
+            totalCount: europe.totalCount,
+            totalPages: europe.totalPages,
+            warnings: [] as string[],
+            callCount: 1,
         };
+    }
+    if (sourceFilter === "crossref") {
+        const crossref = await searchCrossrefPapers(searchValue, page);
+        const results = lightweight
+            ? crossref.results
+            : await rankSearchResults(
+                  searchValue,
+                  crossref.results,
+                  options?.usageContext,
+              );
+        const withImpact = lightweight
+            ? results
+            : await attachPaperImpact(results);
+        return {
+            results: withImpact,
+            totalCount: crossref.totalCount,
+            totalPages: crossref.totalPages,
+            warnings: [] as string[],
+            callCount: 1,
+        };
+    }
+
+    const { includeNih, includeSpringer, includeScholar } =
+        getSourceFlags(sourceFilter);
+    const databases: SourceDatabase[] = [
+        ...(includeNih ? (["nih"] as const) : []),
+        ...(includeSpringer ? (["springer"] as const) : []),
+        ...(includeScholar ? (["scholar"] as const) : []),
+    ];
+
+    const found = await searchHomed({
+        query: searchValue,
+        page,
+        databases,
+        hydrate: !lightweight,
     });
 
-    const sourceResults: any[][] = [];
-    let totalCount = 0;
-    let totalPages = 0;
+    let groups = found.byDatabase.map((group) => group.hits);
+    let totalCount = found.totalCount;
+    let totalPages = found.totalPages;
+    let warnings = found.warnings;
+    let callCount = found.callCount;
 
-    if (includeNih) {
-        sourceResults.push(formattedNIHResults);
-        totalCount += nihTotalCount;
-        totalPages = Math.max(totalPages, nihTotalPages);
+    // On "all", also fold Europe PMC + Crossref index hits into the workspace.
+    if (sourceFilter === "all") {
+        const [europe, crossref] = await Promise.all([
+            searchEuropePmcPapers(searchValue, page),
+            searchCrossrefPapers(searchValue, page),
+        ]);
+        groups = [...groups, europe.results, crossref.results];
+        totalCount += europe.totalCount + crossref.totalCount;
+        totalPages = Math.max(totalPages, europe.totalPages, crossref.totalPages);
+        callCount += 2;
     }
 
-    if (includeSpringer) {
-        sourceResults.push(springerSearch.results);
-        totalCount += springerSearch.totalCount;
-        totalPages = Math.max(totalPages, springerSearch.totalPages);
-    }
-
-    if (includeScholar) {
-        sourceResults.push(scholarSearch.results);
-        totalCount += scholarSearch.totalCount;
-        totalPages = Math.max(totalPages, scholarSearch.totalPages);
-    }
-
-    if (includeEuropePmc) {
-        sourceResults.push(europePmcSearch.results);
-        totalCount += europePmcSearch.totalCount;
-        totalPages = Math.max(totalPages, europePmcSearch.totalPages);
-    }
-
-    if (includeCrossref) {
-        sourceResults.push(crossrefSearch.results);
-        totalCount += crossrefSearch.totalCount;
-        totalPages = Math.max(totalPages, crossrefSearch.totalPages);
-    }
-
-    // All sources rotates NIH, Springer, Scholar, Europe PMC, then Crossref.
-    const paperResults =
-        sourceResults.length > 1
-            ? mergeResultsByTier(...sourceResults)
-            : lightweight
-              ? sourceResults[0] || []
-              : await rankSearchResults(
-                    searchValue,
-                    sourceResults[0] || [],
-                    options?.usageContext,
-                );
-    const results = await attachPaperImpact(
-        paperResults.map((paper: any) => ({
-            ...paper,
-            pmcid:
-                paper.pmcid ||
-                (paper.source === "nih" ? paper.sourceId : undefined),
-            idName:
-                paper.idName ||
-                (paper.source === "nih"
-                    ? "pmcid"
-                    : paper.source === "nature"
-                      ? "doi"
-                      : undefined),
-        })),
-    );
+    const mergedResults =
+        groups.length > 1 ? mergeResultsByTier(...groups) : groups[0] || [];
+    const paperResults = lightweight
+        ? mergedResults
+        : await rankSearchResults(
+              searchValue,
+              mergedResults,
+              options?.usageContext,
+          );
+    const withImpact = lightweight
+        ? paperResults
+        : await attachPaperImpact(paperResults);
 
     return {
-        results,
+        results: withImpact,
         totalCount,
         totalPages,
-        warnings:
-            includeNih && !isNihApiConfigured()
-                ? [
-                      "NIH PubMed Central search is unavailable until NCBI_EMAIL is configured.",
-                  ]
-                : [],
+        warnings,
+        callCount,
     };
 }
 
@@ -263,8 +163,6 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         const page = parseInt(req.nextUrl.searchParams.get("page") || "0", 10);
         const sourceFilter =
             (req.nextUrl.searchParams.get("source") as SourceFilter) || "all";
-        const requestedDate =
-            (req.nextUrl.searchParams.get("date") as DateFilter) || "any";
 
         if (!searchValue || searchValue.trim().length > 300) {
             throw Error("Invalid search value.");
@@ -272,7 +170,6 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
 
         if (
             !["all", "nih", "springer", "scholar", "europe-pmc", "crossref"].includes(sourceFilter) ||
-            !DATE_FILTERS.has(requestedDate) ||
             page < 0 ||
             page > 100
         ) {
@@ -282,7 +179,40 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
+        if (!req.user) {
+            const dailyCap = await consumeGuestDailyCap(req, "search");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error: "That's the guest search limit for today.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
+        }
+
         const entitlements = await getPlanEntitlements(plan);
+        if (
+            sourceFilter === "scholar" &&
+            entitlements.scholar_search <= 0 &&
+            !isAdmin
+        ) {
+            return NextResponse.json(
+                {
+                    error: "Google Scholar search is available with Researcher Pro.",
+                    code: "PRO_REQUIRED",
+                },
+                { status: 403 },
+            );
+        }
 
         const quota = await consumeQuota({
             plan,
@@ -305,10 +235,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        const wantsScholar =
-            sourceFilter === "all" || sourceFilter === "scholar";
-        let includeScholar = wantsScholar;
-        if (wantsScholar && entitlements.scholar_search > 0) {
+        if (sourceFilter === "scholar") {
             const scholarQuota = await consumeQuota({
                 plan,
                 feature: "scholar_search",
@@ -317,20 +244,15 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 unlimited: isAdmin,
             });
             if (!scholarQuota.allowed) {
-                if (sourceFilter === "scholar") {
-                    return NextResponse.json(
-                        {
-                            error: "Monthly Scholar search limit reached.",
-                            code: "QUOTA_EXCEEDED",
-                            quota: scholarQuota,
-                        },
-                        { status: 403 },
-                    );
-                }
-                includeScholar = false;
+                return NextResponse.json(
+                    {
+                        error: "Monthly Scholar search limit reached.",
+                        code: "QUOTA_EXCEEDED",
+                        quota: scholarQuota,
+                    },
+                    { status: 403 },
+                );
             }
-        } else if (wantsScholar && !isAdmin && entitlements.scholar_search <= 0) {
-            includeScholar = false;
         }
 
         const normalizedQuery = searchValue.trim().toLowerCase();
@@ -339,17 +261,16 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 sourceFilter === "scholar" ? "scholar_search" : "search",
             userID,
             anonymousId: userID ? undefined : identity,
-            metadata: { source: sourceFilter, date: requestedDate },
+            metadata: { source: sourceFilter },
         };
         const cachedSearch = await cached({
-            namespace: "paper-search-v4",
-            key: `${normalizedQuery}:${page}:${sourceFilter}:${includeScholar ? "scholar" : "no-scholar"}:${requestedDate}:${plan === "guest" ? "lexical" : "semantic"}`,
+            namespace: "paper-search-v1",
+            key: `${normalizedQuery}:${page}:${sourceFilter}:${plan === "guest" ? "lexical" : "semantic"}`,
             ttlSeconds: sourceFilter === "scholar" ? 3_600 : 6 * 60 * 60,
             load: () =>
-                runSearch(searchValue, page, sourceFilter, requestedDate, {
+                runSearch(searchValue, page, sourceFilter, {
                     lightweight: plan === "guest",
                     usageContext,
-                    includeScholar,
                 }),
         });
         const search = cachedSearch.value;
@@ -361,14 +282,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                         ? "serpapi"
                         : "literature_apis",
                 operation: "search",
-                callCount:
-                    sourceFilter === "all"
-                        ? includeScholar
-                            ? 6
-                            : 5
-                        : sourceFilter === "nih"
-                          ? 2
-                          : 1,
+                callCount: search.callCount || 1,
                 metadata: { page },
             });
         }
@@ -380,7 +294,6 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 totalPages: search.totalPages,
                 page,
                 source: sourceFilter,
-                date: requestedDate,
                 query: searchValue,
                 warnings: search.warnings,
                 plan,

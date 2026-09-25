@@ -4,6 +4,13 @@ import { withAuth } from "../../../authMiddleware";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { consumeRateLimit } from "../../../../lib/rate-limit";
 import { deferUsageRecording } from "../../../../lib/usage-meter";
+import {
+    consumeQuota,
+    refundQuota,
+    resolvePlan,
+    type Plan,
+} from "../../../../lib/entitlements";
+import { isAdminUser } from "../../../../lib/admin";
 import Project from "../../../../models/Project";
 import SavedDiscovery from "../../../../models/SavedDiscovery";
 import { extractionsFromDiscovery } from "../../discovery-source";
@@ -16,6 +23,7 @@ export const maxDuration = 120;
 
 export async function POST(request: NextRequest, context: RouteContext) {
     return withAuth(async (req) => {
+        let reservation: { plan: Plan; identity: string } | null = null;
         try {
             if (!hasValidMutationOrigin(req)) {
                 return NextResponse.json(
@@ -64,6 +72,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 );
             }
 
+            const plan = resolvePlan(req.user);
+            const quota = await consumeQuota({
+                plan,
+                feature: "chat",
+                identity: userID,
+                userID,
+                unlimited: isAdminUser(req.user),
+            });
+            if (!quota.allowed) {
+                return NextResponse.json(
+                    {
+                        error:
+                            plan === "free"
+                                ? "Free AI question limit reached. Upgrade to Researcher Pro to continue."
+                                : "Monthly AI question limit reached.",
+                        code: "QUOTA_EXCEEDED",
+                        quota,
+                    },
+                    { status: 429 },
+                );
+            }
+            reservation = isAdminUser(req.user)
+                ? null
+                : { plan, identity: userID };
+
             let extractions = undefined;
             const discoveryId = project.sourceDiscoveryID?.toString();
             if (discoveryId) {
@@ -107,6 +140,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
             project.set("briefing", researched.briefing);
             await project.save();
+            reservation = null;
 
             deferUsageRecording({
                 context: usageContext,
@@ -116,10 +150,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
             });
 
             return NextResponse.json(
-                { project: serializeProject(project.toObject() as any) },
+                {
+                    project: serializeProject(project.toObject() as any),
+                    quota,
+                },
                 { headers: { "Cache-Control": "private, no-store" } },
             );
         } catch (error) {
+            if (reservation) {
+                await refundQuota({
+                    plan: reservation.plan,
+                    feature: "chat",
+                    identity: reservation.identity,
+                }).catch((refundError) =>
+                    console.warn(
+                        "Project research quota refund failed",
+                        refundError,
+                    ),
+                );
+            }
             console.error("Project research request failed", error);
             return NextResponse.json(
                 { error: "Unable to research this project." },

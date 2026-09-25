@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
 import SavedDiscovery from "../../models/SavedDiscovery";
 import { DiscoverAgentError, runDiscoverAgent } from "./agent";
-import { UNCLEAR_QUESTION_ERROR } from "./assess-query";
-import { looksLikeUnclearResearchQuestion } from "../../lib/query-quality";
 import {
     consumeQuota,
     getQuotaSnapshot,
@@ -21,11 +22,12 @@ import {
 } from "../../lib/provider-cache";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
-import { recordGuestDiscovery } from "../../lib/guest-discovery-log";
+import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 import { retrieveFounderSources, buildFounderReport } from "./founder-diligence";
 import { founderReportMarkdown } from "../../lib/founder-report";
+import { recordGuestDiscovery } from "../../lib/guest-discovery-log";
 
-export const maxDuration = 300;
+export const maxDuration = 120;
 
 export const GET = withOptionalAuth(async (request: NextRequest) => {
     try {
@@ -97,6 +99,18 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Discovery request is too large."
+                            : "A valid discovery request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
 
         const userID = request.user?._id?.toString();
         const identity = userID || requestIp(request);
@@ -121,13 +135,9 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             );
         }
 
-        const data = await request.json();
+        const data = parsedBody.value as Record<string, unknown>;
         const question =
             typeof data.question === "string" ? data.question.trim() : "";
-        const founderScope = typeof data.founderScope === "string" ? data.founderScope.trim() : "";
-        if (founderScope.length > 500) {
-            return NextResponse.json({ error: "Optional research context must be 500 characters or fewer." }, { status: 400 });
-        }
 
         if (!question || question.length > 2_000) {
             return NextResponse.json(
@@ -135,14 +145,26 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 { status: 400 },
             );
         }
-        if (looksLikeUnclearResearchQuestion(question)) {
-            return NextResponse.json(
-                {
-                    error: UNCLEAR_QUESTION_ERROR,
-                    code: "UNCLEAR_QUESTION",
-                },
-                { status: 400 },
-            );
+
+        if (!request.user) {
+            const dailyCap = await consumeGuestDailyCap(request, "discover");
+            if (!dailyCap.allowed) {
+                return NextResponse.json(
+                    {
+                        error:
+                            "That's the guest limit for today. Create an account to keep going.",
+                        code: "DAILY_CAP_REACHED",
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            "Retry-After": String(
+                                dailyCap.retryAfterSeconds,
+                            ),
+                        },
+                    },
+                );
+            }
         }
 
         const quota = await consumeQuota({
@@ -174,30 +196,55 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             userID,
             anonymousId: userID ? undefined : identity,
         };
-        // Commercial retrieval runs alongside the existing literature pipeline.
-        const commercialPromise = retrieveFounderSources(question, founderScope, usageContext).catch(() => ({ sources: [], limitations: ["Commercial retrieval failed. Commercial conclusions remain unverified."] }));
         const discovery = await cached({
             namespace: "discovery-v6-claim-passages",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),
         });
-        let result = discovery.value;
-        {
-            const founder = await buildFounderReport({ question, scope: founderScope,
-                commercial: await commercialPromise, extractions: result.extractions || [], papers: result.papers, usageContext });
-            result = { ...result,
-                report: { sections: result.report?.sections || { stateOfScience: result.brief, gaps: [], problems: [], venturePotential: [], couldNotVerify: [], projectSeeds: [] }, founder },
-                brief: `${result.brief}\n\n${founderReportMarkdown(founder)}`,
-            };
-        }
-        if (!discovery.cacheHit) {
+        const result = discovery.value;
+        if (!discovery.cacheHit && !result.noResults) {
             deferUsageRecording({
                 context: usageContext,
                 provider: "literature_apis",
                 operation: "discovery_retrieval",
                 callCount: 12,
             });
+        }
+        if (result.noResults) {
+            if (reservation) {
+                await refundQuota({
+                    plan: reservation.plan,
+                    feature: "discover",
+                    identity: reservation.identity,
+                }).catch((refundError) =>
+                    console.warn(
+                        "Discovery no-results quota refund failed",
+                        refundError,
+                    ),
+                );
+                reservation = null;
+            }
+            const quotas = await getQuotaSnapshot({
+                plan,
+                identity,
+                userID,
+                unlimited: isAdminUser(request.user),
+            });
+            return NextResponse.json(
+                {
+                    ...result,
+                    id: `empty-${Date.now()}`,
+                    createdAt: new Date().toISOString(),
+                    plan,
+                    quota: quotas.discover,
+                    cacheHit: discovery.cacheHit,
+                },
+                {
+                    status: 200,
+                    headers: { "Cache-Control": "private, no-store" },
+                },
+            );
         }
         const savedDiscovery = request.user
             ? await SavedDiscovery.create({
@@ -225,7 +272,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                     : createdAt,
             plan,
             quota,
-            cacheHit: false,
+            cacheHit: discovery.cacheHit,
         };
         if (!request.user) {
             await setCachedValue(
@@ -234,21 +281,6 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 payload,
                 24 * 60 * 60,
             );
-            try {
-                await recordGuestDiscovery({
-                    identity,
-                    question: result.question,
-                    brief: result.brief,
-                    papers: result.papers,
-                    papersUsed: result.meta?.papersUsed,
-                    correctedQuery:
-                        typeof result.meta?.correctedQuery === "string"
-                            ? result.meta.correctedQuery
-                            : undefined,
-                });
-            } catch (logError) {
-                console.warn("Guest discovery log failed", logError);
-            }
         }
 
         return NextResponse.json(payload, {
@@ -267,12 +299,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         }
         if (error instanceof DiscoverAgentError) {
             return NextResponse.json(
-                {
-                    error: error.message,
-                    ...(error.message === UNCLEAR_QUESTION_ERROR
-                        ? { code: "UNCLEAR_QUESTION" }
-                        : {}),
-                },
+                { error: error.message },
                 { status: error.status },
             );
         }

@@ -11,11 +11,20 @@ import {
 import { findSavedPaperForUser } from "../../lib/saved-paper-utils";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import { consumeRateLimit } from "../../lib/rate-limit";
-import { hasValidMutationOrigin, readBoundedJson, InvalidJsonRequest } from "../../lib/request-security";
-import { consumeQuota, resolvePlan } from "../../lib/entitlements";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
+import {
+    consumeQuota,
+    refundQuota,
+    resolvePlan,
+    type Plan,
+} from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
 
 export const POST = withAuth(async (request: NextRequest) => {
+    let reservation: { plan: Plan; identity: string } | null = null;
     try {
         if (!hasValidMutationOrigin(request)) {
             return NextResponse.json(
@@ -23,12 +32,23 @@ export const POST = withAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
-        const data = await readBoundedJson(request);
+        const parsedBody = await readLimitedJsonBody(request, 32 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Chat request is too large."
+                            : "A valid chat request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
+        const data = parsedBody.value as Record<string, unknown>;
         const messageForAI =
             typeof data.userResponse === "string"
                 ? data.userResponse.trim()
                 : "";
-        const researchContext = typeof data.researchContext === "string" ? data.researchContext.trim().slice(0, 3500) : "";
         const displayMessage =
             typeof data.displayMessage === "string"
                 ? data.displayMessage.trim().slice(0, 8_000)
@@ -79,27 +99,6 @@ export const POST = withAuth(async (request: NextRequest) => {
 
         const plan = resolvePlan(request.user);
         const isAdmin = isAdminUser(request.user);
-        const quota = await consumeQuota({
-            plan,
-            feature: "chat",
-            identity: userID.toString(),
-            userID: userID.toString(),
-            unlimited: isAdmin,
-        });
-        if (!quota.allowed) {
-            return NextResponse.json(
-                {
-                    error:
-                        plan === "free"
-                            ? "Free AI question limit reached. Upgrade to Researcher Pro to continue."
-                            : "Monthly AI question limit reached.",
-                    code: "QUOTA_EXCEEDED",
-                    quota,
-                },
-                { status: 429 },
-            );
-        }
-
         const normalizedPaperId = normalizeStoredPaperId(paperId);
         const { value: serverPaper } = await loadCachedPaperBySource(
             sourceConfig.database,
@@ -141,6 +140,30 @@ export const POST = withAuth(async (request: NextRequest) => {
             }
         }
 
+        const quota = await consumeQuota({
+            plan,
+            feature: "chat",
+            identity: userID.toString(),
+            userID: userID.toString(),
+            unlimited: isAdmin,
+        });
+        if (!quota.allowed) {
+            return NextResponse.json(
+                {
+                    error:
+                        plan === "free"
+                            ? "Free AI question limit reached. Upgrade to Researcher Pro to continue."
+                            : "Monthly AI question limit reached.",
+                    code: "QUOTA_EXCEEDED",
+                    quota,
+                },
+                { status: 429 },
+            );
+        }
+        reservation = isAdmin
+            ? null
+            : { plan, identity: userID.toString() };
+
         const storedHistory = (foundOrCreatedPaper
             ? await Message.find({ savedPaperID: foundOrCreatedPaper._id })
                   .sort({ createdAt: -1 })
@@ -159,15 +182,23 @@ export const POST = withAuth(async (request: NextRequest) => {
             serverPaper,
             chatHistory,
             { feature: "chat", userID: userID.toString() },
-            researchContext,
         );
 
         if (!messageBackFromAI) {
+            if (reservation) {
+                await refundQuota({
+                    plan: reservation.plan,
+                    feature: "chat",
+                    identity: reservation.identity,
+                });
+                reservation = null;
+            }
             return NextResponse.json(
                 { error: "The AI did not return a response." },
                 { status: 502 },
             );
         }
+        reservation = null;
 
         if (!foundOrCreatedPaper) {
             foundOrCreatedPaper = await SavedPaper.findOneAndUpdate(
@@ -216,9 +247,15 @@ export const POST = withAuth(async (request: NextRequest) => {
                 headers: { "Cache-Control": "private, no-store" },
             },
         );
-    } catch (error) {
-        if (error instanceof InvalidJsonRequest) return NextResponse.json({error:error.message}, {status:error.status});
-        console.error("AI chat request failed", error);
+    } catch {
+        if (reservation) {
+            await refundQuota({
+                plan: reservation.plan,
+                feature: "chat",
+                identity: reservation.identity,
+            }).catch(() => undefined);
+        }
+        console.error("AI chat request failed");
         return NextResponse.json(
             { error: "The research assistant is unavailable." },
             { status: 500 },

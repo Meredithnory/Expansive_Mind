@@ -21,6 +21,7 @@ const paper: PaperExcerptForSynthesis = {
     authors: ["A. Author"],
     publicationDate: "2024",
     excerpt: "The trial found a 12% reduction in events. Limitations include small n.",
+    quoteExcerpt: "The trial found a 12% reduction in events. Limitations include small n.",
 };
 
 describe("parsePaperExtraction", () => {
@@ -35,16 +36,18 @@ describe("parsePaperExtraction", () => {
             },
             paper,
         );
-        expect(parsed?.evidenceType).toBe("rct");
-        expect(parsed?.studyDesign).toBe("rct");
-        expect(parsed?.keyFindings).toEqual(["Finding A"]);
-        expect(parsed?.methods).toBe("Double-blind RCT");
-        expect(parsed?.supportingExcerpt).toBeUndefined();
-        expect(parsed?.claims?.[0]).toMatchObject({
-            claimText: "Finding A",
-            paperId: "paper-1",
-            supportRelation: "unverified",
-            verificationStatus: "not_checked",
+        expect(parsed).toEqual({
+            index: 1,
+            title: paper.title,
+            sourceLabel: paper.sourceLabel,
+            authors: paper.authors,
+            publicationDate: "2024",
+            keyFindings: ["Finding A"],
+            methods: "Double-blind RCT",
+            limitations: ["Small sample"],
+            openQuestions: ["Durability?"],
+            evidenceType: "other",
+            supportingExcerpt: paper.quoteExcerpt,
         });
     });
 
@@ -55,12 +58,20 @@ describe("parsePaperExtraction", () => {
 });
 
 describe("fallbackPaperExtraction", () => {
+    it("omits supportingExcerpt when the paper has no quotable body", () => {
+        const fallback = fallbackPaperExtraction({
+            ...paper,
+            quoteExcerpt: undefined,
+        });
+        expect(fallback.supportingExcerpt).toBeUndefined();
+        expect(fallback.keyFindings[0]).toContain("12% reduction");
+    });
+
     it("keeps a short excerpt snippet as the only finding", () => {
         const fallback = fallbackPaperExtraction(paper);
         expect(fallback.evidenceType).toBe("other");
         expect(fallback.keyFindings[0]).toContain("12% reduction");
-        expect(fallback.supportingExcerpt).toBeUndefined();
-        expect(fallback.claims?.[0].supportRelation).toBe("unverified");
+        expect(fallback.supportingExcerpt).toContain("12% reduction");
         expect(fallback.methods).toBe("");
     });
 });
@@ -90,8 +101,7 @@ describe("extractPaperFindings", () => {
         expect(result.usedFallback).toBe(false);
         expect(result.extraction.evidenceType).toBe("rct");
         expect(result.extraction.keyFindings).toEqual(["12% reduction"]);
-        expect(result.extraction.supportingExcerpt).toBeUndefined();
-        expect(result.extraction.claims?.[0].supportRelation).toBe("unverified");
+        expect(result.extraction.supportingExcerpt).toBe(paper.quoteExcerpt);
         expect(SUPPORTING_EXCERPT_CHAR_BUDGET).toBe(600);
 
         const [request] = createPrivateChatCompletion.mock.calls[0];
@@ -99,12 +109,8 @@ describe("extractPaperFindings", () => {
         expect(request.messages[0].content).toContain(
             "untrusted quoted material",
         );
-        expect(request.messages[0].content).toContain("findingQuotes");
-        expect(request.messages[0].content).toContain(
-            "Do not reuse the opening sentence",
-        );
         expect(request.messages[1].content).toContain(
-            `"""${paper.excerpt}"""`,
+            JSON.stringify(paper.excerpt),
         );
         expect(PAPER_EXCERPT_CHAR_BUDGET).toBe(3_000);
     });

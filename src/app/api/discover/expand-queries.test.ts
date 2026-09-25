@@ -98,4 +98,23 @@ describe("expandDiscoveryQueries", () => {
             question,
         ]);
     });
+
+    it("drops generated provider queries over the size limit", async () => {
+        createPrivateChatCompletion.mockResolvedValue({
+            choices: [
+                {
+                    message: {
+                        content: JSON.stringify({
+                            queries: ["x".repeat(301), "short query"],
+                        }),
+                    },
+                },
+            ],
+        });
+
+        await expect(expandDiscoveryQueries("original")).resolves.toEqual([
+            "original",
+            "short query",
+        ]);
+    });
 });

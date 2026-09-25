@@ -144,4 +144,19 @@ function capContext(text: string, limit: number) {
     const breakAt = Math.max(paragraph, sentence);
     const cut = breakAt > limit * 0.6 ? breakAt : limit;
     return `${text.slice(0, cut).trim()}…`;
+
+/** Body-only excerpt for claim-ledger quotes. Never uses Abstract. */
+export function selectQuotableExcerpt(
+    paper: FormattedPaper,
+    question: string,
+    maxChars = 600,
+): string {
+    const body = paper.paper.filter(
+        (section) => !section.title.toLowerCase().includes("abstract"),
+    );
+    if (body.length === 0) return "";
+    return truncateAtSentence(
+        selectPaperContext({ ...paper, paper: body, abstract: "" }, question),
+        maxChars,
+    );
 }

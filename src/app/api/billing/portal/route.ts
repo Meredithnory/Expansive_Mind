@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "../../authMiddleware";
-import { hasValidMutationOrigin } from "../../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    trustedApplicationOrigin,
+} from "../../../lib/request-security";
 import { getStripe } from "../../../lib/stripe";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -18,17 +21,14 @@ export const POST = withAuth(async (request: NextRequest) => {
             );
         }
 
-        const origin =
-            process.env.APP_URL ||
-            request.headers.get("origin") ||
-            request.nextUrl.origin;
+        const origin = trustedApplicationOrigin(request);
         const session = await getStripe().billingPortal.sessions.create({
             customer: request.user.stripeCustomerId,
             return_url: `${origin}/pricing`,
         });
         return NextResponse.json({ url: session.url });
-    } catch (error) {
-        console.error("Stripe portal creation failed", error);
+    } catch {
+        console.error("Stripe portal creation failed");
         return NextResponse.json(
             { error: "Billing portal is unavailable." },
             { status: 503 },

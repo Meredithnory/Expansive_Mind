@@ -1,12 +1,11 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "../lib/use-session";
-import { AdminOverview, type OverviewUsage } from "./AdminOverview";
-import { AudiencePanel } from "./AudiencePanel";
 import styles from "./admin.module.scss";
 
-type Tab = "overview" | "audience" | "pricing" | "users" | "audit";
+type Tab = "overview" | "pricing" | "users" | "audit";
 type Feature = "search" | "discover" | "chat" | "scholar_search" | "projects";
 type Plan = "guest" | "free" | "pro";
 type Pricing = {
@@ -14,12 +13,6 @@ type Pricing = {
     entitlements: Record<Plan, Record<Feature, number>>;
     stripeConfigured?: boolean;
     warning?: string;
-};
-type QuotaCell = {
-    feature: Feature;
-    used: number;
-    limit: number;
-    period: string;
 };
 type UserRow = {
     _id: string;
@@ -31,9 +24,21 @@ type UserRow = {
     subscriptionStatus: string;
     stripeSubscriptionId?: string;
     subscriptionCurrentPeriodEnd?: string;
-    usage: QuotaCell[];
+    usage: Record<string, number>;
 };
-type Usage = OverviewUsage;
+type Usage = {
+    rangeDays: number;
+    estimatedCostUsd: number;
+    monthlyListPrice: number;
+    users: Record<string, number>;
+    usage: Array<{
+        feature: string;
+        provider: string;
+        calls: number;
+        estimatedCostUsd: number;
+        failures: number;
+    }>;
+};
 type AuditEntry = {
     _id: string;
     adminEmail: string;
@@ -44,19 +49,6 @@ type AuditEntry = {
 
 const features: Feature[] = ["search", "discover", "chat", "scholar_search", "projects"];
 const plans: Plan[] = ["guest", "free", "pro"];
-
-const USAGE_LABELS: Record<Feature, string> = {
-    search: "Searches",
-    discover: "Discovery",
-    chat: "AI questions",
-    scholar_search: "Google Scholar",
-    projects: "Projects",
-};
-
-function titleCase(value: string) {
-    if (!value) return value;
-    return value[0].toUpperCase() + value.slice(1).replaceAll("_", " ");
-}
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await fetch(url, { cache: "no-store", ...options });
@@ -156,11 +148,7 @@ export default function AdminPage() {
         feature?: Feature,
     ) => {
         const label = action.replaceAll("_", " ");
-        const confirmText =
-            action === "remove_user"
-                ? `Permanently remove ${selectedUser.email}? This deletes their account and cannot be undone.`
-                : `Confirm ${label} for ${selectedUser.email}?`;
-        if (!window.confirm(confirmText)) return;
+        if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) return;
         setBusy(`${selectedUser._id}:${action}`);
         setError("");
         try {
@@ -185,12 +173,11 @@ export default function AdminPage() {
 
     if (sessionLoading) return <main className={styles.page}>Checking access…</main>;
     if (!user?.isAdmin) {
-        return (
-            <main className={styles.page}>
-                You are not authorized to view this page.
-            </main>
-        );
+        return <main className={styles.page}>You are not authorized to view this page.</main>;
     }
+
+    const proUsers = usage?.users.pro || 0;
+    const listRevenue = proUsers * (usage?.monthlyListPrice || 0);
 
     return (
         <main className={styles.page}>
@@ -201,8 +188,14 @@ export default function AdminPage() {
                 </div>
                 <span className={styles.muted}>{user.email}</span>
             </header>
+            <nav className={styles.portalNav} aria-label="Admin pages">
+                <Link href="/admin" aria-current="page">
+                    Billing
+                </Link>
+                <Link href="/admin/usage">Usage</Link>
+            </nav>
             <nav className={styles.tabs} aria-label="Admin sections" role="tablist">
-                {(["overview", "audience", "pricing", "users", "audit"] as Tab[]).map((item) => (
+                {(["overview", "pricing", "users", "audit"] as Tab[]).map((item) => (
                     <button
                         key={item}
                         type="button"
@@ -217,9 +210,27 @@ export default function AdminPage() {
             {error && <p className={styles.error}>{error}</p>}
             {message && <p className={styles.success}>{message}</p>}
 
-            {tab === "overview" && <AdminOverview usage={usage} />}
-
-            {tab === "audience" && <AudiencePanel />}
+            {tab === "overview" && (
+                <section className={styles.panel}>
+                    <div className={styles.metrics}>
+                        <div><strong>{usage?.users.free || 0}</strong><span>Free accounts</span></div>
+                        <div><strong>{proUsers}</strong><span>Paid plan records</span></div>
+                        <div><strong>${listRevenue.toFixed(2)}</strong><span>Monthly list value</span></div>
+                        <div><strong>${(usage?.estimatedCostUsd || 0).toFixed(2)}</strong><span>30-day AI cost</span></div>
+                    </div>
+                    <div className={styles.grid}>
+                        {usage?.usage.map((row) => (
+                            <article className={styles.card} key={`${row.feature}-${row.provider}`}>
+                                <strong>{row.calls.toLocaleString()} calls</strong>
+                                <p>{row.feature} · {row.provider}</p>
+                                <span className={styles.muted}>
+                                    ${row.estimatedCostUsd.toFixed(4)} · {row.failures} failures
+                                </span>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {tab === "pricing" && pricing && (
                 <section className={styles.panel}>
@@ -301,16 +312,6 @@ export default function AdminPage() {
 
             {tab === "users" && (
                 <section className={styles.panel}>
-                    <div className={styles.overviewHead}>
-                        <div>
-                            <p className={styles.eyebrow}>Accounts</p>
-                            <h2>Registered users</h2>
-                        </div>
-                        <p>
-                            Find an account, check plan and quota use, then run
-                            support actions without leaving this list.
-                        </p>
-                    </div>
                     <form className={styles.toolbar} onSubmit={searchUsers}>
                         <input
                             className={styles.search}
@@ -320,208 +321,60 @@ export default function AdminPage() {
                         />
                         <button className={styles.button}>Search</button>
                     </form>
-                    <div className={styles.tableWrap}>
-                        {users.length === 0 ? (
-                            <p className={styles.muted}>No accounts match this search.</p>
-                        ) : (
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>User</th>
-                                        <th>Access</th>
-                                        <th>Usage</th>
-                                        <th>Support actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((selectedUser) => (
-                                        <tr key={selectedUser._id}>
-                                            <td>
-                                                <div className={styles.userIdentity}>
-                                                    <strong>
-                                                        {selectedUser.firstName}{" "}
-                                                        {selectedUser.lastName}
-                                                    </strong>
-                                                    <span className={styles.muted}>
-                                                        {selectedUser.email}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.userIdentity}>
-                                                    <strong>
-                                                        {titleCase(selectedUser.effectivePlan)}
-                                                    </strong>
-                                                    <span className={styles.muted}>
-                                                        {titleCase(selectedUser.subscriptionStatus)}
-                                                    </span>
-                                                    {selectedUser.accessOverride ? (
-                                                        <span className={styles.eyebrow}>
-                                                            Complimentary Pro
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {selectedUser.usage.length === 0 ? (
-                                                    <span className={styles.muted}>
-                                                        No usage this period
-                                                    </span>
-                                                ) : (
-                                                    <ul className={styles.usageList}>
-                                                        {selectedUser.usage.map((cell) => {
-                                                            const showTrack = cell.limit > 0;
-                                                            const fill =
-                                                                showTrack && cell.used > 0
-                                                                    ? Math.min(
-                                                                          (cell.used / cell.limit) *
-                                                                              100,
-                                                                          100,
-                                                                      )
-                                                                    : 0;
-                                                            return (
-                                                                <li key={cell.feature}>
-                                                                    <div className={styles.usageRow}>
-                                                                        <span className={styles.usageLabel}>
-                                                                            {USAGE_LABELS[cell.feature] ||
-                                                                                titleCase(cell.feature)}
-                                                                            {cell.period === "lifetime" ? (
-                                                                                <em className={styles.usageTag}>
-                                                                                    lifetime
-                                                                                </em>
-                                                                            ) : null}
-                                                                        </span>
-                                                                        <strong className={styles.usageCount}>
-                                                                            {cell.used}/{cell.limit}
-                                                                        </strong>
-                                                                    </div>
-                                                                    {showTrack ? (
-                                                                        <div
-                                                                            className={styles.usageTrack}
-                                                                            aria-hidden="true"
-                                                                        >
-                                                                            <span
-                                                                                data-feature={cell.feature}
-                                                                                style={{
-                                                                                    width: `${fill}%`,
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                    ) : null}
-                                                                </li>
-                                                            );
-                                                        })}
-                                                    </ul>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className={styles.supportActions}>
-                                                    <div className={styles.actions}>
-                                                        <button
-                                                            className={styles.button}
-                                                            disabled={Boolean(busy)}
-                                                            onClick={() =>
-                                                                supportAction(
-                                                                    selectedUser,
-                                                                    selectedUser.accessOverride
-                                                                        ? "revoke_pro"
-                                                                        : "grant_pro",
-                                                                )
-                                                            }
-                                                        >
-                                                            {selectedUser.accessOverride
-                                                                ? "Remove comp"
-                                                                : "Grant Pro"}
-                                                        </button>
-                                                        <button
-                                                            className={styles.button}
-                                                            disabled={Boolean(busy)}
-                                                            onClick={() =>
-                                                                supportAction(
-                                                                    selectedUser,
-                                                                    "reset_usage",
-                                                                )
-                                                            }
-                                                        >
-                                                            Reset usage
-                                                        </button>
-                                                    </div>
-                                                    <div className={styles.actions}>
-                                                        {selectedUser.stripeSubscriptionId ? (
-                                                            <button
-                                                                className={styles.danger}
-                                                                disabled={Boolean(busy)}
-                                                                onClick={() =>
-                                                                    supportAction(
-                                                                        selectedUser,
-                                                                        "cancel_subscription",
-                                                                    )
-                                                                }
-                                                            >
-                                                                Cancel renewal
-                                                            </button>
-                                                        ) : null}
-                                                        <button
-                                                            className={styles.danger}
-                                                            disabled={Boolean(busy)}
-                                                            onClick={() =>
-                                                                supportAction(
-                                                                    selectedUser,
-                                                                    "refund_latest",
-                                                                )
-                                                            }
-                                                        >
-                                                            Refund latest
-                                                        </button>
-                                                    </div>
-                                                    <div className={styles.actions}>
-                                                        <button
-                                                            className={styles.danger}
-                                                            disabled={
-                                                                Boolean(busy) ||
-                                                                selectedUser.email === user.email
-                                                            }
-                                                            title={
-                                                                selectedUser.email === user.email
-                                                                    ? "You cannot remove your own account."
-                                                                    : undefined
-                                                            }
-                                                            onClick={() =>
-                                                                supportAction(
-                                                                    selectedUser,
-                                                                    "remove_user",
-                                                                )
-                                                            }
-                                                        >
-                                                            Remove user
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                    <table className={`${styles.table} ${styles.stackOnPhone}`}>
+                        <thead><tr><th>User</th><th>Access</th><th>Usage</th><th>Support actions</th></tr></thead>
+                        <tbody>
+                            {users.map((selectedUser) => (
+                                <tr key={selectedUser._id}>
+                                    <td data-label="User">
+                                        <strong>{selectedUser.firstName} {selectedUser.lastName}</strong>
+                                        <span className={styles.muted}>{selectedUser.email}</span>
+                                    </td>
+                                    <td data-label="Access">
+                                        {selectedUser.effectivePlan} · {selectedUser.subscriptionStatus}
+                                        {selectedUser.accessOverride && <div className={styles.eyebrow}>Complimentary Pro</div>}
+                                    </td>
+                                    <td className={styles.muted} data-label="Usage">
+                                        {Object.entries(selectedUser.usage).map(([feature, count]) => (
+                                            <div key={feature}>{feature}: {count}</div>
+                                        ))}
+                                    </td>
+                                    <td data-label="Support actions">
+                                        <div className={styles.actions}>
+                                            <button className={styles.button} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, selectedUser.accessOverride ? "revoke_pro" : "grant_pro")}>
+                                                {selectedUser.accessOverride ? "Remove comp" : "Grant Pro"}
+                                            </button>
+                                            <button className={styles.button} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "reset_usage")}>Reset usage</button>
+                                            {selectedUser.stripeSubscriptionId && (
+                                                <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "cancel_subscription")}>Cancel renewal</button>
+                                            )}
+                                            <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "refund_latest")}>Refund latest</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </section>
             )}
 
             {tab === "audit" && (
                 <section className={styles.panel}>
-                    <table className={styles.table}>
-                        <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th></tr></thead>
-                        <tbody>
-                            {audit.map((entry) => (
-                                <tr key={entry._id}>
-                                    <td>{new Date(entry.createdAt).toLocaleString()}</td>
-                                    <td>{entry.adminEmail}</td>
-                                    <td>{entry.action}</td>
-                                    <td>{entry.target}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className={styles.tableScroll}>
+                        <table className={styles.table}>
+                            <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th></tr></thead>
+                            <tbody>
+                                {audit.map((entry) => (
+                                    <tr key={entry._id}>
+                                        <td>{new Date(entry.createdAt).toLocaleString()}</td>
+                                        <td>{entry.adminEmail}</td>
+                                        <td>{entry.action}</td>
+                                        <td>{entry.target}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             )}
         </main>

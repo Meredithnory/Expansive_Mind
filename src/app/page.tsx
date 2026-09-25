@@ -2,31 +2,13 @@
 import { useEffect, useState } from "react";
 import styles from "./home.module.scss";
 import Link from "next/link";
-import PaperStack from "./components/PaperStack";
+import Image from "next/image";
 import { useSession } from "./lib/use-session";
 
-const paths = [
-    {
-        index: "01",
-        title: "A question that won't settle",
-        detail: "One biomedical question is enough, even if it's still rough. You'll see what the papers report and where they don't agree.",
-        href: "/discover",
-        action: "Ask it",
-    },
-    {
-        index: "02",
-        title: "A paper you need to understand",
-        detail: "Open the article and ask about a passage. The reply stays inside that text, and you can jump back to the lines.",
-        href: "/discover?mode=search",
-        action: "Open a paper",
-    },
-    {
-        index: "03",
-        title: "Work you want to come back to",
-        detail: "Save the papers and the thread. The gap you noticed can wait until you're ready for the next experiment.",
-        href: "/savedpapers",
-        action: "Your library",
-    },
+const features = [
+    { label: "Discover", detail: "Synthesize evidence across papers" },
+    { label: "Read", detail: "Open every claim at its source" },
+    { label: "Plan", detail: "Turn evidence gaps into next steps" },
 ];
 
 export default function Home() {
@@ -42,12 +24,6 @@ export default function Home() {
 
     return (
         <div className={styles.home}>
-            <link
-                rel="preload"
-                as="image"
-                href="/dnabg-poster.jpg"
-                fetchPriority="high"
-            />
             {showVideo ? (
                 <video
                     autoPlay
@@ -55,65 +31,69 @@ export default function Home() {
                     loop
                     playsInline
                     poster="/dnabg-poster.jpg"
-                    preload="auto"
+                    aria-hidden="true"
                 >
-                    <source src="/dnabg-hd.webm" type="video/webm" />
-                    <source src="/dnabg-hd.mp4" type="video/mp4" />
+                    <source src="/dnabg.mp4" type="video/mp4" />
+                    <source src="/dnabg.webm" type="video/webm" />
                 </video>
             ) : null}
-            <div className={styles.scrim} aria-hidden="true" />
-            <section className={styles.hero}>
-                <p className={styles.eyebrow}>A rough question is welcome</p>
-                <h1>Ask the literature.</h1>
+            <div className={styles.hero}>
+                <p className={styles.eyebrow}>Evidence, made actionable</p>
+                <div className={styles.brand}>
+                    <h1>Expansive Mind</h1>
+                    <Image
+                        src="/brainlogo.svg"
+                        alt=""
+                        width={72}
+                        height={72}
+                        priority
+                    />
+                </div>
                 <p className={styles.tagline}>
-                    Bring the biomedical question you&apos;re actually holding.
-                    A half-formed one is welcome. You&apos;ll see what the open
-                    papers report, where they conflict, and what they still
-                    leave open. Every finding stays tied to its source.
+                    Ask a research question, understand the evidence across
+                    papers, then read every source behind the synthesis.
                 </p>
                 <div className={styles.actions}>
                     <Link href="/discover" className={styles.primaryCta}>
-                        Start with your question
-                        <span aria-hidden="true">→</span>
+                        Discover a question
                     </Link>
                     {isLoggedIn ? (
                         <Link href="/savedpapers" className={styles.secondaryCta}>
-                            <PaperStack />
-                            Pick up your library
+                            Open Research Library
                         </Link>
                     ) : loading ? null : (
-                        <Link href="/discover?mode=search" className={styles.secondaryCta}>
-                            I already have a paper
+                        <Link href="/searchpaper" className={styles.secondaryCta}>
+                            Search for a paper
                         </Link>
                     )}
                 </div>
-                {loading ? null : isLoggedIn ? (
+                {isLoggedIn ? (
                     <p className={styles.loginHint}>
-                        Your saved papers and conversations are here when you
-                        want to continue.
-                    </p>
-                ) : (
-                    <p className={styles.loginHint}>
-                        Reading is open to anyone. A free account lets you save
-                        papers and ask about the text.{" "}
-                        <Link href="/login">Log in</Link>
+                        <Link href="/searchpaper">Quick paper search</Link>
                         {" · "}
-                        <Link href="/signup">Create an account</Link>
+                        <Link href="/pricing">View your plan</Link>
+                    </p>
+                ) : loading ? null : (
+                    <p className={styles.loginHint}>
+                        Already have an account? <Link href="/login">Log in</Link>
                     </p>
                 )}
-            </section>
-            <ol className={styles.sequence}>
-                {paths.map((path) => (
-                    <li key={path.index}>
-                        <Link href={path.href}>
-                            <span>{path.index}</span>
-                            <strong>{path.title}</strong>
-                            <p>{path.detail}</p>
-                            <em>{path.action}</em>
-                        </Link>
-                    </li>
-                ))}
-            </ol>
+                <ul className={styles.features}>
+                    {features.map((feature) => (
+                        <li key={feature.label}>
+                            <span className={styles.featureLabel}>
+                                {feature.label}
+                            </span>
+                            <span className={styles.featureDetail}>
+                                {feature.detail}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+                <Link href="/about" className={styles.aboutLink}>
+                    See how it works
+                </Link>
+            </div>
         </div>
     );
 }

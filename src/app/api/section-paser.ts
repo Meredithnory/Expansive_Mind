@@ -1,7 +1,14 @@
 // sectionParser.ts
 
-import { DOMParser, type Element, type Node } from "@xmldom/xmldom";
+import {
+    DOMParser,
+    type Element as XmlElement,
+    type Node as XmlNode,
+} from "@xmldom/xmldom";
 import { PaperFigure, Section, SubSection } from "./general-interfaces";
+
+type Element = XmlElement;
+type Node = XmlNode;
 
 const WEB_IMAGE_REF = /\.(?:jpe?g|png|webp|gif)$/i;
 
@@ -20,15 +27,7 @@ export function parseArticleXml(
 ): Section[] {
     const doc = new DOMParser().parseFromString(xmlString, "application/xml");
     const out: Section[] = [];
-    // Collapse XML formatting whitespace so citation xrefs like
-    // "14\n,\n15" stay inline instead of becoming orphan lines in the UI.
-    const text = (n: Node | null) =>
-        n?.textContent
-            ?.replace(/\s+/g, " ")
-            .replace(/\s+([,.;:!?])/g, "$1")
-            .replace(/([(\[])\s+/g, "$1")
-            .replace(/\s+([)\]])/g, "$1")
-            .trim() || "";
+    const text = (n: Node | null) => n?.textContent?.trim() || "";
     const localName = (el: Element) => el.tagName.replace(/^.*:/, "");
     const stableFigureId = (value: string) => {
         let hash = 2166136261;

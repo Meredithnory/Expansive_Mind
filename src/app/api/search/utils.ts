@@ -425,8 +425,8 @@ export const searchSpringerNaturePapers = async (
                     ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
                     : 0,
         };
-    } catch (err) {
-        console.error("Springer search failed:", err);
+    } catch {
+        console.error("Springer search failed");
         return {
             results: [],
             totalCount: 0,
@@ -600,8 +600,8 @@ export const searchGoogleScholarPapers = async (
                       ? 1
                       : 0,
         };
-    } catch (err) {
-        console.error("Google Scholar search failed:", err);
+    } catch {
+        console.error("Google Scholar search failed");
         return {
             results: [],
             totalCount: 0,
@@ -796,8 +796,9 @@ export const getCombinedSearchTotalCount = async (
     const includeNih = sourceFilter === "all" || sourceFilter === "nih";
     const includeSpringer =
         sourceFilter === "all" || sourceFilter === "springer";
-    const includeScholar =
-        sourceFilter === "all" || sourceFilter === "scholar";
+    // "all" mirrors the main search route (NIH + Springer + indexes).
+    // Scholar is a separately metered source and must only run when explicitly selected.
+    const includeScholar = sourceFilter === "scholar";
     const includeEuropePmc =
         sourceFilter === "all" || sourceFilter === "europe-pmc";
     const includeCrossref =

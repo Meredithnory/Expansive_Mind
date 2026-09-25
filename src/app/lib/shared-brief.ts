@@ -4,6 +4,13 @@ import PaperBrief from "../models/PaperBrief";
 import SavedDiscovery from "../models/SavedDiscovery";
 import { isValidShareSlug } from "./share-slug";
 import { buildPaperPath, type SourceDatabase } from "./paper-sources";
+import {
+    attachClaimLedger,
+    toLedgerExtractions,
+    toLedgerPapers,
+} from "../api/discover/claim-ledger";
+import { parseOpportunityReport } from "../api/discover/synthesize";
+import type { ClaimLedger } from "../api/discover/report-types";
 
 export interface SharedBriefPaperRef {
     title: string;
@@ -23,6 +30,7 @@ export interface SharedBrief {
     publicationDate: string;
     chatPath: string;
     papers: SharedBriefPaperRef[];
+    claimLedger?: ClaimLedger;
     createdAt: Date;
 }
 
@@ -68,16 +76,32 @@ export async function findSharedBrief(
     }).lean<{
         question: string;
         brief: string;
+        report?: unknown;
         papers: Array<{
+            index?: number;
+            paperId?: string;
+            doi?: string;
             title: string;
             href: string;
             sourceLabel: string;
             authors: string[];
             date: string;
         }>;
+        extractions?: Array<{
+            index?: number;
+            supportingExcerpt?: string;
+        }>;
         createdAt: Date;
     } | null>();
     if (discovery) {
+        const report = parseOpportunityReport(discovery.report);
+        const claimLedger = report
+            ? attachClaimLedger(
+                  report,
+                  toLedgerPapers(discovery.papers),
+                  toLedgerExtractions(discovery.extractions),
+              ).claimLedger
+            : undefined;
         return {
             kind: "discovery",
             title: discovery.question,
@@ -94,6 +118,7 @@ export async function findSharedBrief(
                 authors: paper.authors || [],
                 date: paper.date || "",
             })),
+            ...(claimLedger ? { claimLedger } : {}),
             createdAt: discovery.createdAt,
         };
     }

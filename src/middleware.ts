@@ -1,107 +1,87 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import {
-    ADMIN_SESSION_COOKIE,
-    readAdminSession,
-} from "./app/lib/admin-session";
-
-function jwtSecret() {
-    if (!process.env.JWT_SECRET) {
-        throw new Error("No JWT SECRET");
-    }
-    return new TextEncoder().encode(process.env.JWT_SECRET);
-}
-
-async function hasValidAuthToken(token?: string) {
-    if (!token) return false;
-    try {
-        await jwtVerify(token, jwtSecret());
-        return true;
-    } catch (error) {
-        console.error("Token verification failed:", error);
-        return false;
-    }
-}
-
-async function hasValidAdminSession(token?: string, authUserId?: string) {
-    const session = await readAdminSession(token);
-    if (!session) return false;
-    if (authUserId && session.id !== authUserId) return false;
-    return true;
-}
-
-async function authUserId(token?: string) {
-    if (!token) return undefined;
-    try {
-        const { payload } = await jwtVerify(token, jwtSecret());
-        return typeof payload.id === "string" ? payload.id : undefined;
-    } catch {
-        return undefined;
-    }
-}
+import { isAdminIdentity } from "./app/lib/admin-identity";
 
 export async function middleware(request: NextRequest) {
     const token = request.cookies.get("auth_token")?.value;
-    const adminToken = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
     const { pathname } = request.nextUrl;
 
-    const protectedRoutes = ["/savedpapers", "/projects"];
-    const adminLoginPath = "/admin/login";
-    const isAdminLogin = pathname === adminLoginPath;
-    const isAdminRoute =
-        pathname === "/admin" || pathname.startsWith("/admin/");
-    const isProtectedRoute = protectedRoutes.some((route) =>
-        pathname.startsWith(route),
-    );
+    // Define protected routes
+    const protectedRoutes = [
+        "/savedpapers",
+        "/projects",
+        "/admin",
+    ];
+
+    // Define public routes that logged-in users shouldn't access
     const authRoutes = ["/login", "/signup"];
+
+    const isProtectedRoute = protectedRoutes.some((route) =>
+        pathname.startsWith(route)
+    );
+
     const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-    if (!token) {
-        if (isAdminLogin) return NextResponse.next();
-        if (isAdminRoute) {
-            return NextResponse.redirect(new URL(adminLoginPath, request.url));
+    // Helper function to verify token
+    const verifyToken = async (token: string) => {
+        try {
+            if (!process.env.JWT_SECRET) {
+                throw new Error("No JWT SECRET");
+            }
+            const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+            const { payload } = await jwtVerify(token, secret, {
+                algorithms: ["HS256"],
+            });
+            return payload;
+        } catch {
+            console.error("Token verification failed");
+            return null;
         }
+    };
+
+    // No token cases
+    if (!token) {
+        // Redirect to login if trying to access protected route
         if (isProtectedRoute) {
             return NextResponse.redirect(new URL("/login", request.url));
         }
+        // Allow access to public routes
         return NextResponse.next();
     }
 
-    const isValidToken = await hasValidAuthToken(token);
+    // Token exists - verify it
+    const tokenPayload = await verifyToken(token);
 
-    if (!isValidToken) {
-        const response = isAdminRoute
-            ? NextResponse.redirect(new URL(adminLoginPath, request.url))
-            : NextResponse.redirect(new URL("/login", request.url));
+    if (!tokenPayload) {
+        // Invalid token - clear it and redirect to login
+        const response = NextResponse.redirect(new URL("/login", request.url));
         response.cookies.delete("auth_token");
-        response.cookies.delete(ADMIN_SESSION_COOKIE);
         return response;
     }
 
+    if (
+        pathname.startsWith("/admin") &&
+        !isAdminIdentity({
+            email:
+                typeof tokenPayload.email === "string"
+                    ? tokenPayload.email
+                    : "",
+        })
+    ) {
+        return NextResponse.json(
+            { error: "Not authorized." },
+            { status: 403 },
+        );
+    }
+
+    // Valid token cases
     if (isAuthRoute) {
+        // Logged-in users return to the product's discovery-first home.
         return NextResponse.redirect(new URL("/discover", request.url));
     }
 
-    if (isAdminLogin) {
-        const userId = await authUserId(token);
-        if (await hasValidAdminSession(adminToken, userId)) {
-            return NextResponse.redirect(new URL("/admin", request.url));
-        }
-        return NextResponse.next();
-    }
-
-    if (isAdminRoute) {
-        const userId = await authUserId(token);
-        if (!(await hasValidAdminSession(adminToken, userId))) {
-            const response = NextResponse.redirect(
-                new URL(adminLoginPath, request.url),
-            );
-            if (adminToken) response.cookies.delete(ADMIN_SESSION_COOKIE);
-            return response;
-        }
-    }
-
+    // Allow access to protected routes and other pages
     return NextResponse.next();
 }
 
@@ -109,7 +89,6 @@ export const config = {
     matcher: [
         "/savedpapers/:path*",
         "/projects/:path*",
-        "/admin",
         "/admin/:path*",
         "/login",
         "/signup",

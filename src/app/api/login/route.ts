@@ -4,18 +4,51 @@ import bcrypt from "bcrypt";
 import User from "../../models/User";
 import connectDB from "../../db/connectDB";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
+import { sessionVersion } from "../../lib/session-version";
 
 const maxAge = 24 * 60 * 60;
 
 //Defining a function to create token - encrypting the token with the secret
-const createToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET!, {
+const createToken = (user: {
+    _id: { toString(): string };
+    email: string;
+    tokenVersion?: number;
+}) => {
+    return jwt.sign({
+        id: user._id.toString(),
+        email: user.email.trim().toLowerCase(),
+        tokenVersion: sessionVersion(user.tokenVersion),
+    }, process.env.JWT_SECRET!, {
+        algorithm: "HS256",
         expiresIn: 24 * 60 * 60, //JWT in seconds
     });
 };
 
 export async function POST(request: NextRequest) {
     try {
+        if (!hasValidMutationOrigin(request)) {
+            return NextResponse.json(
+                { success: false, message: "Invalid origin." },
+                { status: 403 },
+            );
+        }
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        parsedBody.status === 413
+                            ? "Login request is too large."
+                            : "A valid login request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
         const rateLimit = await consumeRateLimit({
             scope: "login",
             identity: requestIp(request),
@@ -40,10 +73,20 @@ export async function POST(request: NextRequest) {
         await connectDB();
 
         // Parse JSON from the request
-        const { email, password } = await request.json();
+        const { email, password } = parsedBody.value as Record<
+            string,
+            unknown
+        >;
 
         // Validate required fields
-        if (!email || !password) {
+        if (
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !email ||
+            !password ||
+            email.length > 254 ||
+            password.length > 128
+        ) {
             return NextResponse.json(
                 {
                     success: false,
@@ -79,7 +122,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create token
-        const token = createToken(user._id.toString());
+        const token = createToken(user);
 
         // Create response
         const response = NextResponse.json({

@@ -9,6 +9,11 @@ import {
 
 const apiKey = process.env.AI_API_KEY;
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+const MAX_OUTPUT_TOKENS = 5_000;
+const MAX_TEXT_PROMPT_CHARACTERS = 120_000;
+const MAX_MESSAGES = 32;
+const MAX_EMBEDDING_INPUTS = 32;
+const MAX_EMBEDDING_CHARACTERS = 32_000;
 
 const client = apiKey
     ? new OpenAI({
@@ -30,6 +35,26 @@ function requireClient() {
     return client;
 }
 
+function textCharacters(
+    messages: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming["messages"],
+) {
+    return messages.reduce((total, message) => {
+        if (typeof message.content === "string") {
+            return total + message.content.length;
+        }
+        if (!Array.isArray(message.content)) return total;
+        return (
+            total +
+            message.content.reduce(
+                (subtotal, part) =>
+                    subtotal +
+                    (part.type === "text" ? part.text.length : 0),
+                0,
+            )
+        );
+    }, 0);
+}
+
 export async function createPrivateChatCompletion(
     request: Omit<OpenAI.Chat.ChatCompletionCreateParamsNonStreaming, "stream">,
     usageContext?: UsageContext,
@@ -38,9 +63,19 @@ export async function createPrivateChatCompletion(
     if (request.tools?.length || request.functions?.length) {
         throw new Error("Model tool execution is not enabled for this application.");
     }
+    if (
+        request.messages.length > MAX_MESSAGES ||
+        textCharacters(request.messages) > MAX_TEXT_PROMPT_CHARACTERS
+    ) {
+        throw new Error("AI prompt exceeds the configured safety limit.");
+    }
     const payload = {
         ...request,
         messages: [{ role: "system", content: AI_SECURITY_POLICY }, ...request.messages],
+        max_tokens: Math.min(
+            request.max_tokens ?? 1_000,
+            MAX_OUTPUT_TOKENS,
+        ),
         stream: false,
         provider: OPENROUTER_PROVIDER_POLICY,
     } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & {
@@ -81,6 +116,17 @@ export async function createPrivateEmbedding(request: {
     model: string;
     input: string[];
 }, usageContext?: UsageContext) {
+    const embeddingCharacters = request.input.reduce(
+        (total, value) => total + value.length,
+        0,
+    );
+    if (
+        request.input.length === 0 ||
+        request.input.length > MAX_EMBEDDING_INPUTS ||
+        embeddingCharacters > MAX_EMBEDDING_CHARACTERS
+    ) {
+        throw new Error("Embedding input exceeds the configured safety limit.");
+    }
     const payload = {
         ...request,
         provider: OPENROUTER_PROVIDER_POLICY,

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth } from "../authMiddleware";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "../../lib/request-security";
 import { consumeRateLimit } from "../../lib/rate-limit";
 import {
     consumeQuota,
@@ -133,6 +136,18 @@ export const POST = withAuth(async (request: NextRequest) => {
                 { status: 403 },
             );
         }
+        const parsedBody = await readLimitedJsonBody(request, 32 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Project request is too large."
+                            : "A valid project request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
 
         const userID = request.user._id.toString();
         const plan = resolvePlan(request.user);
@@ -154,7 +169,7 @@ export const POST = withAuth(async (request: NextRequest) => {
             );
         }
 
-        const data = await request.json().catch(() => null);
+        const data = parsedBody.value;
         if (!data || typeof data !== "object") {
             return NextResponse.json(
                 { error: "A project title and gap are required." },

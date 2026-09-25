@@ -182,6 +182,36 @@ export function validateFigureBytes(
     return { bytes, mimeType, ...dimensions };
 }
 
+async function readImageBody(response: Response): Promise<Uint8Array> {
+    if (!response.body) {
+        return new Uint8Array(await response.arrayBuffer());
+    }
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            total += value.byteLength;
+            if (total > MAX_FIGURE_BYTES) {
+                await reader.cancel();
+                throw new Error("Figure images must be no larger than 5 MB.");
+            }
+            chunks.push(value);
+        }
+    } finally {
+        reader.releaseLock();
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return bytes;
+}
+
 export async function fetchFigureImage(
     sourceUrl: string,
 ): Promise<ValidatedFigureImage> {
@@ -215,7 +245,7 @@ export async function fetchFigureImage(
                 throw new Error("Figure images must be no larger than 5 MB.");
             }
             return validateFigureBytes(
-                await response.arrayBuffer(),
+                await readImageBody(response),
                 response.headers.get("content-type")?.split(";")[0],
             );
         } finally {

@@ -32,8 +32,7 @@ async function sendWithResend(fields: ContactFields) {
     });
 
     if (!response.ok) {
-        const detail = await response.text().catch(() => "");
-        console.error("Contact email failed", response.status, detail);
+        console.error("Contact email failed", response.status);
         return false;
     }
 

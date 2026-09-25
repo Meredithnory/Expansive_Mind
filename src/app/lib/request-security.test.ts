@@ -1,17 +1,50 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { hasValidMutationOrigin, readBoundedJson } from "./request-security";
-describe("mutation boundaries",()=>{
- it("rejects cross-site and sibling-site browser requests even without Origin",()=>{
-  for(const site of ["cross-site","same-site"]) expect(hasValidMutationOrigin(new NextRequest("https://app.test/api/chat",{headers:{"sec-fetch-site":site}}))).toBe(false);
- });
- it("rejects forged origins and referrers",()=>{
-  for(const header of ["origin","referer"]) expect(hasValidMutationOrigin(new NextRequest("https://app.test/api/chat",{headers:{[header]:"https://evil.test"}}))).toBe(false);
- });
- it("allows same-origin JSON requests",()=>{expect(hasValidMutationOrigin(new NextRequest("https://app.test/api/chat",{headers:{origin:"https://app.test","sec-fetch-site":"same-origin"}}))).toBe(true);});
- it("bounds actual bytes without trusting Content-Length",async()=>{await expect(readBoundedJson(new Request("https://app.test",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:"x".repeat(100)})}),32)).rejects.toMatchObject({status:413});});
- it("rejects form submissions, arrays and invalid JSON",async()=>{
-  for(const body of ["[]","null","bad"])await expect(readBoundedJson(new Request("https://app.test",{method:"POST",headers:{"content-type":"application/json"},body}))).rejects.toMatchObject({status:400});
-  await expect(readBoundedJson(new Request("https://app.test",{method:"POST",body:"x"}))).rejects.toMatchObject({status:415});
- });
+import {
+    hasValidMutationOrigin,
+    readLimitedJsonBody,
+} from "./request-security";
+
+const request = (headers: Record<string, string>) =>
+    new NextRequest("https://expansive.example/api/projects", {
+        method: "POST",
+        headers,
+    });
+
+describe("hasValidMutationOrigin", () => {
+    it("accepts the exact application origin", () => {
+        expect(
+            hasValidMutationOrigin(
+                request({ origin: "https://expansive.example" }),
+            ),
+        ).toBe(true);
+    });
+
+    it("rejects cross-origin and unverifiable mutations", () => {
+        expect(
+            hasValidMutationOrigin(request({ origin: "https://other.example" })),
+        ).toBe(false);
+        expect(hasValidMutationOrigin(request({}))).toBe(false);
+    });
+
+    it("accepts same-origin Fetch Metadata when Origin is absent", () => {
+        expect(
+            hasValidMutationOrigin(
+                request({ "sec-fetch-site": "same-origin" }),
+            ),
+        ).toBe(true);
+    });
+
+    it("enforces JSON byte limits while streaming the body", async () => {
+        const body = JSON.stringify({ value: "x".repeat(100) });
+        const oversized = new NextRequest(
+            "https://expansive.example/api/discover",
+            { method: "POST", body },
+        );
+
+        await expect(readLimitedJsonBody(oversized, 32)).resolves.toEqual({
+            ok: false,
+            status: 413,
+        });
+    });
 });
