@@ -98,6 +98,14 @@ describe("auth navigation middleware", () => {
         const response = await middleware(request("/admin/login"));
 
         expect(response.headers.get("x-middleware-next")).toBe("1");
+        expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("allows anonymous access to nested /admin/login paths", async () => {
+        const response = await middleware(request("/admin/login/"));
+
+        expect(response.headers.get("x-middleware-next")).toBe("1");
+        expect(response.headers.get("location")).toBeNull();
     });
 
     it("redirects signed-in users without an admin session away from /admin", async () => {
@@ -108,6 +116,9 @@ describe("auth navigation middleware", () => {
         expect(response.status).toBe(307);
         expect(response.headers.get("location")).toBe(
             "https://example.test/admin/login",
+        );
+        expect(response.headers.get("location")).not.toBe(
+            "https://example.test/login",
         );
     });
 

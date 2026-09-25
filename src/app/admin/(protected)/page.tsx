@@ -2,8 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSession } from "../lib/use-session";
-import styles from "./admin.module.scss";
+import { useSession } from "../../lib/use-session";
+import styles from "../admin.module.scss";
 
 type Tab = "overview" | "pricing" | "users" | "audit";
 type Feature = "search" | "discover" | "chat" | "scholar_search" | "projects";
