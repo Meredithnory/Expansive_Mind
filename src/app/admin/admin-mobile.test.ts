@@ -53,7 +53,7 @@ function phoneCss(...files: string[]) {
 
 describe("admin phone layout", () => {
     const adminPhone = phoneCss("admin.module.scss");
-    const usagePhone = phoneCss("usage/usage.module.scss");
+    const usagePhone = phoneCss("(protected)/usage/usage.module.scss");
 
     it("covers a 390px phone without a second 32px page inset", () => {
         expect(adminPhone).toMatch(/\.page[\s\S]*width:\s*100%/);
