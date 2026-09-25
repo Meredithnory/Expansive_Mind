@@ -144,6 +144,7 @@ function capContext(text: string, limit: number) {
     const breakAt = Math.max(paragraph, sentence);
     const cut = breakAt > limit * 0.6 ? breakAt : limit;
     return `${text.slice(0, cut).trim()}…`;
+}
 
 /** Body-only excerpt for claim-ledger quotes. Never uses Abstract. */
 export function selectQuotableExcerpt(

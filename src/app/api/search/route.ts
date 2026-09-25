@@ -42,11 +42,16 @@ async function runSearch(
     // Explicit index sources from the research UX branch.
     if (sourceFilter === "europe-pmc") {
         const europe = await searchEuropePmcPapers(searchValue, page);
+        const europeResults = europe.results.filter(
+            (result: (typeof europe.results)[number]): result is NonNullable<
+                (typeof europe.results)[number]
+            > => result != null,
+        );
         const results = lightweight
-            ? europe.results
+            ? europeResults
             : await rankSearchResults(
                   searchValue,
-                  europe.results,
+                  europeResults,
                   options?.usageContext,
               );
         const withImpact = lightweight
@@ -62,11 +67,16 @@ async function runSearch(
     }
     if (sourceFilter === "crossref") {
         const crossref = await searchCrossrefPapers(searchValue, page);
+        const crossrefResults = crossref.results.filter(
+            (result: (typeof crossref.results)[number]): result is NonNullable<
+                (typeof crossref.results)[number]
+            > => result != null,
+        );
         const results = lightweight
-            ? crossref.results
+            ? crossrefResults
             : await rankSearchResults(
                   searchValue,
-                  crossref.results,
+                  crossrefResults,
                   options?.usageContext,
               );
         const withImpact = lightweight
@@ -108,7 +118,17 @@ async function runSearch(
             searchEuropePmcPapers(searchValue, page),
             searchCrossrefPapers(searchValue, page),
         ]);
-        groups = [...groups, europe.results, crossref.results];
+        const europeResults = europe.results.filter(
+            (result: (typeof europe.results)[number]): result is NonNullable<
+                (typeof europe.results)[number]
+            > => result != null,
+        );
+        const crossrefResults = crossref.results.filter(
+            (result: (typeof crossref.results)[number]): result is NonNullable<
+                (typeof crossref.results)[number]
+            > => result != null,
+        );
+        groups = [...groups, europeResults, crossrefResults];
         totalCount += europe.totalCount + crossref.totalCount;
         totalPages = Math.max(totalPages, europe.totalPages, crossref.totalPages);
         callCount += 2;

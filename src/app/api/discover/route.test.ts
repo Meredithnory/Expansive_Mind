@@ -4,7 +4,19 @@ const mocks = vi.hoisted(() => ({ agent: vi.fn(), retrieve: vi.fn(), build: vi.f
 vi.mock("server-only", () => ({}));
 vi.mock("../authMiddleware", () => ({ withAuth: (handler: unknown) => handler, withOptionalAuth: (handler: unknown) => handler }));
 vi.mock("../../lib/rate-limit", () => ({ consumeRateLimit: async () => ({ allowed: true }), requestIp: () => "test-ip" }));
-vi.mock("../../lib/request-security", () => ({ hasValidMutationOrigin: () => true }));
+vi.mock("../../lib/request-security", () => ({
+    hasValidMutationOrigin: () => true,
+    readLimitedJsonBody: async (request: Request) => {
+        try {
+            return { ok: true as const, value: await request.json() };
+        } catch {
+            return { ok: false as const, status: 400 };
+        }
+    },
+}));
+vi.mock("../../lib/guest-cost-cap", () => ({
+    consumeGuestDailyCap: async () => ({ allowed: true, retryAfterSeconds: 0 }),
+}));
 vi.mock("../../models/SavedDiscovery", () => ({ default: { create: mocks.save } }));
 vi.mock("../../lib/guest-discovery-log", () => ({ recordGuestDiscovery: mocks.recordGuest }));
 vi.mock("./agent", () => ({ runDiscoverAgent: mocks.agent, DiscoverAgentError: class extends Error { status = 400; } }));

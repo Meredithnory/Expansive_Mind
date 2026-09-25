@@ -6,9 +6,8 @@ import PageEngagement from "../../models/PageEngagement";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import { hashQuotaIdentity } from "../../lib/quota-identity";
 import {
-    InvalidJsonRequest,
     hasValidMutationOrigin,
-    readBoundedJson,
+    readLimitedJsonBody,
 } from "../../lib/request-security";
 import {
     AUDIENCE_PAGES,
@@ -65,7 +64,23 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        const data = await readBoundedJson(req, 2_048);
+        const parsedBody = await readLimitedJsonBody(req, 2_048);
+        if (!parsedBody.ok) {
+            return withVisitorCookie(
+                NextResponse.json(
+                    {
+                        error:
+                            parsedBody.status === 413
+                                ? "Audience payload is too large."
+                                : "A valid audience update is required.",
+                    },
+                    { status: parsedBody.status },
+                ),
+                visitor.token,
+                visitor.fresh,
+            );
+        }
+        const data = parsedBody.value as Record<string, unknown>;
         const page = typeof data.page === "string" ? data.page : "";
         const next = typeof data.next === "string" ? data.next : "";
         if (!(page in AUDIENCE_PAGES)) {
@@ -122,14 +137,7 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             visitor.token,
             visitor.fresh,
         );
-    } catch (error) {
-        if (error instanceof InvalidJsonRequest) {
-            return withVisitorCookie(
-                NextResponse.json({ error: error.message }, { status: error.status }),
-                visitor.token,
-                visitor.fresh,
-            );
-        }
+    } catch {
         console.error("Audience update failed");
         return withVisitorCookie(
             NextResponse.json({ error: "Audience update failed." }, { status: 500 }),

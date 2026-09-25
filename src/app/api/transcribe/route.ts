@@ -3,9 +3,8 @@ import { withOptionalAuth } from "../authMiddleware";
 import { createPrivateTranscription } from "../openrouter";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
-    InvalidJsonRequest,
     hasValidMutationOrigin,
-    readBoundedJson,
+    readLimitedJsonBody,
 } from "../../lib/request-security";
 import {
     MAX_TRANSCRIBE_AUDIO_CHARS,
@@ -37,9 +36,22 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        const parsed = parseTranscriptionRequest(
-            await readBoundedJson(req, MAX_TRANSCRIBE_AUDIO_CHARS + 512),
+        const parsedBody = await readLimitedJsonBody(
+            req,
+            MAX_TRANSCRIBE_AUDIO_CHARS + 512,
         );
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Voice payload is too large."
+                            : "A valid voice request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
+        const parsed = parseTranscriptionRequest(parsedBody.value as Record<string, unknown>);
         if (!parsed.ok) {
             return NextResponse.json(
                 { error: parsed.error },
@@ -63,13 +75,7 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             { text: text.trim() },
             { headers: { "Cache-Control": "private, no-store" } },
         );
-    } catch (error) {
-        if (error instanceof InvalidJsonRequest) {
-            return NextResponse.json(
-                { error: error.message },
-                { status: error.status },
-            );
-        }
+    } catch {
         console.error("Voice transcription failed");
         return NextResponse.json(
             { error: "Voice input could not be transcribed." },

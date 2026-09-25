@@ -335,6 +335,7 @@ function DiscoverClient({
     const [composerMode, setComposerMode] = useState<"discover" | "paper">(
         "discover",
     );
+    const [dockedComposerOpen, setDockedComposerOpen] = useState(false);
     const [paperChatOpen, setPaperChatOpen] = useState(false);
     const [selectedPaperIndex, setSelectedPaperIndex] = useState<
         number | undefined
@@ -346,6 +347,7 @@ function DiscoverClient({
         "all",
     );
     const [handoffPrompt, setHandoffPrompt] = useState<string | null>(null);
+    const composerLauncherRef = useRef<HTMLButtonElement>(null);
 
     const isRunning = step !== "idle" && step !== "done";
     const isCheckingSpelling = spellingCheck === "checking";
@@ -366,10 +368,75 @@ function DiscoverClient({
 
     useEffect(() => {
         setComposerMode("discover");
+        setDockedComposerOpen(false);
         setPaperChatOpen(false);
         setPendingPaperQuestion(null);
         setSelectedPaperIndex(result?.papers[0]?.index);
     }, [result?.id, result?.papers[0]?.index]);
+
+    const closeDockedComposer = useCallback(() => {
+        setDockedComposerOpen(false);
+        window.requestAnimationFrame(() => {
+            composerLauncherRef.current?.focus();
+        });
+    }, []);
+
+    const openDockedComposer = useCallback(() => {
+        setDockedComposerOpen(true);
+        window.requestAnimationFrame(() => {
+            textareaRef.current?.focus();
+        });
+    }, []);
+
+    // Keep the docked composer clear of the shared footer (and mobile bottom nav).
+    useEffect(() => {
+        if (!result) {
+            document.documentElement.style.removeProperty(
+                "--discover-composer-bottom",
+            );
+            return;
+        }
+
+        const footer = document.querySelector<HTMLElement>("[data-app-footer]");
+        if (!footer) return;
+
+        const syncClearance = () => {
+            const top = footer.getBoundingClientRect().top;
+            const clearance = Math.max(
+                12,
+                Math.round(window.innerHeight - top + 10),
+            );
+            document.documentElement.style.setProperty(
+                "--discover-composer-bottom",
+                `${clearance}px`,
+            );
+        };
+
+        syncClearance();
+        const observer = new ResizeObserver(syncClearance);
+        observer.observe(footer);
+        window.addEventListener("resize", syncClearance);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", syncClearance);
+            document.documentElement.style.removeProperty(
+                "--discover-composer-bottom",
+            );
+        };
+    }, [result?.id]);
+
+    useEffect(() => {
+        if (!result || !dockedComposerOpen) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            closeDockedComposer();
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [result, dockedComposerOpen, closeDockedComposer]);
     const queryUnclear =
         queryAssessment.status === "unclear" &&
         Boolean(assessedQuery) &&
@@ -605,6 +672,7 @@ function DiscoverClient({
                 setPreviewPaperIndex(null);
                 setSelectedPaperIndex(paperIndex);
                 setComposerMode("paper");
+                setDockedComposerOpen(true);
                 setPaperChatOpen(true);
                 setSpellingPrompt(null);
                 clearAssessment();
@@ -1151,8 +1219,32 @@ function DiscoverClient({
                 </div>
             ) : null}
 
-            {!isRunning && (
+            {result && !isRunning && !dockedComposerOpen ? (
+                <button
+                    ref={composerLauncherRef}
+                    type="button"
+                    className={styles.composerLauncher}
+                    aria-expanded={false}
+                    aria-controls="discover-docked-composer"
+                    onClick={openDockedComposer}
+                >
+                    <span className={styles.composerLauncherIcon} aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path
+                                fill="currentColor"
+                                d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.4l-3.7 3.2a.75.75 0 0 1-1.2-.6V16A2.5 2.5 0 0 1 4 13.5v-8Zm2.5-.5a.5.5 0 0 0-.5.5v8c0 .28.22.5.5.5H7.8a1 1 0 0 1 1 1v1.35L11.05 15H17.5a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-11Z"
+                            />
+                        </svg>
+                    </span>
+                    <span className={styles.composerLauncherLabel}>
+                        Ask another question
+                    </span>
+                </button>
+            ) : null}
+
+            {!isRunning && (!result || dockedComposerOpen) && (
             <form
+                id={result ? "discover-docked-composer" : undefined}
                 className={clsx(styles.form, {
                     [styles.dockedForm]: Boolean(result),
                     [styles.composerForm]: Boolean(result),
@@ -1181,6 +1273,23 @@ function DiscoverClient({
                     void confirmSpellingThenDiscover(event);
                 }}
             >
+                {result ? (
+                    <div className={styles.dockedComposerChrome}>
+                        <p className={styles.dockedComposerTitle}>
+                            {composerMode === "paper"
+                                ? "Ask a paper"
+                                : "Ask another question"}
+                        </p>
+                        <button
+                            type="button"
+                            className={styles.composerClose}
+                            aria-label="Close composer"
+                            onClick={closeDockedComposer}
+                        >
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                ) : null}
                 <div className={styles.formHeading}>
                     <label
                         className={clsx(styles.label, {

@@ -248,12 +248,15 @@ textarea {
     }
 
     /* Research only: keep the locked viewport so the footer stays above the
-       fixed bottom nav and does not jump when toggling modes. */
+       fixed bottom nav and does not jump when toggling modes.
+       SiteStatus + main + footer (nav is position:fixed on mobile).
+       Main must be 1fr — all-auto rows collapse the report into ~80px. */
     body:has([data-research-workspace]) {
         height: 100dvh;
         max-height: 100dvh;
         overflow-x: clip;
         overflow-y: hidden;
+        grid-template-rows: auto 1fr auto;
     }
 
     body:has([data-research-workspace]) .main-content {
@@ -265,6 +268,17 @@ textarea {
 
     body:has([data-research-workspace]) .page-transition-shell {
         justify-content: safe center;
+    }
+
+    /* Rich marketing footer is too tall for the locked research viewport.
+       Keep brand + legal; drop the large link columns on small screens. */
+    body:has([data-research-workspace]) [data-app-footer-top] {
+        display: none;
+    }
+
+    body:has([data-research-workspace]) [data-app-footer] {
+        padding-top: 10px;
+        padding-bottom: 4px;
     }
 }
 

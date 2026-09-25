@@ -304,7 +304,7 @@
 .dockedForm {
     position: fixed;
     right: auto;
-    bottom: 20px;
+    bottom: var(--discover-composer-bottom, 160px);
     left: 50%;
     z-index: 30;
     width: min(780px, calc(100vw - 32px));
@@ -312,12 +312,14 @@
     padding: 9px 11px 10px;
     border: 1px solid rgba(215, 235, 255, 0.12);
     border-radius: 20px;
-    background: rgba(5, 5, 7, 0.9);
+    background: rgba(5, 5, 7, 0.94);
     box-shadow:
         0 24px 70px rgba(0, 0, 0, 0.75),
         0 0 0 1px rgba(255, 255, 255, 0.025) inset;
     backdrop-filter: blur(22px);
     transform: translateX(-50%);
+    transform-origin: bottom center;
+    animation: docked-composer-rise 200ms cubic-bezier(0.22, 1, 0.36, 1);
 
     .formHeading {
         position: absolute;
@@ -408,6 +410,211 @@
 
     .spellingGateLead strong {
         white-space: normal;
+    }
+}
+
+.composerLauncher {
+    position: fixed;
+    right: auto;
+    bottom: var(--discover-composer-bottom, 160px);
+    left: 50%;
+    z-index: 28;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 44px;
+    min-height: 44px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    margin: 0;
+    padding: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 0, 132, 0.42);
+    border-radius: 999px;
+    background:
+        linear-gradient(180deg, rgba(255, 0, 132, 0.18), rgba(5, 5, 7, 0.92));
+    box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(10, 177, 255, 0.08) inset;
+    color: #fff;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transform: translateX(-50%);
+    backdrop-filter: blur(16px);
+    animation: composer-peek-rise 6.4s ease-in-out infinite;
+    transition:
+        transform 420ms cubic-bezier(0.34, 1.45, 0.64, 1),
+        gap 320ms ease,
+        padding 320ms ease,
+        border-color 200ms ease,
+        background 200ms ease;
+
+    &:hover,
+    &:focus-visible,
+    &:active {
+        gap: 10px;
+        padding: 8px 16px 8px 8px;
+        border-color: rgba(255, 0, 132, 0.7);
+        background:
+            linear-gradient(180deg, rgba(255, 0, 132, 0.28), rgba(5, 5, 7, 0.95));
+        transform: translateX(-50%) translateY(-4px);
+        animation: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #ff0084;
+        outline-offset: 3px;
+    }
+}
+
+.composerLauncherLabel {
+    display: inline-block;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    white-space: nowrap;
+    animation: composer-peek-label 6.4s ease-in-out infinite;
+    transition:
+        max-width 380ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 220ms ease;
+}
+
+.composerLauncher:hover .composerLauncherLabel,
+.composerLauncher:focus-visible .composerLauncherLabel,
+.composerLauncher:active .composerLauncherLabel {
+    max-width: 12rem;
+    opacity: 1;
+    animation: none;
+}
+
+@keyframes composer-peek-rise {
+    0%,
+    64%,
+    100% {
+        transform: translateX(-50%) translateY(12px);
+    }
+
+    74%,
+    90% {
+        transform: translateX(-50%) translateY(-6px);
+    }
+}
+
+@keyframes composer-peek-label {
+    0%,
+    64%,
+    100% {
+        max-width: 0;
+        opacity: 0;
+    }
+
+    74%,
+    90% {
+        max-width: 12rem;
+        opacity: 1;
+    }
+}
+
+.composerLauncherIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(255, 0, 132, 0.2);
+    color: #ff8ec4;
+    flex-shrink: 0;
+}
+
+.dockedComposerChrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 2px 6px;
+    min-height: 36px;
+}
+
+.dockedComposerTitle {
+    margin: 0;
+    color: rgba(228, 241, 255, 0.88);
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.composerClose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(215, 235, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(228, 241, 255, 0.78);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: rgba(255, 0, 132, 0.45);
+        color: #fff;
+        background: rgba(255, 0, 132, 0.12);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #ff0084;
+        outline-offset: 2px;
+    }
+}
+
+@keyframes docked-composer-rise {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dockedForm {
+        animation: none;
+    }
+
+    .dockedForm .textarea {
+        transition: none;
+    }
+
+    .composerLauncher,
+    .composerLauncherLabel {
+        animation: none;
+        transition: none;
+    }
+
+    .composerLauncher {
+        gap: 10px;
+        padding: 10px 18px 10px 14px;
+        transform: translateX(-50%);
+    }
+
+    .composerLauncherLabel {
+        max-width: 12rem;
+        opacity: 1;
     }
 }
 
@@ -1417,7 +1624,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    padding-bottom: 150px;
+    padding-bottom: 72px;
     animation: report-enter 440ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -2812,8 +3019,8 @@
 
     .reportPage .results {
         gap: 18px;
-        /* Docked ask box (~150) + fixed bottom nav (~72) + breathing room */
-        padding-bottom: calc(240px + env(safe-area-inset-bottom, 0px));
+        /* Compact launcher (~52) + breathing room above footer/nav */
+        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     }
 
     .reportTitle {
@@ -2986,14 +3193,15 @@
     }
 
     .dockedForm {
-        /* Sit above the fixed bottom nav (~68px) + gap */
-        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        /* Clearance comes from --discover-composer-bottom (footer + bottom nav). */
+        bottom: var(--discover-composer-bottom, calc(76px + env(safe-area-inset-bottom, 0px)));
         width: calc(100% - 24px);
         max-width: none;
-        max-height: min(42dvh, 320px);
+        max-height: min(48dvh, 360px);
         overflow-y: auto;
         left: 50%;
         transform: translateX(-50%);
+        padding-bottom: 12px;
 
         .promptShell {
             flex-direction: column;
@@ -3029,6 +3237,30 @@
             span:first-child {
                 display: none;
             }
+        }
+
+        .composerClose {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+        }
+    }
+
+    .composerLauncher {
+        bottom: var(--discover-composer-bottom, calc(76px + env(safe-area-inset-bottom, 0px)));
+        width: max-content;
+        max-width: calc(100vw - 24px);
+        min-width: 48px;
+        min-height: 48px;
+        padding: 8px;
+        font-size: 0.95rem;
+
+        &:hover,
+        &:focus-visible,
+        &:active {
+            width: max-content;
+            padding: 8px 16px 8px 8px;
         }
     }
 

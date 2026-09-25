@@ -18,7 +18,7 @@ const Footer = () => {
 
     return (
         <footer className={styles.footer} data-app-footer>
-            <div className={styles.top}>
+            <div className={styles.top} data-app-footer-top>
                 <div className={styles.brand}>
                     <img src="/brainlogo.svg" alt="" width={32} height={32} />
                     <div>

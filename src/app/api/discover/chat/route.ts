@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth } from "../../authMiddleware";
 import SavedDiscovery from "../../../models/SavedDiscovery";
-import { hasValidMutationOrigin, readBoundedJson, InvalidJsonRequest } from "../../../lib/request-security";
+import { hasValidMutationOrigin, readLimitedJsonBody } from "../../../lib/request-security";
 import { consumeRateLimit } from "../../../lib/rate-limit";
 import { consumeQuota, resolvePlan } from "../../../lib/entitlements";
 import { isAdminUser } from "../../../lib/admin";
@@ -17,7 +17,19 @@ export const maxDuration = 120;
 export const POST = withAuth(async request => {
     if (!hasValidMutationOrigin(request)) return NextResponse.json({error: "Invalid origin."}, {status:403});
     try {
-        const data = await readBoundedJson(request);
+        const parsedBody = await readLimitedJsonBody(request, 16 * 1024);
+        if (!parsedBody.ok) {
+            return NextResponse.json(
+                {
+                    error:
+                        parsedBody.status === 413
+                            ? "Chat request is too large."
+                            : "A valid chat request is required.",
+                },
+                { status: parsedBody.status },
+            );
+        }
+        const data = parsedBody.value as Record<string, unknown>;
         if (!(typeof data.discoveryId === "string" && mongoose.isValidObjectId(data.discoveryId)) || typeof data.question !== "string" || !data.question.trim() || data.question.length > 2000 || (data.context != null && (typeof data.context !== "string" || data.context.length > 1000))) return NextResponse.json({error:"A saved discovery and question are required."}, {status:400});
         const userID = request.user._id.toString();
         const saved = await SavedDiscovery.findOne({_id:data.discoveryId, userID});
@@ -54,5 +66,7 @@ export const POST = withAuth(async request => {
         ]}, {feature:"chat", userID});
         const answer = validateAnswer(parseJsonFromLlm(completion.choices[0].message.content || "{}"), sources);
         return NextResponse.json({...answer, unavailable, sourceCount:sources.length}, {headers:{"Cache-Control":"private, no-store"}});
-    } catch (error) { if (error instanceof InvalidJsonRequest) return NextResponse.json({error:error.message}, {status:error.status}); return NextResponse.json({error:"The report assistant is unavailable. Please try again."}, {status:500}); }
+    } catch {
+        return NextResponse.json({error:"The report assistant is unavailable. Please try again."}, {status:500});
+    }
 });

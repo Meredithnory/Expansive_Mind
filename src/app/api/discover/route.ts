@@ -25,7 +25,6 @@ import { isAdminUser } from "../../lib/admin";
 import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 import { retrieveFounderSources, buildFounderReport } from "./founder-diligence";
 import { founderReportMarkdown } from "../../lib/founder-report";
-import { recordGuestDiscovery } from "../../lib/guest-discovery-log";
 
 export const maxDuration = 120;
 
@@ -138,6 +137,19 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         const data = parsedBody.value as Record<string, unknown>;
         const question =
             typeof data.question === "string" ? data.question.trim() : "";
+        const founderScope =
+            typeof data.founderScope === "string"
+                ? data.founderScope.trim()
+                : "";
+        if (founderScope.length > 500) {
+            return NextResponse.json(
+                {
+                    error:
+                        "Optional research context must be 500 characters or fewer.",
+                },
+                { status: 400 },
+            );
+        }
 
         if (!question || question.length > 2_000) {
             return NextResponse.json(
@@ -196,13 +208,49 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             userID,
             anonymousId: userID ? undefined : identity,
         };
+        // Commercial retrieval runs alongside the literature pipeline.
+        const commercialPromise = retrieveFounderSources(
+            question,
+            founderScope,
+            usageContext,
+        ).catch(() => ({
+            sources: [],
+            limitations: [
+                "Commercial retrieval failed. Commercial conclusions remain unverified.",
+            ],
+        }));
         const discovery = await cached({
             namespace: "discovery-v6-claim-passages",
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),
         });
-        const result = discovery.value;
+        let result = discovery.value;
+        {
+            const founder = await buildFounderReport({
+                question,
+                scope: founderScope,
+                commercial: await commercialPromise,
+                extractions: result.extractions || [],
+                papers: result.papers,
+                usageContext,
+            });
+            result = {
+                ...result,
+                report: {
+                    sections: result.report?.sections || {
+                        stateOfScience: result.brief,
+                        gaps: [],
+                        problems: [],
+                        venturePotential: [],
+                        couldNotVerify: [],
+                        projectSeeds: [],
+                    },
+                    founder,
+                },
+                brief: `${result.brief}\n\n${founderReportMarkdown(founder)}`,
+            };
+        }
         if (!discovery.cacheHit && !result.noResults) {
             deferUsageRecording({
                 context: usageContext,
