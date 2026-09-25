@@ -8,17 +8,21 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `admin.ts` | server | `withAdmin` + `isAdminUser` |
 | `admin-audit.ts` | server | Persist admin actions |
 | `admin-identity.ts` | both | Parse `ADMIN_EMAILS` |
+| `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
+| `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
 | `canvas-image.ts` | client | Canvas → file, size cap |
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
+| `claim-evidence.ts` | both | Study-design labels in Discover. Not the claim ledger |
 | `contact.ts` | both | Contact form parse / mailto |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
-| `quote-eligibility.ts` | both | Share/claim-ledger quote gate: home full text + commercial-friendly home license (Unpaywall does not widen) |
+| `quote-eligibility.ts` | both | Strict quote gate. Does not decide whether a share slug can be created |
 | `entitlements.ts` | server | Quota consume / refund / snapshot |
 | `evidence-type.ts` | both | Evidence labels on extractions |
 | `figure-capture.ts` | both | Crop + rights attestation |
 | `figure-context.ts` | both | Build figure prompt context |
 | `figure-image.ts` | server | Validate / fetch figure bytes |
+| `founder-report.ts` | both | Founder diligence markdown merged onto a Discover brief |
 | `guest-cost-cap.ts` | server | Daily guest provider caps |
 | `guest-discovery.ts` | client | localStorage last guest result |
 | `guest-usage.ts` | both | Summarize guest counters |
@@ -35,6 +39,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `project-types.ts` | both | Serialized research-plan types |
 | `provider-cache.ts` | server | Short-lived provider cache |
 | `quota-identity.ts` | server | Hash quota identity |
+| `quota-period.ts` | both | Lifetime, UTC day, or UTC month for a quota feature |
 | `rate-limit.ts` | server | Sliding window limiter |
 | `region-capture.ts` | client | Selection → excerpt |
 | `request-ip.ts` | server | Client IP from headers |

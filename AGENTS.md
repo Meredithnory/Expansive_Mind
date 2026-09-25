@@ -28,6 +28,7 @@ Do **not** grep the whole repo to orient. Do **not** open the god files unless y
 | [gates.md](docs/agents/gates.md) | Builder → Reviewer → approve → merge |
 | [token-efficiency.md](docs/agents/token-efficiency.md) | What to read / skip |
 | [env.md](docs/agents/env.md) | Env vars (source: `.env.example`) |
+| [complex.md](docs/agents/complex.md) | Discover pipeline, ledger, briefs, admin MFA, quotas, billing, licenses |
 | [verify-expansive-mind](.cursor/skills/verify-expansive-mind/SKILL.md) | Drive Discover, brief, and paper reader before claiming those done |
 | [pstack-models](.cursor/rules/pstack-models.mdc) | Per-role models for poteto-mode `Task` calls |
 

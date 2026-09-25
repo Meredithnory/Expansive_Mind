@@ -16,7 +16,7 @@ App Router lives under `src/app/`. Alias: `@/*` → `src/*`. Styles: SCSS module
 | `/pricing` | public | Researcher Pro |
 | `/login`, `/signup` | public; redirect if logged in | Auth |
 | `/about`, `/get-started`, `/contact` | public | Marketing / contact |
-| `/admin`, `/admin/usage` | **cookie + ADMIN_EMAILS** | Owner portal |
+| `/admin`, `/admin/usage` | **admin_session** (API also requires `ADMIN_EMAILS`) | Owner portal |
 
 Middleware (`src/middleware.ts`) only matches `/savedpapers`, `/projects`, `/admin`, `/login`, `/signup`. API routes enforce auth themselves via `withAuth` / `withOptionalAuth` / `withAdmin`.
 
@@ -34,15 +34,17 @@ UI DiscoverClient
         6. extractPaperFindings
         7. synthesizeOpportunityReport
         8. attachClaimLedger (gaps / problems / ventures → sourced rows + license URI)
-    → persist SavedDiscovery (signed-in) or guest cache
-  ← papers + brief + OpportunityReport (includes claimLedger)
+    → route merges founder report, then persist SavedDiscovery (signed-in) or guest cache
+  ← papers + brief + OpportunityReport
 UI may open /paperchatbot/... or seed /api/projects
-Share (`POST /api/discover/share`) is rejected until every ledger claim has a quote from **home** OA full text, a resolvable paper citation, and a commercial-friendly **home** license URI (CC0, CC BY, CC BY-SA, or CC BY-ND). Unpaywall may locate OA URLs or flag a conflict; it must not fill a null home license for quotes. The Share path evaluates that license gate in `strict` mode even when `CONTENT_ACCESS_MODE=legacy`. Scholar/SerpApi is discovery/ranking only unless the hit remaps to NIH/Springer full text. Public `/brief/{slug}` carries that structured ledger.
+Share (`POST /api/discover/share`) creates a slug for that saved discovery. It does not check ledger completeness. Public `/brief/{slug}` rebuilds the ledger on read.
 ```
+
+Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [claim-ledger.md](claim-ledger.md), [content-access.md](content-access.md).
 
 ## Auth & session
 
-- Login/signup set `auth_token`. Payload: `id`, `email`, `tokenVersion`.
+- Login/signup set `auth_token` (`id`, `email`, `tokenVersion`). Admin MFA is a separate issuer. See [admin-auth.md](admin-auth.md).
 - `attachAuthenticatedUser` loads User and checks `session-version`.
 - `tokenVersion` bump (password change / logout-all) revokes cookies.
 - Client session: `use-session.tsx` → `GET /api/session`.
@@ -50,8 +52,8 @@ Share (`POST /api/discover/share`) is rejected until every ledger claim has a qu
 ## Quotas & money
 
 - Plans: `guest | free | pro` in `src/app/lib/plan-config.ts` (DB-overridable via `PlanConfig`).
-- `consumeQuota` / `refundQuota` in `entitlements.ts`. Guests keyed by IP hash + daily provider caps (`guest-cost-cap.ts`).
-- Stripe: checkout + portal + webhook. Webhook writes `plan` / subscription fields on User.
+- `consumeQuota` / `refundQuota` in `src/app/lib/entitlements.ts`. Periods, guest caps, and defaults: [quotas.md](quotas.md).
+- Stripe: checkout + portal + webhook. Only the webhook writes `plan`. See [billing.md](billing.md).
 - Usage events: `usage-meter.ts` → `UsageEvent` (admin cost view).
 
 ## Models (`src/app/models/`)
