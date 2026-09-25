@@ -16,7 +16,8 @@
     overscroll-behavior-x: contain;
     scrollbar-width: none;
     scroll-snap-type: none;
-    touch-action: pan-x;
+    /* pan-y lets a vertical swipe scroll the page; pan-x still moves the rail. */
+    touch-action: pan-x pan-y;
     /* Fade only in the side gutter so names are never mid-word chopped. */
     mask-image: linear-gradient(
         90deg,

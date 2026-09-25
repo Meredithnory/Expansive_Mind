@@ -390,17 +390,18 @@
     }
 
     .welcome {
-        padding: 24px 20px 18px;
+        padding: 16px 20px 8px;
     }
 
     .form {
-        padding: 22px 20px 24px;
-        gap: 14px;
+        padding: 8px 20px 24px;
+        gap: 10px;
     }
 
     .field input,
     .field select,
     .field textarea {
         min-height: 48px;
+        scroll-margin-bottom: calc(var(--mobile-bottom-nav-clearance) + 12px);
     }
 }

@@ -90,6 +90,23 @@ describe("mobile chrome stacking", () => {
         expect(body).toMatch(/\[data-app-footer\]\s*\{[^}]*grid-row:\s*2/);
     });
 
+    it("lets a vertical swipe on a source rail scroll the page", () => {
+        const carousel = read("../discover/source-logo-carousel.module.scss");
+        const chips = read("styles/databasemind.module.scss");
+        expect(carousel).toMatch(/touch-action:\s*pan-x\s+pan-y\s*;/);
+        expect(chips).toMatch(/touch-action:\s*pan-x\s+pan-y\s*;/);
+        expect(carousel).not.toMatch(/touch-action:\s*pan-x\s*;/);
+        expect(chips).not.toMatch(/touch-action:\s*pan-x\s*;/);
+    });
+
+    it("keeps phone footer links on one wrapping row", () => {
+        const footer = read("styles/footer.module.scss");
+        const start = footer.indexOf("@media (max-width: 720px)");
+        expect(start).toBeGreaterThan(-1);
+        const body = footer.slice(start);
+        expect(body).toMatch(/\.links\s*\{[^}]*flex-direction:\s*row/);
+    });
+
     it("keeps the search scroll-to-top control above the bottom nav", () => {
         const scss = read("../searchpaper/searchpaper.module.scss");
         const rule = scss.slice(scss.lastIndexOf(".scrollTopButton"));

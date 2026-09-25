@@ -126,6 +126,9 @@
 
     .links {
         min-width: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0 16px;
 
         a {
             display: inline-flex;
