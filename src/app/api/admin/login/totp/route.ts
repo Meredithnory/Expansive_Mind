@@ -18,6 +18,7 @@ import {
     adminMfaCookieOptions,
     adminSessionCookieOptions,
     authCookieOptions,
+    readAdminMfa,
     readAdminMfaFromRequest,
 } from "../../../../lib/admin-session";
 
@@ -34,7 +35,15 @@ export async function POST(request: NextRequest) {
             return json({ error: "Invalid origin." }, 403);
         }
 
-        const pending = await readAdminMfaFromRequest(request);
+        const body = await request.json().catch(() => ({}));
+        const code = String(body?.code || "");
+        const bodyMfaToken =
+            typeof body?.mfaToken === "string" ? body.mfaToken : undefined;
+        // Prefer the httpOnly cookie; fall back to the short-lived challenge
+        // token from the password step JSON when the cookie was not stored.
+        const pending =
+            (await readAdminMfaFromRequest(request)) ||
+            (await readAdminMfa(bodyMfaToken));
         if (!pending) {
             return json(
                 { success: false, message: "Sign in with your password first." },
@@ -57,9 +66,6 @@ export async function POST(request: NextRequest) {
                 429,
             );
         }
-
-        const body = await request.json().catch(() => ({}));
-        const code = String(body?.code || "");
 
         await connectDB();
         const user = await User.findById(pending.id).select(

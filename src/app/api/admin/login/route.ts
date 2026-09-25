@@ -86,10 +86,20 @@ export async function POST(request: NextRequest) {
 
         const userId = user._id.toString();
         if (user.adminTotpEnabled && user.adminTotpSecret) {
-            const response = json({ success: true, mfa: "verify" });
+            const mfaToken = await createAdminMfaToken({
+                id: userId,
+                stage: "verify",
+            });
+            // mfaToken is also returned in JSON so verify still works if the
+            // browser drops the httpOnly admin_mfa cookie between steps.
+            const response = json({
+                success: true,
+                mfa: "verify",
+                mfaToken,
+            });
             response.cookies.set(
                 ADMIN_MFA_COOKIE,
-                await createAdminMfaToken({ id: userId, stage: "verify" }),
+                mfaToken,
                 adminMfaCookieOptions(),
             );
             return response;
@@ -109,6 +119,7 @@ export async function POST(request: NextRequest) {
             mfa: "setup",
             qrDataUrl,
             manualKey: secret,
+            mfaToken,
         });
         response.cookies.set(
             ADMIN_MFA_COOKIE,

@@ -15,6 +15,7 @@ export default function AdminLoginPage() {
     const [code, setCode] = useState("");
     const [qrDataUrl, setQrDataUrl] = useState("");
     const [manualKey, setManualKey] = useState("");
+    const [mfaToken, setMfaToken] = useState("");
     const [step, setStep] = useState<Step>("credentials");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -34,6 +35,7 @@ export default function AdminLoginPage() {
         try {
             const response = await fetch("/api/admin/login", {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
@@ -41,11 +43,13 @@ export default function AdminLoginPage() {
             if (response.ok && data.mfa === "setup") {
                 setQrDataUrl(String(data.qrDataUrl || ""));
                 setManualKey(String(data.manualKey || ""));
+                setMfaToken(String(data.mfaToken || ""));
                 setPassword("");
                 setStep("setup");
                 return;
             }
             if (response.ok && data.mfa === "verify") {
+                setMfaToken(String(data.mfaToken || ""));
                 setPassword("");
                 setStep("verify");
                 return;
@@ -65,11 +69,13 @@ export default function AdminLoginPage() {
         try {
             const response = await fetch("/api/admin/login/totp", {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code }),
+                body: JSON.stringify({ code, mfaToken }),
             });
             const data = await response.json().catch(() => ({}));
             if (response.ok && data.success) {
+                setMfaToken("");
                 await finishLogin();
                 return;
             }
