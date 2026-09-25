@@ -37,6 +37,7 @@ export default function Home() {
                     <source src="/dnabg.webm" type="video/webm" />
                 </video>
             ) : null}
+            <div className={styles.scrim} aria-hidden="true" />
             <div className={styles.hero}>
                 <p className={styles.eyebrow}>Evidence, made actionable</p>
                 <div className={styles.brand}>
