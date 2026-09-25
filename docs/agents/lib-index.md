@@ -35,6 +35,9 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
 | `research-citation.ts` | both | DOI/PMCID normalize + citation merge keys for the source registry |
 | `plan-config.ts` | server | Default + DB plan/price config |
+| `password-reset-copy.ts` | both | Password-reset messages safe for client pages |
+| `password-reset-mail.ts` | server | Send the reset link with Resend |
+| `password-reset.ts` | server | Single-use reset token, link, and email theme |
 | `pmc-media.ts` | both | PMC figure URL resolve |
 | `project-types.ts` | both | Serialized research-plan types |
 | `provider-cache.ts` | server | Short-lived provider cache |

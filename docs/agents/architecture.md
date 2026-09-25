@@ -46,7 +46,8 @@ Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [cl
 
 - Login/signup set `auth_token` (`id`, `email`, `tokenVersion`). Admin MFA is a separate issuer. See [admin-auth.md](admin-auth.md).
 - `attachAuthenticatedUser` loads User and checks `session-version`.
-- `tokenVersion` bump (password change / logout-all) revokes cookies.
+- `tokenVersion` bump (password change / logout-all / password reset) revokes cookies.
+- Signed-out password reset (`src/app/forgot-password/page.tsx`, `src/app/api/password-reset/route.ts`) emails one single-use link. It does not email the new password. The link opens `src/app/reset-password/page.tsx`.
 - Client session: `use-session.tsx` → `GET /api/session`.
 
 ## Quotas & money

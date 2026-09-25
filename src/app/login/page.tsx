@@ -176,6 +176,10 @@ const LoginPage = () => {
                                       : "Login"}
                             </button>
                             <p className={styles.signupPrompt}>
+                                <Link href="/forgot-password">
+                                    Forgot password?
+                                </Link>
+                                <br />
                                 Don&apos;t have an account?{" "}
                                 <Link href="/signup">Sign up</Link>
                             </p>
