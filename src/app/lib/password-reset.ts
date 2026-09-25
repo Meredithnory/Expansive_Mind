@@ -59,12 +59,14 @@ export function buildPasswordResetLink(origin: string, token: string) {
     return url.toString();
 }
 
-export function passwordResetFromAddress(
-    env: { CONTACT_FROM_EMAIL?: string } = process.env,
-) {
-    return (
-        env.CONTACT_FROM_EMAIL || "Expansive Mind <beth.t@example.com>"
-    );
+export function passwordResetFromAddress(env?: {
+    CONTACT_FROM_EMAIL?: string;
+}) {
+    const from =
+        env === undefined
+            ? process.env.CONTACT_FROM_EMAIL
+            : env.CONTACT_FROM_EMAIL;
+    return from || "Expansive Mind <beth.t@example.com>";
 }
 
 export function passwordResetSubject() {
