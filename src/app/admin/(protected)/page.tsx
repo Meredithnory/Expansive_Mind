@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { AdminUserUsage } from "../AdminUserUsage";
 import { useSession } from "../../lib/use-session";
 import styles from "../admin.module.scss";
 
@@ -24,7 +25,12 @@ type UserRow = {
     subscriptionStatus: string;
     stripeSubscriptionId?: string;
     subscriptionCurrentPeriodEnd?: string;
-    usage: Record<string, number>;
+    usage: Array<{
+        feature: string;
+        used: number;
+        limit: number;
+        period?: string;
+    }>;
 };
 type Usage = {
     rangeDays: number;
@@ -335,9 +341,7 @@ export default function AdminPage() {
                                         {selectedUser.accessOverride && <div className={styles.eyebrow}>Complimentary Pro</div>}
                                     </td>
                                     <td className={styles.muted} data-label="Usage">
-                                        {Object.entries(selectedUser.usage).map(([feature, count]) => (
-                                            <div key={feature}>{feature}: {count}</div>
-                                        ))}
+                                        <AdminUserUsage usage={selectedUser.usage} />
                                     </td>
                                     <td data-label="Support actions">
                                         <div className={styles.actions}>
