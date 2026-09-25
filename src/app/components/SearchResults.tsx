@@ -13,6 +13,7 @@ import {
 } from "../lib/highlight-search";
 import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import type { CitationSource } from "../lib/paper-impact";
+import { resolveScholarCitesId } from "../lib/citing-works";
 import PaperImpactBadge from "./PaperImpactBadge";
 
 // CHANGED: This interface used to have a 'pmcid' field (which only worked for NIH papers).
@@ -260,7 +261,19 @@ const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
                                 citationCount={paper.citationCount}
                                 citationSource={paper.citationSource}
                                 doi={paper.doi}
-                                scholarCitesId={paper.scholarCitesId}
+                                scholarCitesId={resolveScholarCitesId({
+                                    scholarCitesId: paper.scholarCitesId,
+                                    database:
+                                        paper.source === "scholar"
+                                            ? "scholar"
+                                            : undefined,
+                                    idName:
+                                        paper.source === "scholar"
+                                            ? "cluster_id"
+                                            : undefined,
+                                    paperId: paper.sourceId,
+                                    clusterId: paper.clusterId,
+                                })}
                                 sourcePaper={{
                                     title: paper.title,
                                     doi: paper.doi,

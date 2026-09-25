@@ -1560,9 +1560,7 @@
 }
 
 .historyOpen,
-.historyDelete,
-.savedNotice button,
-.savedNotice a {
+.historyDelete {
     appearance: none;
     border: 1px solid rgba(215, 235, 255, 0.1);
     color: inherit;
@@ -1676,37 +1674,6 @@
     color: rgba(215, 235, 255, 0.48);
     font-size: 0.74rem;
     line-height: 1.5;
-}
-
-.savedNotice {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 10px 13px;
-    border: 1px solid rgba(99, 211, 153, 0.16);
-    border-radius: 12px;
-    background: rgba(99, 211, 153, 0.045);
-    color: rgba(215, 235, 255, 0.55);
-    font-size: 0.72rem;
-    line-height: 1.45;
-
-    button,
-    a {
-        flex: 0 0 auto;
-        padding: 7px 10px;
-        border-radius: 9px;
-        background: rgba(255, 255, 255, 0.035);
-        color: #8be8b8;
-        font-size: 0.72rem;
-        font-weight: 600;
-        text-decoration: none;
-
-        &:hover {
-            border-color: rgba(99, 211, 153, 0.35);
-            background: rgba(99, 211, 153, 0.08);
-        }
-    }
 }
 
 @keyframes report-enter {
@@ -3099,7 +3066,6 @@
     .briefSection,
     .evidenceRail,
     .groundingNote,
-    .savedNotice,
     .briefCard,
     .outlineCard,
     .evidenceCard,
@@ -3334,7 +3300,6 @@
     .reportHeader,
     .sectionHeading,
     .sectionHead,
-    .savedNotice,
     .projectNotice,
     .groundingNote {
         align-items: flex-start;

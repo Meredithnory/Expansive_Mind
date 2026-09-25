@@ -1,8 +1,9 @@
 // Shared Discover contract. Client HTTP types: src/app/discover/discover-types.ts
 import type { SourceDatabase } from "../../lib/paper-sources";
+import type { PaperImpact } from "../../lib/paper-impact";
 
 /** Cited paper card returned by Discover and stored on SavedDiscovery. */
-export interface DiscoverPaperCard {
+export interface DiscoverPaperCard extends PaperImpact {
     index: number;
     database: SourceDatabase;
     paperId: string;
@@ -14,6 +15,9 @@ export interface DiscoverPaperCard {
     sourceUrl: string;
     href: string;
     doi?: string;
+    /** SerpApi / Scholar cites id for the citing-works menu. */
+    scholarCitesId?: string;
+    indexedBy?: string[];
     /** Canonical commercial-friendly license URI when the paper is quote-eligible. */
     licenseUrl?: string;
 }

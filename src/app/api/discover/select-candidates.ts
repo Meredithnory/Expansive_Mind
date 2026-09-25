@@ -48,10 +48,14 @@ export function dedupeDiscoverCandidates(
         const preferred = group.find(entry => entry.access.canSendToAI) || group[0];
         const indexedBy = [...new Set(group.flatMap(entry => entry.indexedBy || []))];
         const doi = preferred.doi || group.find(entry => entry.doi)?.doi;
+        const scholarCitesId =
+            preferred.scholarCitesId ||
+            group.find((entry) => entry.scholarCitesId)?.scholarCitesId;
         const impact = mergePaperImpact(...group);
         const combined = {
             ...preferred,
             ...(doi ? { doi } : {}),
+            ...(scholarCitesId ? { scholarCitesId } : {}),
             ...(indexedBy.length ? { indexedBy } : {}),
             ...impact,
         };

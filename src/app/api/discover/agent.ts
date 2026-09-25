@@ -15,6 +15,8 @@ import {
     buildPaperPath,
     searchSourceTag,
 } from "../../lib/paper-sources";
+import { attachPaperImpact } from "../../lib/paper-impact-lookup";
+import { resolveScholarCitesId } from "../../lib/citing-works";
 import {
     selectDiscoverCandidates,
     type DiscoverCandidate,
@@ -223,6 +225,13 @@ async function readPaperExcerpts(
             const quoteExcerpt = quote.allowed
                 ? selectQuotableExcerpt(paper, question)
                 : "";
+            const doi = loaded.citation.doi || candidate.doi;
+            const scholarCitesId = resolveScholarCitesId({
+                scholarCitesId: candidate.scholarCitesId,
+                database: loaded.locator.database,
+                idName: loaded.locator.idName,
+                paperId: loaded.locator.paperId,
+            });
             const card: DiscoverPaperCard = {
                 index: index + 1,
                 database: loaded.locator.database,
@@ -241,9 +250,19 @@ async function readPaperExcerpts(
                     loaded.locator.paperId,
                     loaded.locator.idName,
                 ),
-                ...(loaded.citation.doi
-                    ? { doi: loaded.citation.doi }
+                ...(doi ? { doi } : {}),
+                ...(candidate.indexedBy?.length
+                    ? { indexedBy: candidate.indexedBy }
                     : {}),
+                ...(candidate.citationCount != null
+                    ? {
+                          citationCount: candidate.citationCount,
+                          ...(candidate.citationSource
+                              ? { citationSource: candidate.citationSource }
+                              : {}),
+                      }
+                    : {}),
+                ...(scholarCitesId ? { scholarCitesId } : {}),
                 ...(quote.allowed && quote.licenseUrl
                     ? { licenseUrl: quote.licenseUrl }
                     : {}),
@@ -276,7 +295,17 @@ async function readPaperExcerpts(
         });
     }
 
-    return { cards, excerpts };
+    const cardsWithImpact = await attachPaperImpact(
+        cards.map((card) => ({
+            ...card,
+            pmcid: card.idName === "pmcid" ? card.paperId : undefined,
+        })),
+    );
+
+    return {
+        cards: cardsWithImpact.map(({ pmcid: _pmcid, ...card }) => card),
+        excerpts,
+    };
 }
 
 function collectExtractions(

@@ -40,6 +40,34 @@
     font-weight: 600;
     letter-spacing: -0.02em;
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beta {
+    flex: 0 0 auto;
+    margin: 0;
+    color: $main-pink;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.betaSr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 @media (max-width: 720px) {
@@ -48,12 +76,16 @@
     }
 
     .link {
-        gap: 8px;
+        gap: 6px;
     }
 
     .image {
         width: 40px;
         height: 40px;
+    }
+
+    .beta {
+        font-size: 0.6rem;
     }
 }
 

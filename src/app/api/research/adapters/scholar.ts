@@ -2,6 +2,8 @@ import { evaluateContentAccess } from "../../../lib/content-access-policy";
 import { abstractToText } from "../../../lib/abstract-text";
 import { PAPER_SOURCES } from "../../../lib/paper-sources";
 import { normalizeDoi } from "../../../lib/research-citation";
+import { parseCitationCount } from "../../../lib/paper-impact";
+import { resolveScholarCitesId } from "../../../lib/citing-works";
 import type { DiscoverCandidate } from "../../discover/select-candidates";
 import { searchGoogleScholarPapers } from "../../search/utils";
 import { getScholarPaperDetails } from "../../paper/utils";
@@ -20,6 +22,25 @@ function mapScholarResults(results: Array<Record<string, unknown>>): DiscoverCan
         const doi = normalizeDoi(
             typeof result.doi === "string" ? result.doi : null,
         );
+        const citationCount = parseCitationCount(result.citationCount);
+        const citationSource =
+            result.citationSource === "crossref" ||
+            result.citationSource === "europepmc" ||
+            result.citationSource === "scholar"
+                ? result.citationSource
+                : citationCount != null
+                  ? ("scholar" as const)
+                  : undefined;
+        const scholarCitesId = resolveScholarCitesId({
+            scholarCitesId:
+                typeof result.scholarCitesId === "string"
+                    ? result.scholarCitesId
+                    : null,
+            database: "scholar",
+            idName: "cluster_id",
+            paperId,
+            clusterId: paperId,
+        });
         const access =
             result.access && typeof result.access === "object"
                 ? (result.access as DiscoverCandidate["access"])
@@ -57,6 +78,14 @@ function mapScholarResults(results: Array<Record<string, unknown>>): DiscoverCan
             sourceLabel: PAPER_SOURCES.scholar.label,
             sourceUrl,
             doi: doi || undefined,
+            indexedBy: ["Google Scholar"],
+            ...(scholarCitesId ? { scholarCitesId } : {}),
+            ...(citationCount != null
+                ? {
+                      citationCount,
+                      citationSource: citationSource || "scholar",
+                  }
+                : {}),
             access,
         };
     });

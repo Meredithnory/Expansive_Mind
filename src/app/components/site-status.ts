@@ -15,9 +15,9 @@ function createSiteStatus(notice: SiteStatusNotice): SiteStatusNotice {
     return { kind: notice.kind, label, srLabel };
 }
 
-// OWNER-EDIT: beta disclosure copy. Keep it short.
+// OWNER-EDIT: beta disclosure copy. Keep the visible label short (nav chip).
 export const SITE_STATUS: SiteStatusNotice = createSiteStatus({
     kind: "beta",
-    label: "Beta — still in testing",
+    label: "Beta",
     srLabel: "Expansive Mind is still in testing.",
 });

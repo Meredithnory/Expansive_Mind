@@ -90,7 +90,7 @@ body {
     overscroll-behavior: auto;
     padding-top: 20px;
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: auto 1fr auto;
 }
 
 body:has([data-search-paper-page]) {
@@ -229,7 +229,7 @@ textarea {
         width: 100%;
         max-width: 100%;
         min-height: 0;
-        grid-template-rows: auto auto auto auto;
+        grid-template-rows: auto auto auto;
         /* Keep overflow-x clipped; the shorthand would reopen horizontal scroll. */
         overflow-x: clip;
         overflow-y: visible;
@@ -249,7 +249,7 @@ textarea {
 
     /* Research only: keep the locked viewport so the footer stays above the
        fixed bottom nav and does not jump when toggling modes.
-       SiteStatus + main + footer (nav is position:fixed on mobile).
+       Nav (fixed, zero track contribution) + main + footer.
        Main must be 1fr — all-auto rows collapse the report into ~80px. */
     body:has([data-research-workspace]) {
         height: 100dvh;

@@ -15,12 +15,15 @@ import {
     supportRelationLabel,
 } from "../lib/claim-evidence";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import { resolveScholarCitesId } from "../lib/citing-works";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import type { CitationSource } from "../lib/paper-impact";
 
 export type PreviewPaper = {
     index: number;
     database: "nih" | "springer" | "scholar";
+    paperId?: string;
+    idName?: string;
     title: string;
     authors: string[];
     date: string;
@@ -161,7 +164,12 @@ export default function PaperPreviewDrawer({
                             citationCount={paper.citationCount}
                             citationSource={paper.citationSource}
                             doi={paper.doi}
-                            scholarCitesId={paper.scholarCitesId}
+                            scholarCitesId={resolveScholarCitesId({
+                                scholarCitesId: paper.scholarCitesId,
+                                database: paper.database,
+                                idName: paper.idName,
+                                paperId: paper.paperId,
+                            })}
                             sourcePaper={{
                                 title: paper.title,
                                 doi: paper.doi,

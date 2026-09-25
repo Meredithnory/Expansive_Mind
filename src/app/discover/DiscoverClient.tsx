@@ -40,11 +40,6 @@ import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
 import { buildPaperFocusHref } from "../lib/paper-sources";
 import { resolveScholarCitesId } from "../lib/citing-works";
 import {
-    attachClaimLedger,
-    evaluateClaimLedger,
-    shareLockDetail,
-} from "../api/discover/claim-ledger";
-import {
     CONFIDENCE_GUIDE,
     GROUNDING_NOTE,
     reportOutline,
@@ -593,24 +588,16 @@ function DiscoverClient({
     );
 
     const structuredReport = useMemo(() => {
-        const parsed =
+        return (
             parseGuestOpportunityReport(result?.report) ??
-            parseGuestOpportunityReport(result?.brief);
-        if (!parsed || !result) return parsed;
-        return attachClaimLedger(
-            parsed,
-            result.papers,
-            result.extractions ?? [],
+            parseGuestOpportunityReport(result?.brief)
         );
     }, [result]);
 
-    const shareGate = evaluateClaimLedger(
-        structuredReport?.claimLedger ?? { rows: [] },
-    );
-    const canShareResult = hasSavedDiscoveryId && shareGate.ok;
+    const canShareResult = hasSavedDiscoveryId;
 
     const handleShareResult = useCallback(async () => {
-        if (!result || shareStatus === "loading" || !shareGate.ok) return;
+        if (!result || shareStatus === "loading" || !canShareResult) return;
         setShareStatus("loading");
         try {
             const res = await fetch("/api/discover/share", {
@@ -631,7 +618,7 @@ function DiscoverClient({
             setShareStatus("error");
             window.setTimeout(() => setShareStatus("idle"), 2_500);
         }
-    }, [result, shareGate.ok, shareStatus]);
+    }, [canShareResult, result, shareStatus]);
 
     const statusLabel = useMemo(() => {
         if (step === "idle" || step === "done") return null;
@@ -1781,15 +1768,7 @@ function DiscoverClient({
                                         type="button"
                                         className={styles.shareButton}
                                         onClick={handleShareResult}
-                                        disabled={
-                                            !canShareResult ||
-                                            shareStatus === "loading"
-                                        }
-                                        aria-describedby={
-                                            canShareResult
-                                                ? undefined
-                                                : "discover-share-lock"
-                                        }
+                                        disabled={shareStatus === "loading"}
                                     >
                                         {shareStatus === "copied"
                                             ? "Link copied!"
@@ -1799,14 +1778,6 @@ function DiscoverClient({
                                                 ? "Sharing…"
                                                 : "Share synthesis"}
                                     </button>
-                                    {!canShareResult ? (
-                                        <p
-                                            id="discover-share-lock"
-                                            className={styles.shareLock}
-                                        >
-                                            {shareLockDetail(shareGate)}
-                                        </p>
-                                    ) : null}
                                 </div>
                             )}
                             <button
@@ -1873,29 +1844,6 @@ function DiscoverClient({
                             {GROUNDING_NOTE.footer}
                         </p>
                     </aside>
-
-                    <div className={styles.savedNotice}>
-                        {isLoggedIn ? (
-                            <span>
-                                Saved to your library{" "}
-                                {new Date(result.createdAt).toLocaleString()}.
-                                Paper content is fetched from its source when
-                                you open it.
-                            </span>
-                        ) : (
-                            <span>
-                                Guest previews are not saved. Create an account to
-                                keep this report and run more.
-                            </span>
-                        )}
-                        {isLoggedIn ? (
-                            <Link href="/savedpapers?tab=syntheses">
-                                Open Research Library
-                            </Link>
-                        ) : (
-                            <Link href="/signup">Create an account</Link>
-                        )}
-                    </div>
 
                     <div className={styles.reportLayout}>
                         {structuredReport ? (

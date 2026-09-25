@@ -22,7 +22,6 @@ vi.mock("../../../models/SavedDiscovery", () => ({
 }));
 
 import { POST } from "./route";
-import { SHARE_LOCKED_ERROR } from "../claim-ledger";
 import type { OpportunityReport } from "../report-types";
 
 const DISCOVERY_ID = "64a1b2c3d4e5f6a7b8c9d0e1";
@@ -82,7 +81,7 @@ describe("POST /api/discover/share", () => {
         vi.clearAllMocks();
     });
 
-    it("creates a slug when the claim ledger is complete", async () => {
+    it("creates a slug for a saved discovery", async () => {
         const doc = discoveryDoc();
         mocks.findOne.mockResolvedValue(doc);
 
@@ -94,56 +93,53 @@ describe("POST /api/discover/share", () => {
         expect(doc.save).toHaveBeenCalled();
     });
 
-    it("rejects share when a claim has no commercial-friendly license", async () => {
-        mocks.findOne.mockResolvedValue(
-            discoveryDoc({
-                papers: [
-                    {
-                        index: 1,
-                        paperId: "10.1/one",
-                        href: "/paperchatbot/springer/10.1/one",
-                        doi: "10.1/one",
-                    },
-                ],
-            }),
-        );
+    it("creates a slug even when claims lack commercial-friendly licenses", async () => {
+        const doc = discoveryDoc({
+            papers: [
+                {
+                    index: 1,
+                    paperId: "10.1/one",
+                    href: "/paperchatbot/springer/10.1/one",
+                    doi: "10.1/one",
+                },
+            ],
+        });
+        mocks.findOne.mockResolvedValue(doc);
 
         const response = await POST(requestWithUser(DISCOVERY_ID));
         const body = await response.json();
 
-        expect(response.status).toBe(400);
-        expect(body.code).toBe("CLAIM_LEDGER_INCOMPLETE");
+        expect(response.status).toBe(200);
+        expect(body.slug).toBe("shareSlug12ab");
+        expect(doc.save).toHaveBeenCalled();
+    });
+
+    it("creates a slug even when claims lack excerpts", async () => {
+        const doc = discoveryDoc({
+            extractions: [{ index: 1 }],
+        });
+        mocks.findOne.mockResolvedValue(doc);
+
+        const response = await POST(requestWithUser(DISCOVERY_ID));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.slug).toBe("shareSlug12ab");
+        expect(doc.save).toHaveBeenCalled();
+    });
+
+    it("returns 404 when the discovery is missing", async () => {
+        mocks.findOne.mockResolvedValue(null);
+
+        const response = await POST(requestWithUser(DISCOVERY_ID));
+        const body = await response.json();
+
+        expect(response.status).toBe(404);
+        expect(body.error).toBe("Discovery not found.");
         expect(mocks.generateShareSlug).not.toHaveBeenCalled();
     });
 
-    it("rejects share when a claim has no excerpt", async () => {
-        mocks.findOne.mockResolvedValue(
-            discoveryDoc({
-                extractions: [{ index: 1 }],
-            }),
-        );
-
-        const response = await POST(requestWithUser(DISCOVERY_ID));
-        const body = await response.json();
-
-        expect(response.status).toBe(400);
-        expect(body.error).toBe(SHARE_LOCKED_ERROR);
-        expect(body.code).toBe("CLAIM_LEDGER_INCOMPLETE");
-        expect(mocks.generateShareSlug).not.toHaveBeenCalled();
-    });
-
-    it("rejects share when the stored report is missing", async () => {
-        mocks.findOne.mockResolvedValue(discoveryDoc({ report: undefined }));
-
-        const response = await POST(requestWithUser(DISCOVERY_ID));
-        const body = await response.json();
-
-        expect(response.status).toBe(400);
-        expect(body.code).toBe("CLAIM_LEDGER_INCOMPLETE");
-        expect(body.reason).toBe("missing_report");
-    });
-
-    it("returns an existing slug only when the ledger is still complete", async () => {
+    it("returns an existing slug without regenerating", async () => {
         mocks.findOne.mockResolvedValue(
             discoveryDoc({
                 shareSlug: "alreadyShared1",

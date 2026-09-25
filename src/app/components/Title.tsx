@@ -2,6 +2,7 @@ import React from "react";
 import styles from "./styles/title.module.scss";
 import Link from "next/link";
 import Image from "next/image";
+import { SITE_STATUS } from "./site-status";
 
 const Title = () => {
     return (
@@ -14,6 +15,10 @@ const Title = () => {
                 className={styles.image}
             />
             <h1 className={styles.title}>Expansive Mind</h1>
+            <span className={styles.beta} title={SITE_STATUS.srLabel}>
+                <span aria-hidden="true">{SITE_STATUS.label}</span>
+                <span className={styles.betaSr}>{SITE_STATUS.srLabel}</span>
+            </span>
         </Link>
     );
 };

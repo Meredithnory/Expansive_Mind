@@ -6,6 +6,7 @@ import {
     formatCitingAuthors,
     mergeCitingWorks,
     parseScholarCitesId,
+    resolveScholarCitesId,
     type CitingWork,
 } from "./citing-works";
 
@@ -47,6 +48,31 @@ describe("citing-works helpers", () => {
         expect(parseScholarCitesId("abc")).toBeUndefined();
         expect(parseScholarCitesId("")).toBeUndefined();
         expect(parseScholarCitesId(null)).toBeUndefined();
+    });
+
+    it("falls back to Scholar cluster id when cites id was not stored", () => {
+        expect(
+            resolveScholarCitesId({
+                scholarCitesId: "998877665544",
+                database: "scholar",
+                idName: "cluster_id",
+                paperId: "17538697489082884675",
+            }),
+        ).toBe("998877665544");
+        expect(
+            resolveScholarCitesId({
+                database: "scholar",
+                idName: "cluster_id",
+                paperId: "17538697489082884675",
+            }),
+        ).toBe("17538697489082884675");
+        expect(
+            resolveScholarCitesId({
+                database: "nih",
+                idName: "pmcid",
+                paperId: "1234567",
+            }),
+        ).toBeUndefined();
     });
 
     it("formats citing authors without inventing names", () => {

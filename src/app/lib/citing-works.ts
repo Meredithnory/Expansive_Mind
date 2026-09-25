@@ -91,6 +91,33 @@ export function parseScholarCitesId(value: unknown): string | undefined {
     return undefined;
 }
 
+/**
+ * Prefer an explicit Scholar cites id. For Scholar cluster cards that only
+ * stored the cluster id (common on older Discover saves), SerpApi accepts that
+ * value as `cites=` for the citing-works list.
+ */
+export function resolveScholarCitesId(input: {
+    scholarCitesId?: string | null;
+    database?: string | null;
+    idName?: string | null;
+    paperId?: string | null;
+    clusterId?: string | null;
+}): string | undefined {
+    const explicit = parseScholarCitesId(input.scholarCitesId);
+    if (explicit) return explicit;
+
+    const cluster = parseScholarCitesId(input.clusterId);
+    if (cluster) return cluster;
+
+    if (
+        input.database === "scholar" &&
+        input.idName === "cluster_id"
+    ) {
+        return parseScholarCitesId(input.paperId);
+    }
+    return undefined;
+}
+
 export function extractScholarCitesId(record: {
     inline_links?: {
         cited_by?: {

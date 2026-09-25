@@ -11,19 +11,26 @@ function read(relativePath: string) {
 }
 
 describe("site status chrome", () => {
-    it("keeps one OWNER-EDIT notice", () => {
+    it("keeps one OWNER-EDIT notice with a short visible label", () => {
         expect(SITE_STATUS.kind).toBe("beta");
-        expect(SITE_STATUS.label.trim().length).toBeGreaterThan(0);
-        expect(SITE_STATUS.srLabel.trim().length).toBeGreaterThan(0);
+        expect(SITE_STATUS.label).toBe("Beta");
+        expect(SITE_STATUS.srLabel).toMatch(/still in testing/i);
     });
 
-    it("is mounted from root layout, above NavBar, not inside it", () => {
+    it("is not mounted as a full-width strip above NavBar", () => {
         const layout = read("../layout.tsx");
-        expect(layout).toMatch(/<SiteStatus/);
-        expect(layout.indexOf("<SiteStatus")).toBeLessThan(
-            layout.indexOf("<NavBar"),
-        );
-        expect(read("./NavBar.tsx")).not.toMatch(/SiteStatus|SITE_STATUS/);
+        expect(layout).not.toMatch(/SiteStatus/);
+        expect(() => read("./SiteStatus.tsx")).toThrow();
+        expect(() => read("./styles/site-status.module.scss")).toThrow();
+    });
+
+    it("shows the beta chip next to the Expansive Mind wordmark", () => {
+        const title = read("./Title.tsx");
+        expect(title).toMatch(/SITE_STATUS/);
+        expect(title).toMatch(/styles\.beta/);
+        expect(title).toMatch(/SITE_STATUS\.label/);
+        expect(title).toMatch(/SITE_STATUS\.srLabel/);
+        expect(read("./NavBar.tsx")).toMatch(/<Title\s*\/>/);
     });
 
     it("leaves the homepage NavBar spacer in place", () => {
@@ -32,28 +39,22 @@ describe("site status chrome", () => {
         expect(nav).toMatch(/homeSpacer/);
     });
 
-    it("renders as a server component", () => {
-        expect(read("./SiteStatus.tsx")).not.toMatch(/["']use client["']/);
-    });
-
-    it("does not sit in the mobile bottom-nav stack", () => {
-        const scss = read("./styles/site-status.module.scss");
+    it("keeps the beta chip compact in title styles", () => {
+        const scss = read("./styles/title.module.scss");
+        expect(scss).toMatch(/\.beta\s*\{/);
+        expect(scss).toMatch(/\$main-pink/);
+        expect(scss).toMatch(/white-space:\s*nowrap/);
         expect(scss).not.toMatch(/position:\s*(fixed|sticky)/);
-        expect(scss).not.toMatch(/(?<![\w-])bottom\s*:/);
         expect(scss).not.toMatch(/100vw/);
         expect(scss).not.toMatch(/--mobile-bottom-nav-clearance/);
-        expect(scss).not.toMatch(/white-space:\s*nowrap/);
     });
 
-    it("adds a body grid track for the strip", () => {
+    it("uses a three-row body grid without a status strip track", () => {
         expect(read("../globals.scss")).toMatch(
+            /grid-template-rows:\s*auto\s+1fr\s+auto/,
+        );
+        expect(read("../globals.scss")).not.toMatch(
             /grid-template-rows:\s*auto\s+auto\s+1fr\s+auto/,
         );
-    });
-
-    it("reuses SITE_STATUS.label in the footer", () => {
-        const footer = read("./Footer.tsx");
-        expect(footer).toMatch(/import\s+\{\s*SITE_STATUS\s*\}/);
-        expect(footer).toMatch(/SITE_STATUS\.label/);
     });
 });

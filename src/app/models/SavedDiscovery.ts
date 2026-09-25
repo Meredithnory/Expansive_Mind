@@ -25,6 +25,7 @@ const discoverPaperSchema = new Schema(
             type: String,
             enum: ["crossref", "europepmc", "scholar"],
         },
+        scholarCitesId: { type: String },
         licenseUrl: { type: String },
     },
     {

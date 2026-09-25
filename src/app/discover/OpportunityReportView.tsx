@@ -19,7 +19,6 @@ import {
     type ReportOutlineEntry,
     type ReportSectionId,
 } from "./report-sections";
-import ClaimLedgerView from "./ClaimLedgerView";
 
 type ProjectGapPayload = {
     title: string;
@@ -480,13 +479,6 @@ export default function OpportunityReportView({
 
     return (
         <div className={styles.briefGrid}>
-            {report.claimLedger ? (
-                <ClaimLedgerView
-                    ledger={report.claimLedger}
-                    activePaperIndex={activePaperIndex}
-                    onCitePaper={onCitePaper}
-                />
-            ) : null}
             {showError && (
                 <div className={styles.projectNotice} role="alert">
                     <span>{action.error}</span>
