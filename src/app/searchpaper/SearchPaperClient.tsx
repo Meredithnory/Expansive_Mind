@@ -204,13 +204,22 @@ const SearchPaperClient = ({
     const ghostCompletion = isEditingSearch ? inlineSuggestion : null;
 
     const scrollToTop = () => {
-        pageRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const behavior = "smooth";
+        pageRef.current?.scrollTo({ top: 0, behavior });
+        const main = document.querySelector(".main-content");
+        if (main instanceof HTMLElement) {
+            main.scrollTo({ top: 0, behavior });
+        }
+        window.scrollTo({ top: 0, behavior });
     };
 
     useLayoutEffect(() => {
         if (skipInitialScroll) return;
         pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
+        const main = document.querySelector(".main-content");
+        if (main instanceof HTMLElement) {
+            main.scrollTo({ top: 0, behavior: "auto" });
+        }
         window.scrollTo({ top: 0, behavior: "auto" });
     }, [skipInitialScroll]);
 

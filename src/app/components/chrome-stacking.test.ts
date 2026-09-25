@@ -78,4 +78,15 @@ describe("mobile chrome stacking", () => {
             /scroll-padding-bottom:\s*var\(--mobile-bottom-nav-clearance\)/,
         );
     });
+
+    it("keeps the search scroll-to-top control above the bottom nav", () => {
+        const scss = read("../searchpaper/searchpaper.module.scss");
+        const rule = scss.slice(scss.lastIndexOf(".scrollTopButton"));
+        expect(rule).toMatch(
+            /bottom:\s*calc\(\s*var\(--mobile-bottom-nav-clearance\)\s*\+\s*12px\s*\)/,
+        );
+        expect(rule).not.toMatch(
+            /bottom:\s*max\(16px,\s*env\(safe-area-inset-bottom\)\)/,
+        );
+    });
 });

@@ -396,7 +396,7 @@
     }
 
     .welcome {
-        padding: 24px 20px 18px;
+        padding: 18px 20px 8px;
     }
 
     .perks {
@@ -419,5 +419,12 @@
 
     .field input {
         min-height: 48px;
+        font-size: 16px;
+    }
+
+    .submit {
+        position: sticky;
+        bottom: calc(var(--mobile-bottom-nav-clearance) + 8px);
+        z-index: 3;
     }
 }
