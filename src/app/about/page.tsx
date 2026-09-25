@@ -15,25 +15,25 @@ const steps = [
         number: "1",
         title: "Discover",
         description:
-            "Ask a research question. We compare evidence across open literature.",
+            "Ask one question. See what the open papers report, where they conflict, and what they leave open.",
     },
     {
         number: "2",
-        title: "Evaluate",
+        title: "Search",
         description:
-            "See where studies agree, conflict, and leave meaningful gaps.",
+            "Start from a paper instead. Look it up across the indexes and open the one you mean.",
     },
     {
         number: "3",
         title: "Read",
         description:
-            "Open a cited paper and ask questions grounded in its text.",
+            "Ask about a passage. The reply stays inside that paper, and you can jump back to the lines.",
     },
     {
         number: "4",
-        title: "Plan",
+        title: "Keep",
         description:
-            "Save the work or turn a promising gap into a research plan.",
+            "Save the papers and the thread, or turn a gap into the next experiment.",
     },
 ];
 
@@ -81,17 +81,20 @@ const StepPreview = ({ index }: { index: number }) => {
 
     if (index === 1) {
         return (
-            <div className={styles.mockPaper}>
-                <p className={styles.mockPaperTitle}>
-                    Barriers to CAR-T efficacy in solid tumors
-                </p>
-                <p className={styles.mockPaperMeta}>
-                    Nature Reviews Immunology · Open access
-                </p>
-                <div className={styles.mockPaperLines}>
-                    <PlaceholderLine width="95" />
-                    <PlaceholderLine width="82" />
-                    <PlaceholderLine width="70" />
+            <div className={styles.mockHits}>
+                <div className={styles.mockPaper}>
+                    <p className={styles.mockPaperTitle}>
+                        CAR-T persistence in solid tumors
+                    </p>
+                    <p className={styles.mockPaperMeta}>NIH PMC · Full text</p>
+                </div>
+                <div className={styles.mockPaper}>
+                    <p className={styles.mockPaperTitle}>
+                        Barriers to CAR-T efficacy
+                    </p>
+                    <p className={styles.mockPaperMeta}>
+                        Springer Nature · Open access
+                    </p>
                 </div>
             </div>
         );
@@ -125,10 +128,10 @@ const StepPreview = ({ index }: { index: number }) => {
     return (
         <div className={styles.mockPaper}>
             <p className={styles.mockPaperTitle}>
-                Research plan: test barriers to CAR-T efficacy
+                Saved: CAR-T in solid tumors
             </p>
             <p className={styles.mockPaperMeta}>
-                Evidence gap · 4 next steps
+                Library · 2 papers · 1 open gap
             </p>
             <div className={styles.mockPaperLines}>
                 <PlaceholderLine width="95" />
@@ -218,10 +221,11 @@ const AboutPage = () => {
         <div className={styles.page}>
             <header className={styles.hero}>
                 <p className={styles.eyebrow}>How it works</p>
-                <h1>Discover. Evaluate. Read. Plan.</h1>
+                <h1>Discover. Search. Read. Keep.</h1>
                 <p className={styles.lede}>
-                    Start with a question, understand the evidence landscape,
-                    then inspect every source and move the work forward.
+                    Start with a question across the literature, or open one
+                    paper and stay with its text. Either way, you can save the
+                    work and come back.
                 </p>
             </header>
 
