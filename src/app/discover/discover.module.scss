@@ -3131,7 +3131,15 @@
         height: 64px;
         min-height: 64px;
         padding: 10px 10px 4px;
-        font-size: 0.94rem;
+        /* 16px keeps iOS from zooming the page when the field is focused. */
+        font-size: 16px;
+    }
+
+    .initialPage .voiceButton,
+    .voiceButton {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
     }
 
     .databaseCatalog {
@@ -3168,7 +3176,7 @@
     .textarea {
         min-height: 72px;
         padding: 12px 12px;
-        font-size: 0.92rem;
+        font-size: 16px;
     }
 
     .formFooter {
