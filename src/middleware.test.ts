@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
 import { config, middleware } from "./middleware";
+import {
+    ADMIN_SESSION_COOKIE,
+    createAdminSessionToken,
+} from "./app/lib/admin-session";
 
 const originalSecret = process.env.JWT_SECRET;
-const originalAdminEmails = process.env.ADMIN_EMAILS;
 
 async function token(email?: string) {
     return new SignJWT({
@@ -17,11 +20,19 @@ async function token(email?: string) {
         .sign(new TextEncoder().encode(process.env.JWT_SECRET));
 }
 
-function request(pathname: string, authToken?: string) {
+function request(
+    pathname: string,
+    options?: { authToken?: string; adminSession?: string },
+) {
+    const parts: string[] = [];
+    if (options?.authToken) {
+        parts.push(`auth_token=${options.authToken}`);
+    }
+    if (options?.adminSession) {
+        parts.push(`${ADMIN_SESSION_COOKIE}=${options.adminSession}`);
+    }
     return new NextRequest(`https://example.test${pathname}`, {
-        headers: authToken
-            ? { cookie: `auth_token=${authToken}` }
-            : undefined,
+        headers: parts.length ? { cookie: parts.join("; ") } : undefined,
     });
 }
 
@@ -34,7 +45,6 @@ describe("auth navigation middleware", () => {
     afterEach(() => {
         vi.restoreAllMocks();
         process.env.JWT_SECRET = originalSecret;
-        process.env.ADMIN_EMAILS = originalAdminEmails;
     });
 
     it("only matches protected route trees and exact auth routes", () => {
@@ -63,7 +73,9 @@ describe("auth navigation middleware", () => {
     });
 
     it("redirects authenticated auth requests to discover", async () => {
-        const response = await middleware(request("/signup", await token()));
+        const response = await middleware(
+            request("/signup", { authToken: await token() }),
+        );
 
         expect(response.status).toBe(307);
         expect(response.headers.get("location")).toBe(
@@ -73,7 +85,7 @@ describe("auth navigation middleware", () => {
 
     it("clears invalid tokens while redirecting", async () => {
         const response = await middleware(
-            request("/savedpapers", "not-a-valid-token"),
+            request("/savedpapers", { authToken: "not-a-valid-token" }),
         );
 
         expect(response.status).toBe(307);
@@ -82,21 +94,41 @@ describe("auth navigation middleware", () => {
         );
     });
 
-    it("returns 403 for a signed-in user outside the admin allowlist", async () => {
-        process.env.ADMIN_EMAILS = "owner@example.test";
-        const response = await middleware(
-            request("/admin", await token("member@example.test")),
-        );
+    it("allows anonymous access to /admin/login", async () => {
+        const response = await middleware(request("/admin/login"));
 
-        expect(response.status).toBe(403);
+        expect(response.headers.get("x-middleware-next")).toBe("1");
     });
 
-    it("checks the current admin allowlist on every admin page request", async () => {
-        process.env.ADMIN_EMAILS = "owner@example.test";
+    it("redirects signed-in users without an admin session away from /admin", async () => {
         const response = await middleware(
-            request("/admin/usage", await token("owner@example.test")),
+            request("/admin", { authToken: await token("member@example.test") }),
+        );
+
+        expect(response.status).toBe(307);
+        expect(response.headers.get("location")).toBe(
+            "https://example.test/admin/login",
+        );
+    });
+
+    it("allows /admin when a valid admin_session cookie is present", async () => {
+        const adminSession = await createAdminSessionToken("user-1");
+        const response = await middleware(
+            request("/admin/usage", {
+                authToken: await token(),
+                adminSession,
+            }),
         );
 
         expect(response.headers.get("x-middleware-next")).toBe("1");
+    });
+
+    it("redirects anonymous /admin requests to /admin/login", async () => {
+        const response = await middleware(request("/admin"));
+
+        expect(response.status).toBe(307);
+        expect(response.headers.get("location")).toBe(
+            "https://example.test/admin/login",
+        );
     });
 });
