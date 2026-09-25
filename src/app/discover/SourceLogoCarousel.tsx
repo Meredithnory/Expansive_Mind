@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { attachHorizontalRail } from "../lib/horizontal-rail";
 import styles from "./source-logo-carousel.module.scss";
 
 const SOURCES = [
@@ -90,6 +91,12 @@ export default function SourceLogoCarousel() {
         const step = (card?.offsetWidth ?? 188) + 10;
         viewport.scrollBy({ left: direction * step, behavior: "smooth" });
     };
+
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        return attachHorizontalRail(viewport);
+    }, []);
 
     useEffect(() => {
         const viewport = viewportRef.current;

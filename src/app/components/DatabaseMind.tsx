@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import clsx from "clsx";
+import { attachHorizontalRail } from "../lib/horizontal-rail";
 import styles from "./styles/databasemind.module.scss";
 
 export type SearchableMindSource =
@@ -166,6 +167,12 @@ const DatabaseMind = ({ activeSource, onSelect }: DatabaseMindProps) => {
         const step = (card?.offsetWidth ?? 198) + 10;
         viewport.scrollBy({ left: direction * step, behavior: "smooth" });
     };
+
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        return attachHorizontalRail(viewport);
+    }, []);
 
     useEffect(() => {
         const viewport = viewportRef.current;

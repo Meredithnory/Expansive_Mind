@@ -24,6 +24,11 @@ import {
     type PaperTool,
 } from "../../lib/region-capture";
 import {
+    SYNTHETIC_MOUSE_WINDOW_MS,
+    TOUCH_HIGHLIGHT_SETTLE_MS,
+    isSyntheticMouseAfterTouch,
+} from "../../lib/highlight-gesture";
+import {
     DEFAULT_HIGHLIGHT_COLOR,
     deletePaperHighlight,
     fetchPaperHighlights,
@@ -280,6 +285,11 @@ const Paperbox = ({
     const [openMarkId, setOpenMarkId] = useState<string | null>(null);
     const deletedMarkIds = useRef(new Set<string>());
     const paperRef = useRef<HTMLDivElement>(null);
+    const fingerDown = useRef(false);
+    const touchEndedAt = useRef<number | null>(null);
+    const settleTimer = useRef<number | null>(null);
+    const commitHighlightRef = useRef<() => void>(() => {});
+    const scheduleTouchCommitRef = useRef<() => void>(() => {});
     const paperId = paper?.paperId;
     const persistDatabase = persistHighlights?.database || "";
     const persistPaperId = persistHighlights?.paperId || "";
@@ -292,6 +302,41 @@ const Paperbox = ({
         setOpenMarkId(null);
         setAgentTextHighlight(null);
     }, [paperId]);
+
+    scheduleTouchCommitRef.current = () => {
+        if (settleTimer.current != null) {
+            window.clearTimeout(settleTimer.current);
+        }
+        settleTimer.current = window.setTimeout(() => {
+            settleTimer.current = null;
+            commitHighlightRef.current();
+        }, TOUCH_HIGHLIGHT_SETTLE_MS);
+    };
+
+    useEffect(() => {
+        if (activeTool !== "highlight") {
+            if (settleTimer.current != null) {
+                window.clearTimeout(settleTimer.current);
+                settleTimer.current = null;
+            }
+            return;
+        }
+        const onSelectionChange = () => {
+            if (fingerDown.current) return;
+            const ended = touchEndedAt.current;
+            if (ended == null) return;
+            if (Date.now() - ended > SYNTHETIC_MOUSE_WINDOW_MS) return;
+            scheduleTouchCommitRef.current();
+        };
+        document.addEventListener("selectionchange", onSelectionChange);
+        return () => {
+            document.removeEventListener("selectionchange", onSelectionChange);
+            if (settleTimer.current != null) {
+                window.clearTimeout(settleTimer.current);
+                settleTimer.current = null;
+            }
+        };
+    }, [activeTool]);
 
     useEffect(() => {
         return () => {
@@ -482,6 +527,7 @@ const Paperbox = ({
                 ?.closest("[data-section-title]")
                 ?.getAttribute("data-section-title") || "Paper";
         selection.removeAllRanges();
+        touchEndedAt.current = null;
         const id = crypto.randomUUID();
         const citation = locateExcerptInPaper(paper, text, fallbackSection);
         const mark: InkMark = {
@@ -520,6 +566,7 @@ const Paperbox = ({
             })();
         }
     };
+    commitHighlightRef.current = handleHighlightPointerUp;
 
     const sendMarkToChat = (mark: InkMark) => {
         const excerpt = mark.excerpt || mark.citation.lines.join(" ").trim();
@@ -562,15 +609,58 @@ const Paperbox = ({
                     [styles.highlighting]: activeTool === "highlight",
                 })}
                 ref={paperRef}
-                onMouseDown={(event) => {
+                onPointerDown={(event) => {
+                    if (event.pointerType === "touch") {
+                        fingerDown.current = true;
+                        if (settleTimer.current != null) {
+                            window.clearTimeout(settleTimer.current);
+                            settleTimer.current = null;
+                        }
+                        return;
+                    }
+                    if (
+                        !isSyntheticMouseAfterTouch(
+                            touchEndedAt.current,
+                            Date.now(),
+                        )
+                    ) {
+                        touchEndedAt.current = null;
+                    }
                     if (
                         !(event.target as HTMLElement).closest("[data-ink-mark]")
                     ) {
                         setOpenMarkId(null);
                     }
                 }}
-                onMouseUp={handleHighlightPointerUp}
-                onTouchEnd={handleHighlightPointerUp}
+                onPointerUp={(event) => {
+                    if (event.pointerType === "touch") {
+                        fingerDown.current = false;
+                        touchEndedAt.current = Date.now();
+                        scheduleTouchCommitRef.current();
+                        return;
+                    }
+                    if (
+                        isSyntheticMouseAfterTouch(
+                            touchEndedAt.current,
+                            Date.now(),
+                        )
+                    ) {
+                        return;
+                    }
+                    commitHighlightRef.current();
+                }}
+                onTouchStart={() => {
+                    fingerDown.current = true;
+                    if (settleTimer.current != null) {
+                        window.clearTimeout(settleTimer.current);
+                        settleTimer.current = null;
+                    }
+                }}
+                onTouchEnd={() => {
+                    fingerDown.current = false;
+                    touchEndedAt.current = Date.now();
+                    scheduleTouchCommitRef.current();
+                }}
             >
                 {(inkMarks.length > 0 ||
                     (focusMark && focusMark.rects.length > 0)) && (
