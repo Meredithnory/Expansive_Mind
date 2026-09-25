@@ -50,13 +50,13 @@ export const REPORT_SECTIONS: ReportSectionMeta[] = [
     },
     {
         id: "translation",
-        title: "Translational potential",
+        title: "Translation notes",
         description:
             "Where a gap could become a therapeutic, diagnostic, biomarker, tool, or platform. Technical analysis of the cited evidence, not investment advice.",
     },
     {
         id: "limits",
-        title: "Limits of this analysis",
+        title: "What we could not verify",
         description:
             "What this run could not confirm from licensed excerpts. Read these before acting on anything above.",
     },
@@ -172,7 +172,7 @@ export function reportRoadmapSteps(
         key: "sources",
         anchor: "discover-sources",
         number: String(outline.length + 1).padStart(2, "0"),
-        label: "Sources",
+        label: truncateRoadmapLabel("Papers cited in this report", 28),
         kind: "sources",
     });
 
@@ -206,7 +206,7 @@ export const GROUNDING_NOTE = {
         "Each claim is tied to a passage in a licensed excerpt when one could be checked. A DOI or paper number alone is not support. Machine checking is not human review.",
         "Confidence badges reflect agreement among the papers selected for this run, not a field-wide finding. In this run means two or more selected papers agree; speculative means inferred, not shown.",
         "Human evidence outranks animal, in-vitro, and computational work. A single paper or a preclinical-only claim is labeled as such.",
-        "Anything this run could not confirm from the excerpts is listed under Limits of this analysis. Read that section before acting.",
+        "Anything this run could not confirm from the excerpts is listed under What we could not verify. Read that section before acting.",
     ],
     footer: "Not medical or investment advice. Verify against the full papers before you design an experiment or a company.",
 } as const;

@@ -1786,6 +1786,22 @@
     flex-wrap: wrap;
 }
 
+.shareControl {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    max-width: min(320px, 100%);
+}
+
+.shareLock {
+    margin: 0;
+    color: rgba(255, 196, 120, 0.88);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    text-align: right;
+}
+
 .shareButton {
     display: inline-flex;
     align-items: center;
@@ -3052,6 +3068,15 @@
     .reportHeaderActions {
         width: 100%;
         gap: 8px;
+    }
+
+    .shareControl {
+        align-items: flex-start;
+        max-width: 100%;
+    }
+
+    .shareLock {
+        text-align: left;
     }
 
     .shareButton,
