@@ -113,6 +113,17 @@ describe("mobile chrome stacking", () => {
         expect(body).toMatch(/\.links\s*\{[^}]*flex-direction:\s*row/);
     });
 
+    it("lifts the phone nav with the keyboard and keeps the research height stable", () => {
+        const nav = read("styles/navbar.module.scss");
+        const globals = read("../globals.scss");
+        const phoneNav = nav.slice(nav.indexOf("@media (max-width: 720px)"));
+        expect(phoneNav).toMatch(/bottom:\s*var\(--keyboard-inset/);
+        expect(globals).toMatch(
+            /height:\s*var\(--stable-viewport-height,\s*100dvh\)/,
+        );
+        expect(globals).toMatch(/html\[data-keyboard-open\]\[data-vv-pan\]/);
+    });
+
     it("keeps the search scroll-to-top control above the bottom nav", () => {
         const scss = read("../searchpaper/searchpaper.module.scss");
         const rule = scss.slice(scss.lastIndexOf(".scrollTopButton"));

@@ -1144,7 +1144,10 @@
             .searchbar {
                 position: fixed;
                 right: 16px;
-                bottom: calc(68px + env(safe-area-inset-bottom));
+                bottom: calc(
+                    68px + env(safe-area-inset-bottom, 0px) +
+                        var(--keyboard-inset, 0px)
+                );
                 left: 16px;
                 z-index: 70;
                 order: 3;
