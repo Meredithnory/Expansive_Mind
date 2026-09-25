@@ -113,7 +113,7 @@ describe("POST /api/admin/login/totp", () => {
     it("returns the password-first error when neither cookie nor body token is present", async () => {
         const response = await POST(totpRequest({ code: "123456" }));
         const data = await response.json();
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(400);
         expect(data.message).toBe("Sign in with your password first.");
         expect(mocks.connectDB).not.toHaveBeenCalled();
     });
@@ -132,5 +132,38 @@ describe("POST /api/admin/login/totp", () => {
         expect(data.success).toBe(true);
         expect(mocks.verifyTotpCode).toHaveBeenCalled();
         expect(mocks.adminLoginTokens).toHaveBeenCalledWith("owner-1");
+    });
+
+    it("uses the password-step body challenge when a stale cookie is also present", async () => {
+        const stale = await createAdminMfaToken({
+            id: "owner-1",
+            stage: "setup",
+            secretEnc: "stale-enc",
+        });
+        const current = await createAdminMfaToken({
+            id: "owner-1",
+            stage: "setup",
+            secretEnc: "current-enc",
+        });
+        const response = await POST(
+            totpRequest({ code: "123456", mfaToken: current, cookie: stale }),
+        );
+        expect(response.status).toBe(200);
+        expect(mocks.decryptTotpSecret).toHaveBeenCalledWith("current-enc");
+    });
+
+    it("rejects a wrong code without a password-failure status", async () => {
+        mocks.verifyTotpCode.mockReturnValue({ ok: false });
+        const mfaToken = await createAdminMfaToken({
+            id: "owner-1",
+            stage: "verify",
+        });
+        const response = await POST(
+            totpRequest({ code: "000000", mfaToken }),
+        );
+        const data = await response.json();
+        expect(response.status).toBe(400);
+        expect(data.message).toBe("Invalid authentication code.");
+        expect(mocks.adminLoginTokens).not.toHaveBeenCalled();
     });
 });

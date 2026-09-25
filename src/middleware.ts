@@ -54,7 +54,14 @@ export async function middleware(request: NextRequest) {
             request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
         );
         if (!adminSession) {
-            return NextResponse.redirect(new URL("/admin/login", request.url));
+            // no-store: the client router must not reuse this logged-out
+            // redirect after admin_session is set, or the authenticator step
+            // stays mounted and the next code submit looks like a password error.
+            const response = NextResponse.redirect(
+                new URL("/admin/login", request.url),
+            );
+            response.headers.set("Cache-Control", "private, no-store");
+            return response;
         }
         return NextResponse.next();
     }

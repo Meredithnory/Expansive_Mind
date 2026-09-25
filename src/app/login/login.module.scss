@@ -61,7 +61,8 @@
         width: 100%;
     }
     .email,
-    .password {
+    .password,
+    .codeField {
         display: flex;
         flex-direction: column;
         width: 100%;
@@ -405,6 +406,7 @@
 
         .email,
         .password,
+        .codeField,
         .loginButton,
         .signupPrompt,
         .qrWrap {
