@@ -24,6 +24,6 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Initial Researcher Pro prices |
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client analytics |
 | `ADMIN_EMAILS` | Comma-separated owner allowlist (unlimited quota + `/admin`) |
-| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email |
+| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email and password-reset email |
 
 Never commit secrets. New vars need a blank key in `.env.example` and a row here.

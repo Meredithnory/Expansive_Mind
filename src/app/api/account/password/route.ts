@@ -65,6 +65,8 @@ export const POST = withAuth(async (request: NextRequest) => {
     request.user.password = newPassword;
     request.user.tokenVersion =
         sessionVersion(request.user.tokenVersion) + 1;
+    request.user.passwordResetTokenHash = null;
+    request.user.passwordResetExpiresAt = null;
     await request.user.save();
 
     const response = NextResponse.json({
