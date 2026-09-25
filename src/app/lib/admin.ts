@@ -29,8 +29,9 @@ export const withAdmin = (
     handler: (request: NextRequest) => Promise<NextResponse>,
 ) =>
     withAuth(async (request: NextRequest) => {
-        const userId = request.user._id.toString();
+        const userId = request.user?._id?.toString();
         if (
+            !userId ||
             !isAdminUser(request.user) ||
             !(await hasAdminSession(request, userId))
         ) {
