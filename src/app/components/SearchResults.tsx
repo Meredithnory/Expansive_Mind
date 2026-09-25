@@ -39,6 +39,7 @@ interface SearchResult {
     citationCount?: number;
     citationSource?: CitationSource;
     scholarCitesId?: string;
+    clusterId?: string;
 }
 
 // this function takes the abstract from the API and turns it into a plain string

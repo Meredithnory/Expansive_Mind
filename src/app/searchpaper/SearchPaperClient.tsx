@@ -109,6 +109,7 @@ interface SearchResult {
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
     scholarCitesId?: string;
+    clusterId?: string;
 }
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
