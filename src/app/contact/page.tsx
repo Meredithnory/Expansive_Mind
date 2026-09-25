@@ -10,17 +10,6 @@ import {
 import { useSession } from "../lib/use-session";
 import styles from "./contact.module.scss";
 
-function revealControlAboveNav(element: HTMLElement) {
-    const nav = document.querySelector("[data-app-nav]");
-    if (!nav) return;
-    const limit = nav.getBoundingClientRect().top - 12;
-    const rect = element.getBoundingClientRect();
-    const overflow = rect.bottom - limit;
-    if (overflow > 1) {
-        window.scrollBy(0, overflow);
-    }
-}
-
 const ContactPage = () => {
     const { user } = useSession();
     const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
@@ -238,9 +227,6 @@ const ContactPage = () => {
                             placeholder="What's on your mind?"
                             required
                             minLength={8}
-                            onFocus={(event) =>
-                                revealControlAboveNav(event.currentTarget)
-                            }
                         />
                     </div>
 

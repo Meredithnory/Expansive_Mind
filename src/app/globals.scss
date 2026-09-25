@@ -253,8 +253,8 @@ textarea {
        the research column, then the short legal footer. A leading auto row
        collapses .main-content to 0 and stretches the footer over the question. */
     body:has([data-research-workspace]) {
-        height: 100dvh;
-        max-height: 100dvh;
+        height: var(--stable-viewport-height, 100dvh);
+        max-height: var(--stable-viewport-height, 100dvh);
         overflow-x: clip;
         overflow-y: hidden;
         grid-template-rows: minmax(0, 1fr) auto;
@@ -283,6 +283,21 @@ textarea {
         align-self: start;
         padding-top: 10px;
         padding-bottom: 4px;
+    }
+}
+
+/* Keyboard open: keep the root at the pre-keyboard height, and undo an
+   iOS visual-viewport pan without transforming the body (that would trap
+   the fixed bottom nav). */
+@media (max-width: 720px) {
+    html[data-keyboard-open] {
+        height: var(--stable-viewport-height, 100dvh);
+        min-height: var(--stable-viewport-height, 100dvh);
+    }
+
+    html[data-keyboard-open][data-vv-pan] .main-content,
+    html[data-keyboard-open][data-vv-pan] [data-app-footer] {
+        transform: translateY(var(--vv-offset-top, 0px));
     }
 }
 

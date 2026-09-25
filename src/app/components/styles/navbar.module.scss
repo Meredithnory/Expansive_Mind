@@ -45,7 +45,7 @@
         display: block;
         position: fixed;
         top: auto;
-        bottom: 0;
+        bottom: var(--keyboard-inset, env(keyboard-inset-bottom, 0px));
         left: 12px;
         right: 12px;
         width: auto;
@@ -58,6 +58,11 @@
         backdrop-filter: none;
         box-shadow: none;
         pointer-events: none;
+
+        :global(html[data-keyboard-open]) & {
+            /* The home indicator is under the keyboard; don't pad a gap there. */
+            padding-bottom: 10px;
+        }
     }
 
     .navbar,
