@@ -39,15 +39,18 @@ export async function POST(request: NextRequest) {
         const code = String(body?.code || "");
         const bodyMfaToken =
             typeof body?.mfaToken === "string" ? body.mfaToken : undefined;
-        // Prefer the httpOnly cookie; fall back to the short-lived challenge
-        // token from the password step JSON when the cookie was not stored.
+        // The password step returns this challenge in JSON and in the cookie.
+        // Prefer the JSON token: a stale admin_mfa cookie must not hide the
+        // challenge the authenticator step is actually confirming.
         const pending =
-            (await readAdminMfaFromRequest(request)) ||
-            (await readAdminMfa(bodyMfaToken));
+            (await readAdminMfa(bodyMfaToken)) ||
+            (await readAdminMfaFromRequest(request));
         if (!pending) {
+            // 400, not 401. Password managers treat 401 on a login URL as a
+            // rejected password and surface that on the authenticator step.
             return json(
                 { success: false, message: "Sign in with your password first." },
-                401,
+                400,
             );
         }
 
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
         if (!user || !isAdminIdentity(user)) {
             return json(
                 { success: false, message: "Invalid authentication code." },
-                401,
+                400,
             );
         }
 
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
         if (!verified.ok) {
             return json(
                 { success: false, message: "Invalid authentication code." },
-                401,
+                400,
             );
         }
 

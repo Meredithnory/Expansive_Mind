@@ -117,6 +117,7 @@ describe("auth navigation middleware", () => {
         expect(response.headers.get("location")).toBe(
             "https://example.test/admin/login",
         );
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
         expect(response.headers.get("location")).not.toBe(
             "https://example.test/login",
         );
@@ -141,5 +142,6 @@ describe("auth navigation middleware", () => {
         expect(response.headers.get("location")).toBe(
             "https://example.test/admin/login",
         );
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
     });
 });

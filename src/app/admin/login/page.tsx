@@ -1,11 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Loading from "../../components/Loading";
-import { useSession } from "../../lib/use-session";
 import styles from "../../login/login.module.scss";
+import {
+    adminMfaChallengeForSubmit,
+    readStoredAdminMfaChallenge,
+    storeAdminMfaChallenge,
+} from "./mfa-challenge";
 
 type Step = "credentials" | "setup" | "verify";
 
@@ -16,16 +19,33 @@ export default function AdminLoginPage() {
     const [qrDataUrl, setQrDataUrl] = useState("");
     const [manualKey, setManualKey] = useState("");
     const [mfaToken, setMfaToken] = useState("");
+    const mfaTokenRef = useRef("");
+    const navigating = useRef(false);
     const [step, setStep] = useState<Step>("credentials");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const router = useRouter();
-    const { refresh } = useSession();
 
-    const finishLogin = async () => {
-        await refresh();
-        router.push("/admin");
-        router.refresh();
+    const rememberChallenge = (token: string) => {
+        mfaTokenRef.current = token;
+        setMfaToken(token);
+        try {
+            storeAdminMfaChallenge(window.sessionStorage, token);
+        } catch {
+            // Private mode can reject sessionStorage. The ref still submits.
+        }
+    };
+
+    const challengeForSubmit = () => {
+        let stored: string | null = null;
+        try {
+            stored = readStoredAdminMfaChallenge(window.sessionStorage);
+        } catch {
+            stored = null;
+        }
+        return adminMfaChallengeForSubmit({
+            stateToken: mfaTokenRef.current || mfaToken,
+            storedToken: stored,
+        });
     };
 
     const handlePassword = async (event: FormEvent) => {
@@ -43,13 +63,13 @@ export default function AdminLoginPage() {
             if (response.ok && data.mfa === "setup") {
                 setQrDataUrl(String(data.qrDataUrl || ""));
                 setManualKey(String(data.manualKey || ""));
-                setMfaToken(String(data.mfaToken || ""));
+                rememberChallenge(String(data.mfaToken || ""));
                 setPassword("");
                 setStep("setup");
                 return;
             }
             if (response.ok && data.mfa === "verify") {
-                setMfaToken(String(data.mfaToken || ""));
+                rememberChallenge(String(data.mfaToken || ""));
                 setPassword("");
                 setStep("verify");
                 return;
@@ -64,6 +84,7 @@ export default function AdminLoginPage() {
 
     const handleCode = async (event: FormEvent) => {
         event.preventDefault();
+        if (navigating.current) return;
         setLoading(true);
         setError("");
         try {
@@ -71,19 +92,29 @@ export default function AdminLoginPage() {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code, mfaToken }),
+                body: JSON.stringify({
+                    code,
+                    mfaToken: challengeForSubmit(),
+                }),
             });
             const data = await response.json().catch(() => ({}));
             if (response.ok && data.success) {
-                setMfaToken("");
-                await finishLogin();
+                navigating.current = true;
+                // Full page load. A client-side refresh left this page mounted
+                // after the challenge was cleared, so the next code submit
+                // showed "Sign in with your password first."
+                window.location.assign("/admin");
                 return;
             }
-            setError(data.message || "Invalid authentication code.");
+            if (!navigating.current) {
+                setError(data.message || "Invalid authentication code.");
+            }
         } catch {
-            setError("Network error. Please try again.");
+            if (!navigating.current) {
+                setError("Network error. Please try again.");
+            }
         } finally {
-            setLoading(false);
+            if (!navigating.current) setLoading(false);
         }
     };
 
@@ -102,6 +133,7 @@ export default function AdminLoginPage() {
                     {error && <div className={styles.error}>{error}</div>}
                     {step === "credentials" ? (
                         <form
+                            key="admin-credentials"
                             className={styles.maincontent}
                             onSubmit={handlePassword}
                         >
@@ -161,7 +193,9 @@ export default function AdminLoginPage() {
                         </form>
                     ) : (
                         <form
+                            key="admin-mfa"
                             className={styles.maincontent}
+                            autoComplete="off"
                             onSubmit={handleCode}
                         >
                             {step === "setup" && qrDataUrl && (
@@ -178,17 +212,22 @@ export default function AdminLoginPage() {
                                     )}
                                 </div>
                             )}
-                            <div className={`${styles.password} ${styles.codeInput}`}>
+                            <div className={`${styles.codeField} ${styles.codeInput}`}>
                                 Authentication code
                                 <input
                                     type="text"
-                                    name="code"
+                                    name="one-time-code"
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
                                     pattern="[0-9]{6}"
                                     maxLength={6}
                                     placeholder="123456"
                                     value={code}
+                                    data-1p-ignore="true"
+                                    data-lpignore="true"
                                     onChange={(event) =>
                                         setCode(
                                             event.target.value
