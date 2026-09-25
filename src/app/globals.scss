@@ -249,17 +249,19 @@ textarea {
 
     /* Research only: keep the locked viewport so the footer stays above the
        fixed bottom nav and does not jump when toggling modes.
-       Nav (fixed, zero track contribution) + main + footer.
-       Main must be 1fr — all-auto rows collapse the report into ~80px. */
+       The nav is position:fixed, so it does not take a grid row. Two tracks:
+       the research column, then the short legal footer. A leading auto row
+       collapses .main-content to 0 and stretches the footer over the question. */
     body:has([data-research-workspace]) {
         height: 100dvh;
         max-height: 100dvh;
         overflow-x: clip;
         overflow-y: hidden;
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: minmax(0, 1fr) auto;
     }
 
     body:has([data-research-workspace]) .main-content {
+        grid-row: 1;
         justify-content: center;
         min-height: 0;
         overflow-x: clip;
@@ -277,6 +279,8 @@ textarea {
     }
 
     body:has([data-research-workspace]) [data-app-footer] {
+        grid-row: 2;
+        align-self: start;
         padding-top: 10px;
         padding-bottom: 4px;
     }

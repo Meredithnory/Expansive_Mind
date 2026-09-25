@@ -79,6 +79,17 @@ describe("mobile chrome stacking", () => {
         );
     });
 
+    it("keeps the phone research column above the legal footer", () => {
+        const globals = read("../globals.scss");
+        const start = globals.indexOf("The nav is position:fixed");
+        expect(start).toBeGreaterThan(-1);
+        const body = globals.slice(start, start + 1200);
+        expect(body).toMatch(/grid-template-rows:\s*minmax\(0,\s*1fr\)\s+auto/);
+        expect(body).not.toMatch(/grid-template-rows:\s*auto\s+1fr\s+auto/);
+        expect(body).toMatch(/\.main-content\s*\{[^}]*grid-row:\s*1/);
+        expect(body).toMatch(/\[data-app-footer\]\s*\{[^}]*grid-row:\s*2/);
+    });
+
     it("keeps the search scroll-to-top control above the bottom nav", () => {
         const scss = read("../searchpaper/searchpaper.module.scss");
         const rule = scss.slice(scss.lastIndexOf(".scrollTopButton"));
