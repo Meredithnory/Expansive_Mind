@@ -1,0 +1,96 @@
+@use "../variables" as *;
+
+/* Shared Research reading column — chrome + composer share this width. */
+$research-column: 720px;
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    /* Hug content — do not stretch to fill the viewport. */
+    flex: 0 0 auto;
+    align-self: center;
+    align-items: stretch;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: $research-column;
+    margin-inline: auto;
+    /* Tighter under the nav; keep bottom breathing room. Same for both modes. */
+    padding: 14px 0 28px;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: clip;
+    overflow-y: visible;
+}
+
+/* Search results need a wider frame than the landing composer column. */
+.shell:has([data-search-paper-page]:not([data-search-landing])) {
+    width: 100%;
+    max-width: min(1160px, calc(100% - 56px));
+    margin-inline: auto;
+}
+
+/* Discovery report: widen for article + sidebar; landing stays at 720. */
+.shell:has([data-discover-page]:not([data-discover-landing])) {
+    width: 100%;
+    max-width: min(1160px, calc(100% - 56px));
+    margin-inline: auto;
+    padding-inline: 0;
+}
+
+.chromeSlot {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    /* Wider than the composer so the title and mode switch are not cramped, still under the nav. */
+    width: min(880px, 100%);
+    max-width: 880px;
+    margin-inline: auto;
+    padding: 0;
+    /* Fixed chrome height so Discovery ↔ Search never shifts the composer. */
+    position: relative;
+    z-index: 2;
+    min-height: 124px;
+}
+
+.modePane {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    min-width: 0;
+    min-height: 0;
+    /* clip (not hidden) so sticky filters can follow .main-content scroll */
+    overflow-x: clip;
+    overflow-y: visible;
+}
+
+@media (max-width: 720px) {
+    .shell {
+        justify-content: flex-start;
+        /* Modest padding only — body already clears the fixed bottom nav. */
+        padding-block: 16px 16px;
+        padding-inline: 0;
+        max-width: 100%;
+    }
+
+    /* Report must use the full mobile column (body already has ~16px pad). */
+    .shell:has([data-discover-page]:not([data-discover-landing])),
+    .shell:has([data-search-paper-page]:not([data-search-landing])) {
+        max-width: 100%;
+        width: 100%;
+        padding-inline: 0;
+    }
+
+    .chromeSlot {
+        padding: 0;
+        min-height: 176px;
+    }
+
+    .modePane {
+        padding-inline: 0;
+        box-sizing: border-box;
+    }
+}

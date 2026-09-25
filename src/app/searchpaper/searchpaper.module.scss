@@ -3,10 +3,19 @@
 .resultsContainer {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 auto;
+    align-items: center;
     gap: 18px;
+    width: 100%;
     min-width: 0;
     animation: results-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Readable card column centered in the space beside the filters. */
+    > * {
+        width: 100%;
+        max-width: 760px;
+        box-sizing: border-box;
+    }
 }
 
 .resultsSkeleton {
@@ -89,8 +98,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .page.pageLanding::before,
-    .page.pageLanding::after,
+    .page .landingAura::before,
+    .page .landingAura::after,
     .page .landingEyebrow,
     .page .landingTitle,
     .page .landingSubtitle,
@@ -101,6 +110,19 @@
     .page .filterTitle {
         animation: none;
     }
+
+    .page .filterSidebar {
+        transition:
+            opacity 700ms ease,
+            max-height 700ms ease,
+            flex-basis 700ms ease,
+            padding 700ms ease,
+            border-color 700ms ease;
+    }
+
+    .page .filterSidebarStuck {
+        animation: none;
+    }
 }
 
 .page {
@@ -108,37 +130,48 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    align-items: center;
     width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
     height: 100%;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
     animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
 
-    &.pageLanding {
-        /*
-         * Keep short layouts centered, but let tall layouts start at the top.
-         * `justify-content: center` clips the beginning of oversized flex
-         * content above the scrollable area on shorter desktop viewports.
-         */
-        justify-content: flex-start;
+    /* Results: let .main-content be the scrollport so sticky filters can follow. */
+    &:not(.pageLanding) {
+        flex: 0 0 auto;
+        height: auto;
+        overflow: visible;
+    }
 
-        .searchbox {
-            position: relative;
-            z-index: 1;
-            gap: 44px;
-            padding-top: clamp(24px, 5vh, 56px);
-            padding-bottom: 56px;
-        }
+    .srOnly {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .landingAura {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
 
         &::before,
         &::after {
             content: "";
             position: absolute;
-            z-index: 0;
             border-radius: 999px;
             filter: blur(90px);
-            pointer-events: none;
         }
 
         &::before {
@@ -165,6 +198,47 @@
                 transparent 65%
             );
             animation: aurora-drift 30s ease-in-out infinite alternate-reverse;
+        }
+    }
+
+    &.pageLanding {
+        /*
+         * Keep short layouts centered, but let tall layouts start at the top.
+         * `justify-content: center` clips the beginning of oversized flex
+         * content above the scrollable area on shorter desktop viewports.
+         */
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 100%;
+        margin-inline: auto;
+        align-items: center;
+        flex: 0 1 auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+
+        .searchbox {
+            position: relative;
+            z-index: 1;
+            gap: 0;
+            width: 100%;
+            max-width: 100%;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            padding-inline: 0;
+            margin-inline: auto;
+        }
+
+        .landingIntro {
+            margin-bottom: 28px;
+        }
+
+        .landingIntroHidden {
+            margin-bottom: 0;
+        }
+
+        .databaseCatalog {
+            margin-top: 14px;
         }
 
         .landingEyebrow {
@@ -193,16 +267,29 @@
     }
 
     &.pageLanding .searchbar {
-        border-radius: 20px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        width: 100%;
+        max-width: 100%;
+        border-radius: 18px;
+        border-color: rgba(215, 235, 255, 0.08);
+        background-color: rgba(7, 7, 9, 0.88);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.03),
+            0 10px 28px rgba(0, 0, 0, 0.18);
 
         &:hover,
         &:focus-within {
-            border-color: var(--search-accent-ring, rgba(255, 0, 132, 0.45));
+            border-color: var(--search-accent-ring, rgba(255, 0, 132, 0.4));
             box-shadow:
-                0 0 0 1px var(--search-accent-mid, rgba(255, 0, 132, 0.22)),
-                0 20px 60px var(--search-accent-glow, rgba(255, 0, 132, 0.12));
+                inset 0 1px 0 rgba(255, 255, 255, 0.04),
+                0 0 0 1px var(--search-accent-mid, rgba(255, 0, 132, 0.16)),
+                0 12px 32px rgba(0, 0, 0, 0.2);
         }
+    }
+
+    &.pageLanding .databaseCatalog {
+        width: 100%;
+        max-width: 100%;
+        margin-top: 10px;
     }
 
     .landingIntro {
@@ -357,16 +444,33 @@
         flex-direction: column;
         align-items: center;
         gap: 10px;
-        max-width: min(1240px, 96%);
         width: 100%;
-        padding: 0 20px;
-        margin: 0 auto;
+        max-width: 100%;
+        padding: 0;
+        margin-inline: auto;
+        box-sizing: border-box;
+    }
+
+    .modeChrome {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto 6px;
+    }
+
+    .modeChromeResults {
+        max-width: none;
+        margin-bottom: 0;
     }
 
     .searchboxResults {
         gap: 22px;
         padding-top: 12px;
         align-items: stretch;
+        width: 100%;
+        max-width: 100%;
+        margin-inline: auto;
     }
 
     .searchbar {
@@ -375,7 +479,8 @@
     }
 
     .searchboxResults .searchbar {
-        max-width: none;
+        align-self: center;
+        max-width: 820px;
     }
 
     .suggestionStatus {
@@ -387,8 +492,11 @@
         .searchLayout {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
+            gap: 0;
             width: 100%;
+            max-width: 100%;
+            margin-inline: auto;
+            box-sizing: border-box;
         }
 
         .searchLayoutHidden {
@@ -397,12 +505,15 @@
 
     .filterSidebar {
         position: sticky;
-        top: 12px;
+        top: 16px;
+        z-index: 4;
+        align-self: flex-start;
         flex: 0 0 228px;
         display: flex;
         flex-direction: column;
         gap: 12px;
         isolation: isolate;
+        margin-right: 0;
         padding: 16px 14px;
         border-radius: 20px;
         border: 1px solid transparent;
@@ -419,12 +530,15 @@
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(12px);
         overflow: hidden;
-        max-height: 560px;
+        /* Fit the visible main-content area, not the full window. */
+        max-height: calc(100dvh - 160px);
+        max-height: calc(100cqh - 36px);
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
         transition:
             opacity 700ms ease,
-            transform 700ms ease,
+            transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 260ms ease,
             max-height 700ms ease,
             flex-basis 700ms ease,
             padding 700ms ease,
@@ -484,11 +598,29 @@
         flex-basis: 0;
         max-height: 0;
         opacity: 0;
-        transform: translateX(-12px);
+        transform: translate3d(-12px, 0, 0);
         padding-top: 0;
         padding-bottom: 0;
         border-color: transparent;
         pointer-events: none;
+    }
+
+    .filterSidebarStuck {
+        box-shadow:
+            0 22px 48px rgba(0, 0, 0, 0.34),
+            0 0 36px rgba(255, 0, 132, 0.1),
+            0 0 52px rgba(10, 177, 255, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        animation: filter-sidebar-slide 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes filter-sidebar-slide {
+        from {
+            transform: translate3d(0, -10px, 0);
+        }
+        to {
+            transform: translate3d(0, 0, 0);
+        }
     }
 
     .filterHeader {
@@ -557,8 +689,12 @@
         position: relative;
         z-index: 1;
         display: flex;
+        flex: 1 1 auto;
         flex-direction: column;
         gap: 8px;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .filterOption {
@@ -631,6 +767,16 @@
         box-shadow: 0 0 0 3px rgba(10, 177, 255, 0.14);
     }
 
+    .filterOptionEuropePmc .filterDot {
+        background: #f6a623;
+        box-shadow: 0 0 0 3px rgba(246, 166, 35, 0.16);
+    }
+
+    .filterOptionCrossref .filterDot {
+        background: #c7d2fe;
+        box-shadow: 0 0 0 3px rgba(199, 210, 254, 0.16);
+    }
+
     .filterOptionActive {
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
     }
@@ -668,6 +814,20 @@
         box-shadow: 0 10px 24px rgba(10, 177, 255, 0.12);
     }
 
+    .filterOptionEuropePmc.filterOptionActive {
+        border-left-color: #f6a623;
+        border-color: rgba(246, 166, 35, 0.34);
+        background: rgba(246, 166, 35, 0.1);
+        box-shadow: 0 10px 24px rgba(246, 166, 35, 0.12);
+    }
+
+    .filterOptionCrossref.filterOptionActive {
+        border-left-color: #c7d2fe;
+        border-color: rgba(199, 210, 254, 0.34);
+        background: rgba(199, 210, 254, 0.1);
+        box-shadow: 0 10px 24px rgba(199, 210, 254, 0.12);
+    }
+
     .filterLabel {
         flex: 1;
         font-size: 13px;
@@ -693,6 +853,75 @@
         color: rgba(215, 235, 255, 0.58);
     }
 
+    .dateFilter {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+        padding: 13px 2px 2px;
+        border-top: 1px solid rgba(180, 92, 255, 0.16);
+        background: rgba(8, 4, 10, 0.72);
+    }
+
+    .dateFilterTitle {
+        color: rgba(215, 235, 255, 0.72);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .dateOptions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .dateOption {
+        min-height: 32px;
+        padding: 6px 7px;
+        border: 1px solid rgba(215, 235, 255, 0.09);
+        border-radius: 9px;
+        background: rgba(0, 0, 0, 0.38);
+        color: rgba(215, 235, 255, 0.62);
+        font: inherit;
+        font-size: 10px;
+        font-weight: 650;
+        cursor: pointer;
+        transition:
+            border-color 160ms ease,
+            background-color 160ms ease,
+            color 160ms ease;
+
+        &:first-child {
+            grid-column: 1 / -1;
+        }
+
+        &:hover,
+        &:focus-visible {
+            border-color: rgba(10, 177, 255, 0.42);
+            color: #fff;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #0ab1ff;
+            outline-offset: 2px;
+        }
+    }
+
+    .dateOptionActive {
+        border-color: rgba(180, 92, 255, 0.5);
+        background: linear-gradient(
+            110deg,
+            rgba(255, 0, 132, 0.12),
+            rgba(10, 177, 255, 0.1)
+        );
+        color: #fff;
+    }
+
     .databaseCatalog {
         display: flex;
         flex-direction: column;
@@ -700,6 +929,7 @@
         gap: 28px;
         width: 100%;
         max-width: 720px;
+        margin-inline: auto;
         overflow: hidden;
         max-height: 820px;
         opacity: 1;
@@ -721,9 +951,10 @@
 
     .showingResults {
         width: 100%;
+        max-width: 760px;
         padding: 0;
         font-size: 16px;
-        align-self: stretch;
+        align-self: center;
         line-height: 1.45;
         color: rgba(215, 235, 255, 0.86);
     }
@@ -800,6 +1031,8 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
+        width: 100%;
+        max-width: 760px;
         margin: 2px auto 20px;
     }
 
@@ -874,21 +1107,53 @@
         padding: 16px 0 32px;
 
         &.pageLanding {
-            flex: 1;
-            height: 100%;
-            min-height: calc(100svh - 9rem);
-            /* flex-start (not center): centered content taller than the
-               viewport gets clipped at the top inside a scroll container */
+            flex: 0 0 auto;
+            height: auto;
+            min-height: 0;
             justify-content: flex-start;
-            padding-top: 32px;
-            padding-bottom: 48px;
+            padding-top: 8px;
+            padding-bottom: 16px;
 
             .searchbox {
                 width: 100%;
-                gap: 36px;
+                gap: 0;
                 margin-block: 0;
                 padding-top: 0;
-                padding-bottom: 0;
+                padding-bottom: 12px;
+            }
+
+            .modeChrome {
+                order: 0;
+                margin-bottom: 18px;
+            }
+
+            .landingIntro {
+                order: 1;
+                margin-bottom: 30px;
+            }
+
+            .landingIntroHidden {
+                margin-bottom: 0;
+            }
+
+            .databaseCatalog {
+                order: 2;
+                margin-top: 0;
+            }
+
+            .searchbar {
+                position: fixed;
+                right: 16px;
+                bottom: calc(68px + env(safe-area-inset-bottom));
+                left: 16px;
+                z-index: 70;
+                order: 3;
+                width: auto;
+                max-width: none;
+                margin: 0;
+                box-shadow:
+                    0 -14px 38px rgba(0, 0, 0, 0.62),
+                    0 0 0 1px rgba(255, 0, 132, 0.08);
             }
         }
 
@@ -1051,10 +1316,12 @@
                 margin 260ms ease;
         }
 
-        .filterListCollapsed {
+        .filterListCollapsed,
+        .filterSidebarCollapsed .dateFilter {
             max-height: 0;
             margin: 0;
             opacity: 0;
+            overflow: hidden;
             pointer-events: none;
         }
 

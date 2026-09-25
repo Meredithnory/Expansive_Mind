@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import RouteLoading from "../components/RouteLoading";
 import SavedLibraryClient from "./SavedLibraryClient";
+import PaperStack from "../components/PaperStack";
 import styles from "./savedpage.module.scss";
 
 type LibraryTab = "papers" | "syntheses" | "projects";
@@ -29,7 +30,10 @@ export default async function SavedPapersPage({ searchParams }: SavedPapersPageP
                             <header className={styles.libraryHeader}>
                                 <div>
                                     <p className={styles.eyebrow}>Your workspace</p>
-                                    <h1>Research Library</h1>
+                                    <h1>
+                                        <PaperStack size="large" />
+                                        Research Library
+                                    </h1>
                                     <p>
                                         Papers you read, topic syntheses you generated, and research
                                         plans you are moving forward.

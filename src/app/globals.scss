@@ -90,7 +90,84 @@ body {
     overscroll-behavior: auto;
     padding-top: 20px;
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: auto 1fr auto;
+}
+
+body:has([data-search-paper-page]) {
+    width: min(calc(100% - 32px), 1500px);
+}
+
+/* Combined Research page: full viewport width so the page frame is not a
+   left-shifted 80% column. The 720px research cluster centers inside it.
+   Lock the body to the viewport so Discovery ↔ Search height differences
+   cannot move the shared footer (grid row stays at the bottom). */
+body:has([data-research-workspace]) {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+/* Search widens body for results; keep site chrome at the standard width
+   so the shared footer matches Discover and every other route. */
+@media (min-width: 901px) {
+    body:has([data-search-paper-page]) [data-app-nav],
+    body:has([data-search-paper-page]) [data-app-footer] {
+        width: min(80vw, 1440px);
+        justify-self: center;
+    }
+
+    body:has([data-research-workspace]) [data-app-nav],
+    body:has([data-research-workspace]) [data-app-footer] {
+        width: min(80vw, 1440px);
+        max-width: 1440px;
+        justify-self: center;
+    }
+}
+
+/* Research landing: parent fills the viewport row; the short cluster is
+   vertically centered inside it (chat-home style). Tall mode content
+   (orbit, results) scrolls here — footer stays put. No footer z-index. */
+body:has([data-research-workspace]) .main-content {
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    container-type: size;
+    container-name: research-main;
+}
+
+body:has([data-research-workspace]) .page-transition-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    align-items: center;
+    /* `safe` falls back to start when results/report content exceeds the row. */
+    justify-content: safe center;
+}
+
+/* Search results / tall panes: pin to the top so nothing clips above. */
+body:has([data-research-workspace]) .page-transition-shell:has(
+    [data-search-paper-page]:not([data-search-landing])
+) {
+    justify-content: flex-start;
+    align-items: center;
+}
+
+body:has([data-research-workspace]) .page-transition-shell:has(
+    [data-discover-page]:not([data-discover-landing])
+) {
+    justify-content: flex-start;
+    align-items: center;
 }
 
 button,
@@ -101,8 +178,10 @@ textarea {
 }
 
 .main-content {
+    min-width: 0;
     min-height: 0;
     width: 100%;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -112,8 +191,15 @@ textarea {
 }
 
 @media (max-width: 900px) {
-    body {
+    body,
+    body:has([data-search-paper-page]) {
         width: calc(100% - 32px);
+    }
+
+    body:has([data-research-workspace]) {
+        width: 100%;
+        max-width: none;
+        margin-inline: 0;
     }
 }
 
@@ -137,11 +223,13 @@ textarea {
         scroll-padding-bottom: var(--mobile-bottom-nav-clearance);
     }
 
-    body {
+    body,
+    body:has([data-search-paper-page]),
+    body:has([data-research-workspace]) {
         width: 100%;
         max-width: 100%;
         min-height: 0;
-        grid-template-rows: auto auto auto auto;
+        grid-template-rows: auto auto auto;
         /* Keep overflow-x clipped; the shorthand would reopen horizontal scroll. */
         overflow-x: clip;
         overflow-y: visible;
@@ -155,9 +243,42 @@ textarea {
     }
 
     .main-content {
-        max-width: 100%;
         overflow-x: clip;
         overflow-y: visible;
+    }
+
+    /* Research only: keep the locked viewport so the footer stays above the
+       fixed bottom nav and does not jump when toggling modes.
+       Nav (fixed, zero track contribution) + main + footer.
+       Main must be 1fr — all-auto rows collapse the report into ~80px. */
+    body:has([data-research-workspace]) {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow-x: clip;
+        overflow-y: hidden;
+        grid-template-rows: auto 1fr auto;
+    }
+
+    body:has([data-research-workspace]) .main-content {
+        justify-content: center;
+        min-height: 0;
+        overflow-x: clip;
+        overflow-y: auto;
+    }
+
+    body:has([data-research-workspace]) .page-transition-shell {
+        justify-content: safe center;
+    }
+
+    /* Rich marketing footer is too tall for the locked research viewport.
+       Keep brand + legal; drop the large link columns on small screens. */
+    body:has([data-research-workspace]) [data-app-footer-top] {
+        display: none;
+    }
+
+    body:has([data-research-workspace]) [data-app-footer] {
+        padding-top: 10px;
+        padding-bottom: 4px;
     }
 }
 
@@ -171,8 +292,20 @@ textarea {
     min-width: 0;
     min-height: 100%;
     height: auto;
-    animation: page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    /* Short enter so library → paper chat (and other routes) feel immediate. */
+    animation: page-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
     transform-origin: center top;
+}
+
+/* Spatial history: back returns from the left, forward/detail arrives from the right. */
+html[data-nav-direction="back"] .page-transition-shell,
+.page-transition-shell[data-nav="back"] {
+    animation-name: page-enter-from-left;
+}
+
+html[data-nav-direction="forward"] .page-transition-shell,
+.page-transition-shell[data-nav="forward"] {
+    animation-name: page-enter-from-right;
 }
 
 .full-height-loading {
@@ -276,6 +409,152 @@ textarea {
     transform: translateY(0) scale(1);
 }
 
+.search-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px;
+    overflow: hidden;
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(4, 8, 14, 0.22) 0%,
+            rgba(0, 0, 0, 0.1) 46%,
+            rgba(0, 0, 0, 0.04) 100%
+        );
+    backdrop-filter: blur(2px) saturate(0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 360ms ease,
+        backdrop-filter 360ms ease;
+}
+
+.search-loading-overlay--active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.search-loading-lens {
+    position: relative;
+    width: clamp(164px, 38vw, 260px);
+    aspect-ratio: 1;
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateY(18px) scale(0.72);
+    transform-origin: center;
+    transition:
+        opacity 320ms ease,
+        filter 620ms ease,
+        transform 760ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search-loading-overlay--active .search-loading-lens {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(0, 0) scale(1);
+}
+
+.search-loading-lens__glass {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 3px solid rgba(255, 22, 130, 0.92);
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(10, 177, 255, 0.1),
+            transparent 62%
+        ),
+        rgba(5, 8, 13, 0.34);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 0 40px rgba(10, 177, 255, 0.055),
+        0 0 42px rgba(255, 0, 132, 0.16);
+
+    &::after {
+        position: absolute;
+        top: -30%;
+        left: -35%;
+        width: 34%;
+        height: 160%;
+        background: rgba(215, 235, 255, 0.1);
+        content: "";
+        transform: rotate(18deg);
+        animation: lens-scan 1.4s ease-in-out infinite;
+    }
+
+    .loader {
+        width: 66%;
+        min-height: 0;
+        opacity: 0;
+        transform: scale(0.7);
+        animation: dna-in-lens 420ms ease 300ms forwards;
+    }
+}
+
+.search-loading-lens__handle {
+    position: absolute;
+    right: -18%;
+    bottom: -9%;
+    width: 39%;
+    height: 13px;
+    border: 3px solid rgba(255, 22, 130, 0.92);
+    border-left: 0;
+    border-radius: 0 999px 999px 0;
+    background: rgba(5, 8, 13, 0.44);
+    backdrop-filter: blur(8px);
+    transform: rotate(46deg);
+    transform-origin: left center;
+}
+
+.search-loading-label {
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.9rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.search-loading-overlay--active .search-loading-label {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 300ms ease 360ms,
+        transform 300ms ease 360ms;
+}
+
+@keyframes lens-scan {
+    0%,
+    100% {
+        transform: translateX(-60px) rotate(18deg);
+    }
+
+    50% {
+        transform: translateX(300px) rotate(18deg);
+    }
+}
+
+@keyframes dna-in-lens {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .loading-skeleton {
     position: relative;
     overflow: hidden;
@@ -304,7 +583,10 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .loading-overlay,
-    .loading-overlay__content {
+    .loading-overlay__content,
+    .search-loading-overlay,
+    .search-loading-lens,
+    .search-loading-label {
         transition: none;
     }
 
@@ -314,6 +596,34 @@ textarea {
 
     .loader path {
         animation: none;
+    }
+
+    .search-loading-lens {
+        opacity: 1;
+        transform: none;
+    }
+
+    .search-loading-lens__glass::after {
+        display: none;
+    }
+
+    .search-loading-lens__glass .loader {
+        opacity: 1;
+        transform: none;
+        animation: none;
+    }
+
+    .search-loading-label {
+        opacity: 1;
+        transform: none;
+    }
+
+    .page-transition-shell,
+    html[data-nav-direction="back"] .page-transition-shell,
+    html[data-nav-direction="forward"] .page-transition-shell,
+    .page-transition-shell[data-nav="back"],
+    .page-transition-shell[data-nav="forward"] {
+        animation: page-enter-fade 200ms ease-out;
     }
 }
 
@@ -355,13 +665,45 @@ textarea {
 @keyframes page-enter {
     0% {
         opacity: 0;
-        transform: translateY(10px) scale(0.992);
-        filter: blur(6px);
+        transform: translateY(6px);
     }
 
     100% {
         opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
+        transform: translateY(0);
+    }
+}
+
+@keyframes page-enter-from-right {
+    0% {
+        opacity: 0;
+        transform: translateX(min(18px, 5vw));
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes page-enter-from-left {
+    0% {
+        opacity: 0;
+        transform: translateX(max(-18px, -5vw));
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes page-enter-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
     }
 }

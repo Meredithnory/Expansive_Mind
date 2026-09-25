@@ -258,6 +258,12 @@
     padding-top: 4px;
 }
 
+.mockHits {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .mockPaper {
     display: flex;
     flex-direction: column;

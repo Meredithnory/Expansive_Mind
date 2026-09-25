@@ -24,7 +24,7 @@ const DEFAULT_PRICING: PricingConfig = {
     prices: { month: { amount: 1200, currency: "usd" } },
     entitlements: {
         free: { discover: 2, chat: 5, search: 20 },
-        pro: { discover: 40, chat: 100, search: 300, scholar_search: 25 },
+        pro: { discover: 20, chat: 100, search: 300, scholar_search: 25 },
     },
 };
 
@@ -102,18 +102,18 @@ export default function GuestUpgradeModal({
                 </button>
 
                 <p className={styles.eyebrow}>
-                    {exhausted ? "Your preview is complete" : "One free preview"}
+                    {exhausted ? "Monthly plan" : "One free preview"}
                 </p>
                 <h2 id="guest-upgrade-title">
                     {exhausted
-                        ? "Keep your research momentum"
+                        ? "Continue with Researcher Pro"
                         : "Try Discovery, then go deeper with Pro"}
                 </h2>
                 <p className={styles.summary}>
                     {exhausted
                         ? canContinueReading
-                            ? "You can keep reading this brief. Researcher Pro unlocks more syntheses and paper conversations all month."
-                            : "You used your guest Discovery synthesis. Researcher Pro keeps evidence briefs and paper conversations available all month."
+                            ? "You can keep reading this brief. A monthly Researcher Pro plan unlocks more syntheses and paper conversations."
+                            : "You used your guest Discovery run. Researcher Pro is a monthly plan for ongoing syntheses and paper conversations."
                         : "Your guest preview includes one cited synthesis. Upgrade when you are ready to make Discovery part of your workflow."}
                 </p>
 
@@ -139,7 +139,13 @@ export default function GuestUpgradeModal({
                     </li>
                     <li>
                         <strong>{pricing.entitlements.pro.search}</strong> paper
-                        searches plus Scholar access
+                        searches every month
+                    </li>
+                    <li>
+                        <strong>
+                            {pricing.entitlements.pro.scholar_search}
+                        </strong>{" "}
+                        Google Scholar searches every month
                     </li>
                 </ul>
 
@@ -169,7 +175,7 @@ export default function GuestUpgradeModal({
                     </button>
                 ) : (
                     <Link
-                        href="/searchpaper"
+                        href="/discover?mode=search"
                         className={styles.secondaryAction}
                         onClick={onClose}
                     >

@@ -218,6 +218,27 @@ describe("selectDiscoverCandidates", () => {
 });
 
 describe("dedupeDiscoverCandidates", () => {
+    it("keeps the more reliable citation source when the same paper is merged", () => {
+        const unique = dedupeDiscoverCandidates([
+            {
+                ...nihCandidate("999"),
+                doi: "10.1/shared",
+                citationCount: 88,
+                citationSource: "scholar",
+            },
+            {
+                ...springerCandidate("10.1/shared"),
+                citationCount: 41,
+                citationSource: "crossref",
+            },
+        ]);
+        expect(unique).toHaveLength(1);
+        expect(unique[0]).toMatchObject({
+            citationCount: 41,
+            citationSource: "crossref",
+        });
+    });
+
     it("dedupes Springer by DOI, NIH by PMCID, and Scholar by cluster id", () => {
         const unique = dedupeDiscoverCandidates([
             springerCandidate("10.1/a"),

@@ -4,14 +4,21 @@ import styles from "./login.module.scss";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Loading from "../components/Loading";
 import { useSession } from "../lib/use-session";
+import { safeInternalPath } from "../lib/safe-internal-path";
+
+type LoginPhase = "idle" | "submitting" | "success" | "error";
+
+const prefersReducedMotion = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const LoginPage = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [phase, setPhase] = useState<LoginPhase>("idle");
     const router = useRouter();
     const { refresh } = useSession();
 
@@ -19,6 +26,9 @@ const LoginPage = () => {
         e.preventDefault();
         setLoading(true);
         setError("");
+        setPhase("submitting");
+
+        let succeeded = false;
 
         try {
             const response = await fetch("/api/login", {
@@ -32,25 +42,57 @@ const LoginPage = () => {
             const data = await response.json();
 
             if (response.ok && data.success) {
+                succeeded = true;
+                setPhase("success");
                 await refresh();
-                router.push("/discover");
+
+                if (!prefersReducedMotion()) {
+                    await new Promise((resolve) => setTimeout(resolve, 420));
+                }
+
+                const nextPath = safeInternalPath(
+                    new URLSearchParams(window.location.search).get("next"),
+                );
+                router.push(nextPath);
                 router.refresh();
             } else {
-                //Login failed
                 setError(data.message || "Login failed");
+                setPhase("error");
             }
-        } catch (error) {
+        } catch {
             setError("Network error. Please try again.");
+            setPhase("error");
         } finally {
-            setLoading(false);
+            if (!succeeded) {
+                setLoading(false);
+            }
         }
     };
+
+    const boxClassName = [
+        styles.loginBox,
+        phase === "submitting" ? styles.isSubmitting : "",
+        phase === "success" ? styles.isSuccess : "",
+        phase === "error" ? styles.isError : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     return (
         <>
             <div className={styles.page}>
-                <div className={styles.loginBox}>
-                    <div className={styles.loginContainer}>
+                <div className={boxClassName}>
+                    <div
+                        className={styles.loginContainer}
+                        onAnimationEnd={(e) => {
+                            if (
+                                phase === "error" &&
+                                e.target === e.currentTarget
+                            ) {
+                                setPhase("idle");
+                            }
+                        }}
+                    >
                         <div className={styles.loginText}>Login</div>
 
                         {/* Show error message if exists */}
@@ -78,6 +120,10 @@ const LoginPage = () => {
                                             setEmail(e.target.value)
                                         }
                                         required
+                                        disabled={
+                                            loading || phase === "success"
+                                        }
+                                        autoComplete="email"
                                     />
                                 </div>
                             </div>
@@ -100,32 +146,40 @@ const LoginPage = () => {
                                             setPassword(e.target.value)
                                         }
                                         required
+                                        disabled={
+                                            loading || phase === "success"
+                                        }
+                                        autoComplete="current-password"
                                     />
                                 </div>
                             </div>
                             <button
                                 type="submit"
-                                className={styles.loginButton}
-                                disabled={loading}
-                                style={{
-                                    opacity: loading ? 0.6 : 1,
-                                    cursor: loading
-                                        ? "not-allowed"
-                                        : "pointer",
-                                }}
+                                className={[
+                                    styles.loginButton,
+                                    phase === "submitting"
+                                        ? styles.isThinking
+                                        : "",
+                                    phase === "success"
+                                        ? styles.isSuccessButton
+                                        : "",
+                                ]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                disabled={loading || phase === "success"}
+                                aria-busy={loading || phase === "success"}
                             >
-                                {loading ? "Logging in..." : "Login"}
+                                {phase === "success"
+                                    ? "Welcome in"
+                                    : loading
+                                      ? "Logging in..."
+                                      : "Login"}
                             </button>
                             <p className={styles.signupPrompt}>
                                 Don&apos;t have an account?{" "}
                                 <Link href="/signup">Sign up</Link>
                             </p>
                         </form>
-                        {loading && (
-                            <div className={styles.loader}>
-                                <Loading />
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

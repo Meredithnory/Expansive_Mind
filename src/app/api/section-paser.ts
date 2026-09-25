@@ -27,7 +27,11 @@ export function parseArticleXml(
 ): Section[] {
     const doc = new DOMParser().parseFromString(xmlString, "application/xml");
     const out: Section[] = [];
-    const text = (n: Node | null) => n?.textContent?.trim() || "";
+    const text = (n: Node | null) =>
+        (n?.textContent || "")
+            .replace(/\s+/g, " ")
+            .replace(/\s+,/g, ",")
+            .trim();
     const localName = (el: Element) => el.tagName.replace(/^.*:/, "");
     const stableFigureId = (value: string) => {
         let hash = 2166136261;

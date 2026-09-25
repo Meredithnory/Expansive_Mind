@@ -21,7 +21,7 @@ export const PLAN_ENTITLEMENTS: Record<
 > = {
     guest: { search: 3, discover: 1, chat: 0, scholar_search: 0, projects: 0 },
     free: { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 },
-    pro: { search: 300, discover: 40, chat: 100, scholar_search: 25, projects: 50 },
+    pro: { search: 300, discover: 20, chat: 100, scholar_search: 25, projects: 50 },
 };
 
 export type BillingInterval = "month" | "year";
@@ -99,6 +99,11 @@ export function applyStoredPlanConfig(
             pro: {
                 ...fallback.entitlements.pro,
                 ...stored.entitlements?.pro,
+                discover:
+                    stored.entitlements?.pro?.discover === 40
+                        ? fallback.entitlements.pro.discover
+                        : (stored.entitlements?.pro?.discover ??
+                          fallback.entitlements.pro.discover),
             },
         },
         updatedAt:

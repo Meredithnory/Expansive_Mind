@@ -1,0 +1,307 @@
+@use "../../variables" as *;
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Stable footprint so mode swaps never shift the composer below. */
+.chrome {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 124px;
+    box-sizing: border-box;
+    padding: 6px 0 4px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+    width: 100%;
+    min-width: 0;
+}
+
+.copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    text-align: left;
+}
+
+.title {
+    margin: 0;
+    font-size: clamp(1.65rem, 2.4vw, 2.05rem);
+    font-weight: 760;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+    transition: color 160ms ease, text-shadow 160ms ease;
+
+    &[data-tone="discover"] {
+        color: #ff0084;
+        text-shadow: 0 0 28px rgba(255, 0, 132, 0.35);
+    }
+
+    &[data-tone="search"] {
+        color: #0ab1ff;
+        text-shadow: 0 0 28px rgba(10, 177, 255, 0.32);
+    }
+}
+
+.job {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 720;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+
+    &[data-tone="discover"] {
+        color: rgba(255, 130, 190, 0.92);
+    }
+
+    &[data-tone="search"] {
+        color: rgba(110, 210, 255, 0.95);
+    }
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 560;
+    letter-spacing: 0.005em;
+    line-height: 1.4;
+    /* Allow wrap — never ellipsis-clip the Discovery line. */
+    white-space: normal;
+    overflow: visible;
+    text-wrap: balance;
+    /* Reserve two lines so Search (short) matches Discovery chrome height. */
+    min-height: 2.8em;
+    transition: color 160ms ease;
+
+    &[data-tone="discover"] {
+        color: rgba(255, 210, 232, 0.9);
+    }
+
+    &[data-tone="search"] {
+        color: rgba(190, 232, 255, 0.9);
+    }
+}
+
+.switch {
+    position: relative;
+    flex: 0 0 auto;
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Wide enough for DISCOVERY + SEARCH with ~16px label padding each side. */
+    width: 272px;
+    min-width: 272px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+
+    &:focus-visible {
+        outline: 2px solid $main-pink;
+        outline-offset: 3px;
+    }
+
+    &[data-mode="search"]:focus-visible {
+        outline-color: $highlight-blue;
+    }
+}
+
+.track {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    width: 100%;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(215, 235, 255, 0.14);
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.05),
+            transparent 55%
+        ),
+        rgba(8, 9, 12, 0.98);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 12px 32px rgba(0, 0, 0, 0.32);
+    overflow: hidden;
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+
+    .switch[data-mode="discover"] & {
+        border-color: rgba(255, 0, 132, 0.42);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 0 0 1px rgba(255, 0, 132, 0.18),
+            0 12px 32px rgba(255, 0, 132, 0.16);
+    }
+
+    .switch[data-mode="search"] & {
+        border-color: rgba(10, 177, 255, 0.46);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 0 0 1px rgba(10, 177, 255, 0.2),
+            0 12px 32px rgba(10, 177, 255, 0.16);
+    }
+
+    .switch:hover & {
+        border-color: rgba(215, 235, 255, 0.28);
+    }
+}
+
+.trackLabel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 0 16px;
+    font-size: 0.7rem;
+    font-weight: 720;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: color 160ms ease, opacity 160ms ease;
+
+    &[data-side="left"] {
+        color: #fff;
+
+        .switch[data-mode="search"] & {
+            color: rgba(215, 235, 255, 0.62);
+        }
+    }
+
+    &[data-side="right"] {
+        color: rgba(215, 235, 255, 0.62);
+
+        .switch[data-mode="search"] & {
+            color: #fff;
+        }
+    }
+}
+
+.thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 0;
+    width: calc(50% - 8px);
+    height: calc(100% - 8px);
+    border-radius: 999px;
+    background: linear-gradient(
+        145deg,
+        #ff0084,
+        #ff4fa3 55%,
+        rgba(255, 0, 132, 0.82)
+    );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        0 8px 20px rgba(255, 0, 132, 0.38);
+    transition:
+        left 240ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 180ms ease,
+        box-shadow 180ms ease;
+
+    .switch[data-mode="search"] & {
+        left: calc(50% + 4px);
+        background: linear-gradient(
+            145deg,
+            #0ab1ff,
+            #5ad0ff 55%,
+            rgba(10, 177, 255, 0.82)
+        );
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            0 8px 20px rgba(10, 177, 255, 0.38);
+    }
+}
+
+@media (max-width: 520px) {
+    .chrome {
+        width: 100%;
+        min-height: 148px;
+        padding: 2px 0 0;
+    }
+
+    .row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .copy {
+        width: 100%;
+    }
+
+    .title {
+        font-size: 1.55rem;
+    }
+
+    .subtitle {
+        white-space: normal;
+        font-size: 0.84rem;
+        line-height: 1.35;
+        min-height: 2.7em;
+    }
+
+    .switch {
+        align-self: stretch;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        height: 48px;
+    }
+
+    .track {
+        height: 48px;
+    }
+
+    .trackLabel {
+        padding: 0 14px;
+        font-size: 0.66rem;
+        letter-spacing: 0.05em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .title,
+    .job,
+    .subtitle,
+    .track,
+    .trackLabel,
+    .thumb {
+        transition: none;
+    }
+}

@@ -1,0 +1,285 @@
+.wrap {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    vertical-align: middle;
+    z-index: 1;
+}
+
+.wrapOpen {
+    z-index: 80;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 4px 8px;
+    border: 1px solid rgba(215, 235, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.05);
+    color: rgba(215, 235, 255, 0.78);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    text-align: left;
+    appearance: none;
+    cursor: default;
+}
+
+.badgeInteractive {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible,
+    &.badgeOpen {
+        border-color: rgba(255, 0, 132, 0.45);
+        background: rgba(255, 0, 132, 0.1);
+        color: #ff8ec8;
+        outline: none;
+    }
+
+    &:focus-visible {
+        box-shadow: 0 0 0 2px rgba(10, 177, 255, 0.35);
+    }
+}
+
+.badge:disabled {
+    cursor: default;
+}
+
+@media (max-width: 720px) {
+    .badge {
+        gap: 5px;
+        min-height: 26px;
+        padding: 5px 9px;
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .badge {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: 0.64rem;
+        letter-spacing: 0.01em;
+    }
+
+    .popularity {
+        letter-spacing: 0.01em;
+    }
+}
+
+@media (max-width: 390px), (hover: none) {
+    .badgeInteractive {
+        min-height: 44px;
+        padding: 10px 12px;
+    }
+}
+
+.count {
+    font-variant-numeric: tabular-nums;
+}
+
+.popularity {
+    color: inherit;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+}
+
+.none {
+    color: rgba(215, 235, 255, 0.5);
+}
+
+.emerging {
+    color: #7ad4ff;
+}
+
+.cited {
+    color: #9ad7ff;
+}
+
+.widely-cited {
+    color: #8be8b8;
+    border-color: rgba(99, 211, 153, 0.28);
+    background: rgba(99, 211, 153, 0.08);
+}
+
+.highly-cited {
+    color: #ffd27a;
+    border-color: rgba(255, 210, 122, 0.32);
+    background: rgba(255, 210, 122, 0.08);
+}
+
+.menu {
+    position: fixed;
+    z-index: 10000;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: min(380px, calc(100vw - 32px));
+    max-width: min(380px, calc(100vw - 32px));
+    max-height: 380px;
+    padding: 0;
+    border: 1px solid rgba(10, 177, 255, 0.22);
+    border-radius: 12px;
+    background: #0b1220;
+    box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 0, 132, 0.12);
+    color: #d7ebff;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+/* Flush to the badge edge so hover can move between badge and menu. */
+.menuBelow {
+    margin-top: 0;
+}
+
+.menuAbove {
+    margin-bottom: 0;
+}
+
+.menuHeader {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 6px;
+    margin: 0;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(215, 235, 255, 0.1);
+    background: #0b1220;
+}
+
+.menuHeaderRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.menuRank {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.menuTitle {
+    color: #0ab1ff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.menuSource {
+    color: rgba(215, 235, 255, 0.55);
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+
+.menuBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 8px 10px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.menuList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.menuItem {
+    margin: 0;
+}
+
+.workLink,
+.workPlain {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 8px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.workPlain {
+    cursor: default;
+}
+
+.workLink:hover,
+.workLink:focus-visible {
+    background: rgba(10, 177, 255, 0.1);
+    outline: none;
+}
+
+.workTitle {
+    color: #f2f8ff;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.workMeta {
+    color: rgba(215, 235, 255, 0.62);
+    font-size: 0.68rem;
+    line-height: 1.3;
+}
+
+.menuStatus,
+.menuMore {
+    margin: 0;
+    padding: 6px 4px 2px;
+    color: rgba(215, 235, 255, 0.68);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.menuMore {
+    border-top: 1px solid rgba(215, 235, 255, 0.1);
+    margin-top: 6px;
+    padding: 8px 4px 2px;
+    color: #ff8ec8;
+    font-weight: 600;
+}
+
+@media (max-width: 390px) {
+    .menu {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .badge,
+    .workLink {
+        transition: none;
+    }
+}

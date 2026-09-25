@@ -4,6 +4,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
     gap: 18px;
 
     .paper {
@@ -14,7 +16,7 @@
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background-color: #000;
-        overflow: hidden;
+        overflow: visible;
         transition: border-color 180ms ease;
 
         &:hover {
@@ -50,7 +52,23 @@
         }
     }
 
-    .paper:not(.naturePaper):not(.scholarPaper) {
+    .europePmcPaper {
+        &:hover {
+            .title {
+                color: #f6a623;
+            }
+        }
+    }
+
+    .crossrefPaper {
+        &:hover {
+            .title {
+                color: #c7d2fe;
+            }
+        }
+    }
+
+    .paper:not(.naturePaper):not(.scholarPaper):not(.europePmcPaper):not(.crossrefPaper) {
         &:hover {
             .sourceTag {
                 border: 1px solid rgba(255, 0, 132, 0.45);
@@ -82,6 +100,18 @@
         color: rgba(215, 235, 255, 0.7);
         font-size: 11px;
         font-weight: 600;
+    }
+
+    .impactTag {
+        display: inline-flex;
+        max-width: 100%;
+        overflow: visible;
+        position: relative;
+        z-index: 2;
+
+        &:empty {
+            display: none;
+        }
     }
 
     .title {
@@ -158,6 +188,14 @@
     .scholarDot {
         background-color: $highlight-blue;
         box-shadow: 0 0 0 4px rgba(10, 177, 255, 0.2);
+    }
+    .europePmcDot {
+        background-color: #f6a623;
+        box-shadow: 0 0 0 4px rgba(246, 166, 35, 0.2);
+    }
+    .crossrefDot {
+        background-color: #c7d2fe;
+        box-shadow: 0 0 0 4px rgba(199, 210, 254, 0.2);
     }
     .sourceText {
         white-space: nowrap;
@@ -257,6 +295,34 @@
     .scholarHighlight {
         color: $highlight-blue;
     }
+
+    .nihAbstractHighlight,
+    .natureAbstractHighlight,
+    .scholarAbstractHighlight {
+        color: inherit;
+        font: inherit;
+        border-radius: 2px;
+        padding: 0 0.12em;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .nihAbstractHighlight {
+        background-color: rgba(255, 0, 132, 0.28);
+        color: #ffb3d7;
+    }
+
+    .natureAbstractHighlight {
+        background-color: rgba(255, 78, 78, 0.28);
+        color: #ffb0b0;
+    }
+
+    .scholarAbstractHighlight {
+        background-color: rgba(10, 177, 255, 0.28);
+        color: #9adfff;
+    }
     .button {
         background: none;
         color: inherit;
@@ -278,7 +344,21 @@
         }
 
         .paperMeta {
-            align-items: flex-start;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 8px 12px;
+        }
+
+        .metaTags {
+            grid-column: 1 / -1;
+            width: 100%;
+            gap: 6px;
+        }
+
+        .impactTag {
+            grid-column: 1;
+            align-self: center;
         }
 
         .title {
@@ -287,13 +367,13 @@
         }
 
         .publicationdate {
-            width: 100%;
+            grid-column: 2;
+            width: auto;
             margin-left: 0;
-            padding: 8px 0 0;
-            align-items: flex-start;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            border-left: 0;
-            text-align: left;
+            padding: 0;
+            align-items: flex-end;
+            border: 0;
+            text-align: right;
         }
 
         .dateValue {

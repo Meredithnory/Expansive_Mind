@@ -10,7 +10,7 @@ import React, {
 import styles from "../styles/chatbox.module.scss";
 import clsx from "clsx";
 import { FormattedPaper } from "../../api/general-interfaces";
-import ReactMarkdown from "react-markdown";
+import SafeAssistantMarkdown from "../SafeAssistantMarkdown";
 import type {
     ChatMessage,
     FigureAnalysisRequest,
@@ -31,6 +31,7 @@ import {
     type PaperCitation,
 } from "../../lib/paper-citation";
 import { useSession } from "../../lib/use-session";
+import ResearchBot from "../ResearchBot";
 
 const SendIcon = () => (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -91,17 +92,7 @@ const Message = React.memo(function Message({
 
     return (
         <div className={styles.prose}>
-            <ReactMarkdown
-                components={{
-                    a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noreferrer">
-                            {children}
-                        </a>
-                    ),
-                }}
-            >
-                {content}
-            </ReactMarkdown>
+            <SafeAssistantMarkdown>{content}</SafeAssistantMarkdown>
         </div>
     );
 });
@@ -227,14 +218,10 @@ const UserTurn = ({
 const Messages = ({
     messages,
     loading,
-    copiedId,
-    onCopy,
     onLocate,
 }: {
     messages: ChatMessage[];
     loading: boolean;
-    copiedId: string | null;
-    onCopy: (id: string, text: string) => void;
     onLocate?: (citation: PaperCitation) => void;
 }) => {
     const messagesRef = useRef<HTMLDivElement>(null);
@@ -268,22 +255,13 @@ const Messages = ({
             {messages.map((msg: ChatMessage, index) => {
                 if (msg.sender === "ai") {
                     const parsed = parseCitedMessage(msg.message);
-                    const copyText = [
-                        ...parsed.citations.map(
-                            (citation) =>
-                                `${citation.sectionTitle}: ${citation.lines.join(" ")}`,
-                        ),
-                        parsed.question,
-                    ]
-                        .filter(Boolean)
-                        .join("\n\n");
                     return (
                         <article
                             key={msg.id}
                             className={clsx(styles.turn, styles.turnAssistant)}
                         >
                             <div className={styles.turnMeta}>
-                                <span className={styles.turnMark} aria-hidden="true" />
+                                <ResearchBot className={styles.turnBot} />
                                 Assistant
                             </div>
                             <div className={clsx(styles.message, styles.aiMessage)}>
@@ -310,20 +288,6 @@ const Messages = ({
                                         onContentUpdate={scrollToBottom}
                                     />
                                 ) : null}
-                                <button
-                                    type="button"
-                                    className={styles.copyButton}
-                                    onClick={() =>
-                                        onCopy(
-                                            String(msg.id),
-                                            copyText || msg.message,
-                                        )
-                                    }
-                                >
-                                    {copiedId === String(msg.id)
-                                        ? "Copied"
-                                        : "Copy"}
-                                </button>
                             </div>
                         </article>
                     );
@@ -371,7 +335,7 @@ const Messages = ({
             {loading && (
                 <article className={clsx(styles.turn, styles.turnAssistant)}>
                     <div className={styles.turnMeta}>
-                        <span className={styles.turnMark} aria-hidden="true" />
+                        <ResearchBot className={styles.turnBot} />
                         Assistant
                     </div>
                     <div
@@ -536,6 +500,7 @@ const Input = ({
     );
 };
 interface ChatboxProps {
+    researchContext?: string;
     wholePaper: FormattedPaper | null;
     allMessages: ChatMessage[];
     setAllMessages: React.Dispatch<SetStateAction<ChatMessage[]>>;
@@ -549,10 +514,14 @@ interface ChatboxProps {
     ) => void;
     pendingInsert?: PaperCitation | null;
     onPendingInsertHandled?: () => void;
+    pendingQuestion?: string | null;
+    onPendingQuestionHandled?: () => void;
+    hideComposer?: boolean;
     onLocateCitation?: (citation: PaperCitation) => void;
 }
 
 const Chatbox = ({
+    researchContext,
     wholePaper,
     allMessages,
     setAllMessages,
@@ -564,6 +533,9 @@ const Chatbox = ({
     onPendingAttachmentChange,
     pendingInsert = null,
     onPendingInsertHandled,
+    pendingQuestion = null,
+    onPendingQuestionHandled,
+    hideComposer = false,
     onLocateCitation,
 }: ChatboxProps) => {
     const { refresh } = useSession();
@@ -572,8 +544,8 @@ const Chatbox = ({
     const [composerError, setComposerError] = useState("");
     const [attachmentPreview, setAttachmentPreview] = useState("");
     const [citations, setCitations] = useState<PaperCitation[]>([]);
-    const [copiedId, setCopiedId] = useState<string | null>(null);
     const handledFigureRequest = useRef<string | null>(null);
+    const handledPendingQuestion = useRef<string | null>(null);
     const sentScreenshotUrls = useRef<string[]>([]);
     const prompts = useMemo(
         () => paperChatPrompts(wholePaper),
@@ -626,18 +598,6 @@ const Chatbox = ({
         return () => URL.revokeObjectURL(url);
     }, [pendingAttachment?.image]);
 
-    const handleCopy = useCallback(async (id: string, text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopiedId(id);
-            window.setTimeout(() => {
-                setCopiedId((current) => (current === id ? null : current));
-            }, 1600);
-        } catch {
-            setComposerError("The reply could not be copied.");
-        }
-    }, []);
-
     const sendTextMessage = async (
         messageText: string,
         displayMessage?: string,
@@ -669,6 +629,7 @@ const Chatbox = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userResponse: messageText,
+                    researchContext,
                     displayMessage: displayMessage || messageText,
                     database: wholePaper.source,
                     paperId: wholePaper.paperId,
@@ -859,6 +820,16 @@ const Chatbox = ({
     };
 
     useEffect(() => {
+        const nextQuestion = pendingQuestion?.trim();
+        if (!nextQuestion || loading || !wholePaper) return;
+        if (handledPendingQuestion.current === pendingQuestion) return;
+        handledPendingQuestion.current = pendingQuestion;
+        onPendingQuestionHandled?.();
+        if (!wholePaper.access.canSendToAI) return;
+        void sendTextMessage(nextQuestion);
+    }, [loading, onPendingQuestionHandled, pendingQuestion, wholePaper]);
+
+    useEffect(() => {
         if (
             !figureRequest ||
             loading ||
@@ -882,10 +853,15 @@ const Chatbox = ({
     const paperTitle = wholePaper?.title?.trim() || "This paper";
 
     return (
-        <div className={styles.chatpaperbox}>
+        <div
+            className={clsx(
+                styles.chatpaperbox,
+                hideComposer && styles.chatEmbedded,
+            )}
+        >
             <header className={styles.chatHeader}>
                 <div className={styles.chatIdentity}>
-                    <span className={styles.chatMark} aria-hidden="true" />
+                    <ResearchBot className={styles.chatBot} />
                     <div className={styles.chatHeading}>
                         <p className={styles.chatEyebrow}>Paper assistant</p>
                         <h2 className={styles.chatTitle} title={paperTitle}>
@@ -899,7 +875,10 @@ const Chatbox = ({
             </header>
             {isFreshChat ? (
                 <div className={styles.intro}>
-                    <p className={styles.introCopy}>{WELCOME_COPY}</p>
+                    <div className={styles.introHello}>
+                        <ResearchBot className={styles.introBot} />
+                        <p className={styles.introCopy}>{WELCOME_COPY}</p>
+                    </div>
                     <div className={styles.promptRail}>
                         {prompts.map((prompt) => (
                             <button
@@ -920,11 +899,10 @@ const Chatbox = ({
                 <Messages
                     messages={allMessages}
                     loading={loading}
-                    copiedId={copiedId}
-                    onCopy={handleCopy}
                     onLocate={onLocateCitation}
                 />
             )}
+            {hideComposer ? null : (
             <Input
                 input={inputMessage}
                 setInput={setInputMessage}
@@ -946,6 +924,7 @@ const Chatbox = ({
                 composerError={composerError}
                 canAttachImages={canAnalyzeFigures}
             />
+            )}
         </div>
     );
 };

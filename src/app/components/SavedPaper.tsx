@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useRef } from "react";
 import styles from "./styles/savedpaper.module.scss";
 import Link from "next/link";
 import clsx from "clsx";
@@ -18,6 +20,23 @@ export interface Paper {
     contentLabel?: "Abstract" | "Search snippet";
 }
 
+function prefersReducedMotion() {
+    return (
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+}
+
+function isModifiedClick(event: React.MouseEvent) {
+    return (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+    );
+}
+
 const SavedPaper = ({
     page,
     isLink,
@@ -27,6 +46,7 @@ const SavedPaper = ({
     isLink: boolean;
     deletePaper: (paper: Paper) => void;
 }) => {
+    const cardRef = useRef<HTMLElement>(null);
     const paperPath = buildPaperPath(page.database, page.paperId, page.idName);
     const openLabel =
         page.canSendToAI === false
@@ -40,8 +60,17 @@ const SavedPaper = ({
             : paperPath;
     const opensExternally = page.canSendToAI === false && Boolean(page.canonicalUrl);
 
+    /** Flash a quick fade/lift; never delay navigation. */
+    const flashExit = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        if (opensExternally || isModifiedClick(event) || prefersReducedMotion()) {
+            return;
+        }
+        cardRef.current?.classList.add(styles.exiting);
+    };
+
     return (
         <article
+            ref={cardRef}
             className={clsx(styles.card, {
                 [styles.springerCard]: page.database === "springer",
                 [styles.scholarCard]: page.database === "scholar",
@@ -68,7 +97,7 @@ const SavedPaper = ({
                 ) : null}
             </div>
             <h3 className={styles.title}>
-                <Link href={paperPath}>
+                <Link href={paperPath} onClick={flashExit}>
                     {typeof page.title === "string" ? page.title : "Untitled"}
                 </Link>
             </h3>
@@ -90,7 +119,11 @@ const SavedPaper = ({
                             {openLabel} <span aria-hidden="true">↗</span>
                         </a>
                     ) : (
-                        <Link className={styles.primaryAction} href={openHref}>
+                        <Link
+                            className={styles.primaryAction}
+                            href={openHref}
+                            onClick={flashExit}
+                        >
                             {openLabel} <span aria-hidden="true">→</span>
                         </Link>
                     )}

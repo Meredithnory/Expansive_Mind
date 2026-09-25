@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "./styles/navigationmenu.module.scss";
 import Link from "next/link";
+import { RESEARCH_PATH } from "../lib/research-mode";
 
 interface NavMenuProps {
     isLoggedIn: boolean;
@@ -20,6 +21,15 @@ const isActive = (pathname: string, href: string) => {
         );
     }
 
+    if (href === RESEARCH_PATH) {
+        return (
+            pathname === RESEARCH_PATH ||
+            pathname.startsWith(`${RESEARCH_PATH}/`) ||
+            pathname === "/searchpaper" ||
+            pathname.startsWith("/searchpaper/")
+        );
+    }
+
     return pathname === href || pathname.startsWith(`${href}/`);
 };
 
@@ -35,6 +45,16 @@ const NavigationMenu = ({
     const linkClass = (href: string) =>
         `${styles.link} ${isActive(pathname, href) ? styles.active : ""}`;
 
+    const researchLink = (
+        <Link
+            href={RESEARCH_PATH}
+            className={linkClass(RESEARCH_PATH)}
+            onClick={onNavigate}
+        >
+            Research
+        </Link>
+    );
+
     return (
         <nav
             id="main-navigation"
@@ -43,20 +63,7 @@ const NavigationMenu = ({
         >
             {isLoggedIn ? (
                 <>
-                    <Link
-                        href="/discover"
-                        className={linkClass("/discover")}
-                        onClick={onNavigate}
-                    >
-                        Discover
-                    </Link>
-                    <Link
-                        href="/searchpaper"
-                        className={linkClass("/searchpaper")}
-                        onClick={onNavigate}
-                    >
-                        Search
-                    </Link>
+                    {researchLink}
                     <Link
                         href="/savedpapers"
                         className={linkClass("/savedpapers")}
@@ -107,20 +114,7 @@ const NavigationMenu = ({
                 </>
             ) : (
                 <>
-                    <Link
-                        href="/discover"
-                        className={linkClass("/discover")}
-                        onClick={onNavigate}
-                    >
-                        Discover
-                    </Link>
-                    <Link
-                        href="/searchpaper"
-                        className={linkClass("/searchpaper")}
-                        onClick={onNavigate}
-                    >
-                        Search
-                    </Link>
+                    {researchLink}
                     <Link
                         href="/about"
                         className={linkClass("/about")}

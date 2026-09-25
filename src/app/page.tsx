@@ -4,6 +4,7 @@ import styles from "./home.module.scss";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "./lib/use-session";
+import { SITE_STATUS } from "./components/site-status";
 
 const features = [
     { label: "Discover", detail: "Synthesize evidence across papers" },
@@ -37,16 +38,29 @@ export default function Home() {
                     <source src="/dnabg.webm" type="video/webm" />
                 </video>
             ) : null}
+            <div className={styles.scrim} aria-hidden="true" />
             <div className={styles.hero}>
                 <p className={styles.eyebrow}>Evidence, made actionable</p>
                 <div className={styles.brand}>
-                    <h1>Expansive Mind</h1>
+                    <h1>
+                        Expansive Mind
+                        <span
+                            className={styles.beta}
+                            title={SITE_STATUS.srLabel}
+                        >
+                            <span aria-hidden="true">{SITE_STATUS.label}</span>
+                            <span className={styles.betaSr}>
+                                {SITE_STATUS.srLabel}
+                            </span>
+                        </span>
+                    </h1>
                     <Image
                         src="/brainlogo.svg"
                         alt=""
                         width={72}
                         height={72}
                         priority
+                        className={styles.brandLogo}
                     />
                 </div>
                 <p className={styles.tagline}>

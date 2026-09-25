@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "../../authMiddleware";
 import {
+    getCombinedSearchTotalCount,
+    type SourceFilter,
+} from "../utils";
+import {
     queriesMatch,
     suggestSearchQuery,
 } from "../spell-suggest";
 import { consumeRateLimit } from "../../../lib/rate-limit";
+
+const parseSourceFilter = (value: string | null): SourceFilter => {
+    if (
+        value === "nih" ||
+        value === "springer" ||
+        value === "scholar" ||
+        value === "europe-pmc" ||
+        value === "crossref"
+    ) {
+        return value;
+    }
+    return "all";
+};
 
 export const GET = withAuth(async (req: NextRequest) => {
     try {
@@ -26,6 +43,9 @@ export const GET = withAuth(async (req: NextRequest) => {
             );
         }
         const query = req.nextUrl.searchParams.get("q")?.trim();
+        const sourceFilter = parseSourceFilter(
+            req.nextUrl.searchParams.get("source"),
+        );
 
         if (!query || query.length > 300) {
             return NextResponse.json(
@@ -34,11 +54,7 @@ export const GET = withAuth(async (req: NextRequest) => {
             );
         }
 
-        // Suggestions should not make a second, unmetered AI request. NIH's
-        // spelling endpoint is sufficient for this optional UI affordance.
-        const suggestedQuery = await suggestSearchQuery(query, {
-            allowAi: false,
-        });
+        const suggestedQuery = await suggestSearchQuery(query);
 
         if (!suggestedQuery || queriesMatch(suggestedQuery, query)) {
             return NextResponse.json({
@@ -48,12 +64,15 @@ export const GET = withAuth(async (req: NextRequest) => {
             });
         }
 
+        const suggestedTotalCount = await getCombinedSearchTotalCount(
+            suggestedQuery,
+            sourceFilter,
+        );
+
         return NextResponse.json({
             originalQuery: query,
             suggestedQuery,
-            // Avoid a second full provider search for optional suggestion UI.
-            // The real search remains quota-checked when the user accepts it.
-            suggestedTotalCount: 0,
+            suggestedTotalCount,
         });
     } catch {
         console.error("Search suggestion request failed");

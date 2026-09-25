@@ -4,13 +4,6 @@ import { withAuth } from "../../authMiddleware";
 import { hasValidMutationOrigin } from "../../../lib/request-security";
 import SavedDiscovery from "../../../models/SavedDiscovery";
 import { generateShareSlug } from "../../../lib/share-slug";
-import {
-    SHARE_LOCKED_ERROR,
-    evaluateShareGate,
-    toLedgerExtractions,
-    toLedgerPapers,
-} from "../claim-ledger";
-import { parseOpportunityReport } from "../synthesize";
 
 export const POST = withAuth(async (request: NextRequest) => {
     try {
@@ -38,24 +31,6 @@ export const POST = withAuth(async (request: NextRequest) => {
             return NextResponse.json(
                 { error: "Discovery not found." },
                 { status: 404 },
-            );
-        }
-
-        const report = parseOpportunityReport(discovery.report);
-        const gate = evaluateShareGate(
-            report,
-            toLedgerPapers(discovery.papers),
-            toLedgerExtractions(discovery.extractions),
-        );
-        if (!gate.ok) {
-            return NextResponse.json(
-                {
-                    error: SHARE_LOCKED_ERROR,
-                    code: "CLAIM_LEDGER_INCOMPLETE",
-                    reason: gate.reason,
-                    incompleteCount: gate.incompleteCount,
-                },
-                { status: 400 },
             );
         }
 

@@ -3,8 +3,8 @@ import { Manrope } from "next/font/google";
 import "./globals.scss";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
+import AudienceTracker from "./components/AudienceTracker";
 import ScrollTheme from "./components/ScrollTheme";
-import SiteStatus from "./components/SiteStatus";
 import { SessionProvider } from "./lib/use-session";
 
 const manrope = Manrope({
@@ -42,7 +42,7 @@ export default function RootLayout({
             <body className="antialiased">
                 <SessionProvider>
                     <ScrollTheme />
-                    <SiteStatus />
+                    <AudienceTracker />
                     <NavBar />
                     <div className="main-content">{children}</div>
                     <Footer />

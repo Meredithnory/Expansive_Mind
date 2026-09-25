@@ -1,0 +1,284 @@
+.carousel {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.viewport {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-snap-type: none;
+    touch-action: pan-x;
+    /* Fade only in the side gutter so names are never mid-word chopped. */
+    mask-image: linear-gradient(
+        90deg,
+        transparent,
+        #000 28px,
+        #000 calc(100% - 28px),
+        transparent
+    );
+
+    &[data-paused="true"] {
+        scroll-snap-type: x proximity;
+    }
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.track {
+    display: flex;
+    gap: 10px;
+    width: max-content;
+    /* Side padding matches the fade gutter so text sits in the opaque band. */
+    padding: 3px 32px 4px;
+}
+
+.sourceCard {
+    appearance: none;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 11px;
+    width: 228px;
+    min-height: 56px;
+    padding: 8px 12px 8px 9px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 12px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(10, 177, 255, 0.045),
+            transparent 42%,
+            rgba(255, 0, 132, 0.03)
+        ),
+        rgba(11, 15, 22, 0.9);
+    color: rgba(215, 235, 255, 0.55);
+    font: inherit;
+    text-align: left;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    scroll-snap-align: center;
+    cursor: default;
+    opacity: 0.78;
+    transform: scale(0.985);
+    transition:
+        opacity 220ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 200ms ease,
+        background-color 200ms ease,
+        box-shadow 200ms ease;
+
+    &[data-active="true"] {
+        border-color: rgba(10, 177, 255, 0.32);
+        background:
+            linear-gradient(
+                135deg,
+                rgba(10, 177, 255, 0.09),
+                transparent 48%,
+                rgba(255, 0, 132, 0.05)
+            ),
+            rgba(12, 17, 25, 0.96);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 0 0 1px rgba(10, 177, 255, 0.1),
+            0 8px 20px rgba(0, 0, 0, 0.22);
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.28);
+        opacity: 1;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+    }
+}
+
+.logoFrame {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 38px;
+    overflow: hidden;
+    border: 1px solid rgba(215, 235, 255, 0.08);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.logoMark {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.logoWide,
+.logoWideLight {
+    width: 34px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.logoWideLight {
+    padding: 2px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.sourceCopy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+
+    strong {
+        color: rgba(236, 246, 255, 0.94);
+        font-size: 0.74rem;
+        font-weight: 650;
+        letter-spacing: 0.005em;
+        line-height: 1.25;
+        /* Keep full source names readable (e.g. NIH PubMed Central). */
+        white-space: normal;
+        overflow: visible;
+        text-wrap: balance;
+    }
+
+    small {
+        color: rgba(215, 235, 255, 0.42);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid rgba(215, 235, 255, 0.13);
+    border-radius: 50%;
+    background: rgba(10, 14, 20, 0.88);
+    color: rgba(215, 235, 255, 0.68);
+    font: inherit;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    backdrop-filter: blur(10px);
+    transition:
+        opacity 180ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+
+    .carousel:hover &,
+    .carousel:focus-within & {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.42);
+        color: #ff76b8;
+        transform: translateY(-50%) scale(1.06);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+    }
+}
+
+.arrowPrevious {
+    left: 2px;
+}
+
+.arrowNext {
+    right: 2px;
+}
+
+@media (max-width: 720px) {
+    .carousel {
+        width: 100%;
+    }
+
+    .arrow {
+        display: none;
+    }
+
+    .sourceCard {
+        width: min(78vw, 228px);
+        min-height: 54px;
+        padding: 8px 11px 8px 8px;
+        gap: 10px;
+    }
+
+    .sourceCopy {
+        strong {
+            font-size: 0.7rem;
+        }
+
+        small {
+            font-size: 0.58rem;
+        }
+    }
+
+    .viewport {
+        mask-image: linear-gradient(
+            90deg,
+            transparent,
+            #000 24px,
+            #000 calc(100% - 24px),
+            transparent
+        );
+    }
+
+    .track {
+        padding-inline: 28px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .viewport {
+        scroll-behavior: auto;
+    }
+
+    .sourceCard {
+        transition: none;
+    }
+}

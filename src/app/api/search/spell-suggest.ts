@@ -68,10 +68,17 @@ const getAiSpellSuggestion = async (query: string): Promise<string | null> => {
                 content: `You fix misspelled biomedical and academic research search queries.
 If the query is already correct, respond with exactly: OK
 If it is misspelled, respond with ONLY the corrected search phrase — no quotes, punctuation, or explanation.
-Preserve the user's intent. Fix typos, transposed letters, and missing spaces.
+Preserve the user's intent, word order, and question form. Fix typos, transposed letters, missing spaces, and missing apostrophes.
+Do not add topics, do not answer the question, and do not expand a correct abbreviation.
+Keep valid gene names, drug names, and jargon (CRISPR, CAR-T, GLP-1, p53) as written when they are already correct.
 Examples:
 - "stemm cells" -> stem cells
 - "machne lerning" -> machine learning
+- "type 2 diabtes" -> type 2 diabetes
+- "parkinsons desease" -> Parkinson's disease
+- "glp1 recptor agonism" -> GLP-1 receptor agonism
+- "car-t persistance solid tumers" -> CAR-T persistence solid tumors
+- "alzheimers senolytics" -> Alzheimer's senolytics
 - "crispr cas9" -> OK`,
             },
             {
@@ -90,7 +97,15 @@ Examples:
         return null;
     }
 
-    return suggestion.replace(/^["']|["']$/g, "").trim();
+    const cleaned = suggestion.replace(/^["']|["']$/g, "").trim();
+    if (!cleaned || cleaned.length > Math.max(query.length * 2, query.length + 40)) {
+        return null;
+    }
+    if (/^(the corrected|correction|did you mean)\b/i.test(cleaned)) {
+        return null;
+    }
+
+    return cleaned;
 };
 
 export async function getAutocompleteSuggestion(
@@ -101,7 +116,9 @@ export async function getAutocompleteSuggestion(
         return null;
     }
 
-    return getNihSpellSuggestion(trimmed).catch(() => null);
+    const nih = await getNihSpellSuggestion(trimmed).catch(() => null);
+    if (nih) return nih;
+    return getAiSpellSuggestion(trimmed).catch(() => null);
 }
 
 export async function suggestSearchQuery(
@@ -141,4 +158,18 @@ export async function suggestSearchQueryWithAi(
     query: string,
 ): Promise<string | null> {
     return getAiSpellSuggestion(query);
+}
+
+/** Prefer the model fix for full questions; fall back to NIH eSpell. */
+export async function suggestDiscoveryQuery(
+    query: string,
+): Promise<string | null> {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return null;
+
+    const [nih, ai] = await Promise.all([
+        getNihSpellSuggestion(trimmed).catch(() => null),
+        getAiSpellSuggestion(trimmed).catch(() => null),
+    ]);
+    return ai || nih;
 }

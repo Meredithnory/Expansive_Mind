@@ -66,7 +66,7 @@ const NavBar = () => {
     }
 
     return (
-        <header className={styles.navbarShell}>
+        <header className={styles.navbarShell} data-app-nav>
             {menuOpen && (
                 <button
                     type="button"

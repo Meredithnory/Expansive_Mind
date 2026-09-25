@@ -6,7 +6,7 @@ type SearchResult = {
     doi?: string;
     title: string;
     abstract?: unknown;
-    source?: "nih" | "nature" | "scholar";
+    source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
     access?: { canSendToAI?: boolean };
 };
 

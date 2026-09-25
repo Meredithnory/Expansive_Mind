@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
     find: vi.fn(),
     countDocuments: vi.fn(),
     create: vi.fn(),
+    findOneAndUpdate: vi.fn(),
     deleteOne: vi.fn(),
     loadCachedPaperBySource: vi.fn(),
 }));
@@ -26,11 +27,12 @@ vi.mock("../../models/PaperHighlight", () => ({
         find: mocks.find,
         countDocuments: mocks.countDocuments,
         create: mocks.create,
+        findOneAndUpdate: mocks.findOneAndUpdate,
         deleteOne: mocks.deleteOne,
     },
 }));
 
-import { DELETE, GET, POST } from "./route";
+import { DELETE, GET, PATCH, POST } from "./route";
 
 const paper = {
     access: {
@@ -104,6 +106,7 @@ describe("highlights API", () => {
                     endLine: 1,
                     lines: ["Sample size was 42."],
                 },
+                color: "pink",
             },
         ]);
     });
@@ -121,12 +124,49 @@ describe("highlights API", () => {
                     endLine: 1,
                     lines: ["Sample size was 42."],
                 },
+                color: "yellow",
             }),
         );
         const data = await response.json();
         expect(response.status).toBe(201);
         expect(data.highlight.id).toBe("hl-2");
-        expect(mocks.create).toHaveBeenCalled();
+        expect(mocks.create).toHaveBeenCalledWith(
+            expect.objectContaining({ color: "yellow" }),
+        );
+    });
+
+    it("updates a highlight color for the signed-in user", async () => {
+        mocks.findOneAndUpdate.mockReturnValue({
+            lean: () =>
+                Promise.resolve({
+                    _id: { toString: () => "64b0f0f0f0f0f0f0f0f0f0f0" },
+                    excerpt: "Sample size was 42.",
+                    citation: {
+                        sectionTitle: "Abstract",
+                        startLine: 1,
+                        endLine: 1,
+                        lines: ["Sample size was 42."],
+                    },
+                    color: "blue",
+                }),
+        });
+        const response = await PATCH(
+            requestWithUser({
+                highlightId: "64b0f0f0f0f0f0f0f0f0f0f0",
+                color: "blue",
+            }),
+        );
+        const data = await response.json();
+        expect(response.status).toBe(200);
+        expect(data.highlight.color).toBe("blue");
+        expect(mocks.findOneAndUpdate).toHaveBeenCalledWith(
+            {
+                _id: "64b0f0f0f0f0f0f0f0f0f0f0",
+                userID: { toString: expect.any(Function) },
+            },
+            { $set: { color: "blue" } },
+            { new: true },
+        );
     });
 
     it("does not persist highlights when the paper forbids stored content", async () => {

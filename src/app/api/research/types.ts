@@ -84,6 +84,9 @@ export interface SearchRow {
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
     access?: ContentAccessPolicy;
+    citationCount?: number;
+    citationSource?: "crossref" | "europepmc" | "scholar";
+    scholarCitesId?: string;
 }
 
 export interface ProducerCounts {

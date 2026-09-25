@@ -8,6 +8,7 @@ import { loadCachedPaperBySource } from "../paper/load-paper";
 import {
     MAX_HIGHLIGHTS_PER_PAPER,
     parseHighlightCitation,
+    parseHighlightColor,
     parseHighlightExcerpt,
     parseHighlightLookup,
     serializePaperHighlight,
@@ -117,6 +118,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     const lookup = parseHighlightLookup(data);
     const excerpt = parseHighlightExcerpt(data.excerpt);
     const citation = parseHighlightCitation(data.citation);
+    const color = parseHighlightColor(data.color);
     if (!lookup || !excerpt || !citation) {
         return NextResponse.json(
             { error: "A valid paper excerpt is required." },
@@ -153,6 +155,7 @@ export const POST = withAuth(async (request: NextRequest) => {
         ...query,
         excerpt,
         citation,
+        color,
     });
 
     return NextResponse.json(
@@ -161,6 +164,81 @@ export const POST = withAuth(async (request: NextRequest) => {
             status: 201,
             headers: { "Cache-Control": "private, no-store" },
         },
+    );
+});
+
+export const PATCH = withAuth(async (request: NextRequest) => {
+    if (!hasValidMutationOrigin(request)) {
+        return NextResponse.json(
+            { error: "Invalid origin." },
+            { status: 403 },
+        );
+    }
+
+    const rateLimit = await consumeRateLimit({
+        scope: "highlights-write",
+        identity: request.user._id.toString(),
+        limit: 30,
+        windowMs: 60_000,
+    });
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { error: "Too many highlight updates. Please try again shortly." },
+            {
+                status: 429,
+                headers: {
+                    "Retry-After": String(rateLimit.retryAfterSeconds),
+                },
+            },
+        );
+    }
+
+    const data = await request.json();
+    const highlightId =
+        typeof data.highlightId === "string" ? data.highlightId.trim() : "";
+    if (!mongoose.Types.ObjectId.isValid(highlightId)) {
+        return NextResponse.json(
+            { error: "A valid highlight is required." },
+            { status: 400 },
+        );
+    }
+    if (
+        data.color === undefined ||
+        typeof data.color !== "string" ||
+        !["pink", "blue", "yellow"].includes(data.color)
+    ) {
+        return NextResponse.json(
+            { error: "A valid highlight color is required." },
+            { status: 400 },
+        );
+    }
+    const color = parseHighlightColor(data.color);
+
+    const updated = await PaperHighlight.findOneAndUpdate(
+        {
+            _id: highlightId,
+            userID: request.user._id,
+        },
+        { $set: { color } },
+        { new: true },
+    ).lean();
+
+    if (!updated) {
+        return NextResponse.json(
+            { error: "Highlight not found." },
+            { status: 404 },
+        );
+    }
+
+    return NextResponse.json(
+        {
+            highlight: serializePaperHighlight(
+                updated as unknown as Parameters<
+                    typeof serializePaperHighlight
+                >[0],
+            ),
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
     );
 });
 

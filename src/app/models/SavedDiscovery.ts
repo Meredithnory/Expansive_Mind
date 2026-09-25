@@ -19,6 +19,13 @@ const discoverPaperSchema = new Schema(
         sourceUrl: { type: String, default: "" },
         href: { type: String, required: true },
         doi: { type: String },
+        indexedBy: { type: [String], default: undefined },
+        citationCount: { type: Number, min: 0 },
+        citationSource: {
+            type: String,
+            enum: ["crossref", "europepmc", "scholar"],
+        },
+        scholarCitesId: { type: String },
         licenseUrl: { type: String },
     },
     {
@@ -52,6 +59,77 @@ const paperExtractionSchema = new Schema(
             default: "other",
         },
         supportingExcerpt: { type: String, maxlength: 800 },
+        population: { type: String, maxlength: 400 },
+        disease: { type: String, maxlength: 400 },
+        outcome: { type: String, maxlength: 400 },
+        timeHorizon: { type: String, maxlength: 200 },
+        studyDesign: {
+            type: String,
+            enum: [
+                "evidence-synthesis",
+                "rct",
+                "observational",
+                "preclinical-experimental",
+                "animal",
+                "computational",
+                "other",
+            ],
+        },
+        includedStudyDesign: { type: String, maxlength: 80 },
+        populationMatch: {
+            type: String,
+            enum: ["direct", "indirect", "unknown"],
+        },
+        claims: {
+            type: [
+                new Schema(
+                    {
+                        claimId: { type: String, required: true, maxlength: 220 },
+                        claimText: { type: String, required: true, maxlength: 600 },
+                        claimKind: {
+                            type: String,
+                            required: true,
+                            enum: ["finding", "synthesis", "hypothesis"],
+                        },
+                        paperId: { type: String, required: true, maxlength: 200 },
+                        sourceAccess: {
+                            type: String,
+                            required: true,
+                            enum: ["full_text", "excerpt", "abstract", "metadata"],
+                        },
+                        passageLocator: { type: String, maxlength: 240 },
+                        passageText: { type: String, maxlength: 800 },
+                        supportRelation: {
+                            type: String,
+                            required: true,
+                            enum: [
+                                "supports",
+                                "partial",
+                                "contradicts",
+                                "indirect",
+                                "unverified",
+                            ],
+                        },
+                        populationMatch: {
+                            type: String,
+                            required: true,
+                            enum: ["direct", "indirect", "unknown"],
+                        },
+                        verificationStatus: {
+                            type: String,
+                            required: true,
+                            enum: [
+                                "not_checked",
+                                "machine_checked",
+                                "reviewer_checked",
+                            ],
+                        },
+                    },
+                    { _id: false, strict: "throw" },
+                ),
+            ],
+            default: undefined,
+        },
     },
     {
         _id: false,
@@ -105,6 +183,14 @@ const savedDiscoverySchema = new Schema(
             correctedQuery: { type: String },
             subQueriesUsed: { type: [String] },
             extractionFailureCount: { type: Number, min: 0 },
+            additionalIndexes: { type: [new Schema({
+                name: String,
+                status: { type: String, enum: ["ok", "partial", "unavailable"] },
+                metadataCount: Number,
+                candidateCount: Number,
+                eligibleCount: Number,
+                note: String,
+            }, { _id: false, strict: "throw" })], default: undefined },
         },
     },
     {

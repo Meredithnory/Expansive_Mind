@@ -9,10 +9,9 @@ import type {
 } from "../api/discover/report-types";
 import { parseJsonFromLlm } from "../api/discover/parse-llm-json";
 import { parseStoredPaperExtractions } from "./evidence-type";
+import { parseFounderReport } from "./founder-report";
 
 export const GUEST_DISCOVERY_STORAGE_KEY = "guest-discovery-last-result";
-export const GUEST_UPGRADE_PROMPTED_KEY = "guest-discovery-upgrade-prompted";
-export const GUEST_UPGRADE_VIEW_MS = 5_000;
 
 const REPORT_CONFIDENCES = new Set<ReportConfidence>([
     "established",
@@ -75,6 +74,9 @@ function parseGap(value: unknown): ReportGap | null {
         whyItMatters: asTrimmedString(gap.whyItMatters),
         citations: asIndexList(gap.citations),
         confidence: asConfidence(gap.confidence),
+        ...(asTrimmedString(gap.scopeNote)
+            ? { scopeNote: asTrimmedString(gap.scopeNote) }
+            : {}),
     };
 }
 
@@ -177,6 +179,7 @@ export function parseGuestOpportunityReport(
     }
 
     return {
+        ...(parseFounderReport(raw.founder) ? { founder: parseFounderReport(raw.founder) } : {}),
         sections: {
             stateOfScience,
             gaps,
@@ -248,17 +251,11 @@ export function writeGuestDiscoveryResult(result: GuestDiscoveryResult) {
     }
 }
 
-export function shouldPromptGuestUpgrade({
-    elapsedMs,
-    analysisWasBelowFold,
-    analysisIsVisible,
-    viewDelayMs = GUEST_UPGRADE_VIEW_MS,
-}: {
-    elapsedMs: number;
-    analysisWasBelowFold: boolean;
-    analysisIsVisible: boolean;
-    viewDelayMs?: number;
-}) {
-    if (elapsedMs >= viewDelayMs) return true;
-    return analysisWasBelowFold && analysisIsVisible;
+export function clearGuestDiscoveryResult() {
+    if (typeof window === "undefined") return;
+    try {
+        window.sessionStorage.removeItem(GUEST_DISCOVERY_STORAGE_KEY);
+    } catch {
+        // Ignore private-mode failures.
+    }
 }

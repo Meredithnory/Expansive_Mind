@@ -1,0 +1,288 @@
+@use "../variables" as *;
+
+.trigger {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.025);
+    color: rgba(215, 235, 255, 0.68);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 650;
+    cursor: pointer;
+
+    > span:last-child {
+        color: rgba(215, 235, 255, 0.38);
+        font-size: 0.62rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.38);
+        color: #fff;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $highlight-blue;
+        outline-offset: 2px;
+    }
+}
+
+.triggerPlay {
+    display: grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: rgba(255, 0, 132, 0.14);
+    color: #ff76b8;
+    font-size: 7px;
+}
+
+.coachmark {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    width: min(360px, calc(100vw - 32px));
+    padding: 12px;
+    border: 1px solid rgba(215, 235, 255, 0.13);
+    border-radius: 18px;
+    background: rgba(8, 8, 11, 0.98);
+    color: #d7ebff;
+    animation: coachmark-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+
+    h2 {
+        margin: 4px 6px 5px;
+        font-size: 1rem;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+    }
+}
+
+.visual {
+    overflow: hidden;
+    height: 120px;
+    border: 1px solid rgba(215, 235, 255, 0.08);
+    border-radius: 12px;
+    background: #050507;
+
+    svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.progress {
+    display: flex;
+    gap: 5px;
+    margin: 10px 6px 4px;
+
+    button {
+        width: 18px;
+        height: 3px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(215, 235, 255, 0.16);
+        cursor: pointer;
+        transition:
+            width 160ms ease,
+            background-color 160ms ease;
+    }
+
+    .progressActive {
+        width: 34px;
+        background: $main-pink;
+    }
+}
+
+.eyebrow {
+    margin: 6px 6px 0;
+    color: #ff76b8;
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.body {
+    min-height: 40px;
+    margin: 0 6px 12px;
+    color: rgba(215, 235, 255, 0.62);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 4px 2px;
+}
+
+.skip,
+.next {
+    min-height: 34px;
+    padding: 7px 12px;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.skip {
+    border: 0;
+    background: transparent;
+    color: rgba(215, 235, 255, 0.48);
+}
+
+.next {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(255, 0, 132, 0.5);
+    background: rgba(255, 0, 132, 0.14);
+    color: #ffb3d6;
+}
+
+.orbit,
+.orbitInner,
+.paperBack,
+.paperFront,
+.report {
+    fill: none;
+    stroke: rgba(215, 235, 255, 0.15);
+    stroke-width: 1.5;
+}
+
+.orbit {
+    stroke-dasharray: 4 5;
+    animation: orbit-spin 18s linear infinite;
+    transform-origin: 130px 60px;
+}
+
+.orbitInner {
+    stroke: rgba(255, 0, 132, 0.28);
+}
+
+.nodePink,
+.chartPoint {
+    fill: #ff1682;
+}
+
+.nodeBlue,
+.citationDot {
+    fill: #0ab1ff;
+}
+
+.nodeViolet {
+    fill: #a78bfa;
+}
+
+.lens,
+.paperLine,
+.scanLine,
+.chartAxis,
+.chartLine {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lens {
+    stroke: #ff76b8;
+    stroke-width: 4;
+}
+
+.paperBack {
+    fill: rgba(215, 235, 255, 0.025);
+}
+
+.paperFront,
+.report {
+    fill: rgba(10, 177, 255, 0.04);
+    stroke: rgba(10, 177, 255, 0.28);
+}
+
+.paperLine,
+.chartAxis {
+    stroke: rgba(215, 235, 255, 0.28);
+    stroke-width: 3;
+}
+
+.scanLine {
+    stroke: #ff1682;
+    stroke-width: 2;
+    animation: scan-paper 1.8s ease-in-out infinite;
+}
+
+.chartLine {
+    stroke: #ff1682;
+    stroke-width: 3;
+}
+
+.reportLine {
+    fill: rgba(215, 235, 255, 0.2);
+}
+
+@keyframes coachmark-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes orbit-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes scan-paper {
+    0%,
+    100% {
+        transform: translateY(-20px);
+        opacity: 0.35;
+    }
+
+    50% {
+        transform: translateY(10px);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 720px) {
+    .coachmark {
+        right: 10px;
+        bottom: calc(84px + env(safe-area-inset-bottom));
+        width: calc(100vw - 20px);
+    }
+
+    .visual {
+        height: 108px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coachmark,
+    .orbit,
+    .scanLine {
+        animation: none;
+    }
+}

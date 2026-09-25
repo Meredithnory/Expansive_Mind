@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mergeResultsByTier } from "./utils";
+import {
+    mergeResultsByTier,
+    searchEuropePmcPapers,
+    searchCrossrefPapers,
+} from "./utils";
 import { rankSearchResults } from "./semantic-rank";
 import { searchHomed } from "../research/registry";
 import type { SourceDatabase } from "../../lib/paper-sources";
+import { attachPaperImpact } from "../../lib/paper-impact-lookup";
 import { withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import {
@@ -18,7 +23,7 @@ import {
 import { isAdminUser } from "../../lib/admin";
 import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
-type SourceFilter = "all" | "nih" | "springer" | "scholar";
+type SourceFilter = "all" | "nih" | "springer" | "scholar" | "europe-pmc" | "crossref";
 
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
@@ -32,9 +37,62 @@ async function runSearch(
     sourceFilter: string,
     options?: { lightweight?: boolean; usageContext?: UsageContext },
 ) {
+    const lightweight = options?.lightweight ?? false;
+
+    // Explicit index sources from the research UX branch.
+    if (sourceFilter === "europe-pmc") {
+        const europe = await searchEuropePmcPapers(searchValue, page);
+        const europeResults = europe.results.filter(
+            (result: (typeof europe.results)[number]): result is NonNullable<
+                (typeof europe.results)[number]
+            > => result != null,
+        );
+        const results = lightweight
+            ? europeResults
+            : await rankSearchResults(
+                  searchValue,
+                  europeResults,
+                  options?.usageContext,
+              );
+        const withImpact = lightweight
+            ? results
+            : await attachPaperImpact(results);
+        return {
+            results: withImpact,
+            totalCount: europe.totalCount,
+            totalPages: europe.totalPages,
+            warnings: [] as string[],
+            callCount: 1,
+        };
+    }
+    if (sourceFilter === "crossref") {
+        const crossref = await searchCrossrefPapers(searchValue, page);
+        const crossrefResults = crossref.results.filter(
+            (result: (typeof crossref.results)[number]): result is NonNullable<
+                (typeof crossref.results)[number]
+            > => result != null,
+        );
+        const results = lightweight
+            ? crossrefResults
+            : await rankSearchResults(
+                  searchValue,
+                  crossrefResults,
+                  options?.usageContext,
+              );
+        const withImpact = lightweight
+            ? results
+            : await attachPaperImpact(results);
+        return {
+            results: withImpact,
+            totalCount: crossref.totalCount,
+            totalPages: crossref.totalPages,
+            warnings: [] as string[],
+            callCount: 1,
+        };
+    }
+
     const { includeNih, includeSpringer, includeScholar } =
         getSourceFlags(sourceFilter);
-    const lightweight = options?.lightweight ?? false;
     const databases: SourceDatabase[] = [
         ...(includeNih ? (["nih"] as const) : []),
         ...(includeSpringer ? (["springer"] as const) : []),
@@ -48,7 +106,34 @@ async function runSearch(
         hydrate: !lightweight,
     });
 
-    const groups = found.byDatabase.map((group) => group.hits);
+    let groups = found.byDatabase.map((group) => group.hits);
+    let totalCount = found.totalCount;
+    let totalPages = found.totalPages;
+    let warnings = found.warnings;
+    let callCount = found.callCount;
+
+    // On "all", also fold Europe PMC + Crossref index hits into the workspace.
+    if (sourceFilter === "all") {
+        const [europe, crossref] = await Promise.all([
+            searchEuropePmcPapers(searchValue, page),
+            searchCrossrefPapers(searchValue, page),
+        ]);
+        const europeResults = europe.results.filter(
+            (result: (typeof europe.results)[number]): result is NonNullable<
+                (typeof europe.results)[number]
+            > => result != null,
+        );
+        const crossrefResults = crossref.results.filter(
+            (result: (typeof crossref.results)[number]): result is NonNullable<
+                (typeof crossref.results)[number]
+            > => result != null,
+        );
+        groups = [...groups, europeResults, crossrefResults];
+        totalCount += europe.totalCount + crossref.totalCount;
+        totalPages = Math.max(totalPages, europe.totalPages, crossref.totalPages);
+        callCount += 2;
+    }
+
     const mergedResults =
         groups.length > 1 ? mergeResultsByTier(...groups) : groups[0] || [];
     const paperResults = lightweight
@@ -58,13 +143,16 @@ async function runSearch(
               mergedResults,
               options?.usageContext,
           );
+    const withImpact = lightweight
+        ? paperResults
+        : await attachPaperImpact(paperResults);
 
     return {
-        results: paperResults,
-        totalCount: found.totalCount,
-        totalPages: found.totalPages,
-        warnings: found.warnings,
-        callCount: found.callCount,
+        results: withImpact,
+        totalCount,
+        totalPages,
+        warnings,
+        callCount,
     };
 }
 
@@ -101,7 +189,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         }
 
         if (
-            !["all", "nih", "springer", "scholar"].includes(sourceFilter) ||
+            !["all", "nih", "springer", "scholar", "europe-pmc", "crossref"].includes(sourceFilter) ||
             page < 0 ||
             page > 100
         ) {

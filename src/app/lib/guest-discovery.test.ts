@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-    GUEST_UPGRADE_VIEW_MS,
     parseGuestDiscoveryResult,
     parseGuestOpportunityReport,
-    shouldPromptGuestUpgrade,
 } from "./guest-discovery";
 
 const validReport = {
@@ -150,41 +148,5 @@ describe("parseGuestOpportunityReport", () => {
         const parsed = parseGuestOpportunityReport(truncated);
         expect(parsed?.sections.stateOfScience).toContain("bone marrow");
         expect(parsed?.sections.gaps[0].title).toContain("integrated artificial");
-    });
-});
-
-describe("shouldPromptGuestUpgrade", () => {
-    it("waits until the guest has had time to read", () => {
-        expect(
-            shouldPromptGuestUpgrade({
-                elapsedMs: 1_000,
-                analysisWasBelowFold: false,
-                analysisIsVisible: true,
-            }),
-        ).toBe(false);
-        expect(
-            shouldPromptGuestUpgrade({
-                elapsedMs: GUEST_UPGRADE_VIEW_MS,
-                analysisWasBelowFold: false,
-                analysisIsVisible: true,
-            }),
-        ).toBe(true);
-    });
-
-    it("prompts once they scroll the analysis into view from below the fold", () => {
-        expect(
-            shouldPromptGuestUpgrade({
-                elapsedMs: 800,
-                analysisWasBelowFold: true,
-                analysisIsVisible: true,
-            }),
-        ).toBe(true);
-        expect(
-            shouldPromptGuestUpgrade({
-                elapsedMs: 800,
-                analysisWasBelowFold: true,
-                analysisIsVisible: false,
-            }),
-        ).toBe(false);
     });
 });

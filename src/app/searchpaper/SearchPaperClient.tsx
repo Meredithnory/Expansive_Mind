@@ -11,7 +11,7 @@ import SearchBar from "../components/SearchBar";
 import { useRouter } from "next/navigation";
 import styles from "./searchpaper.module.scss";
 import SearchResults from "../components/SearchResults";
-import { LoadingOverlay } from "../components/Loading";
+import { SearchLoadingOverlay } from "../components/Loading";
 import { searchQueriesMatch } from "../lib/search-suggest";
 import { useInlineSearchSuggestion } from "../lib/use-inline-search-suggestion";
 import Image from "next/image";
@@ -22,7 +22,14 @@ import Link from "next/link";
 import posthog from "posthog-js";
 import DatabaseMind from "../components/DatabaseMind";
 
-export type SourceFilter = "all" | "nih" | "springer" | "scholar";
+export type SourceFilter =
+    | "all"
+    | "nih"
+    | "springer"
+    | "scholar"
+    | "europe-pmc"
+    | "crossref";
+type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
 
 const SOURCE_FILTERS: {
     value: SourceFilter;
@@ -34,7 +41,7 @@ const SOURCE_FILTERS: {
         value: "all",
         label: "All sources",
         shortName: "All",
-        description: "NIH and Springer Nature open access",
+        description: "NIH, Springer, Scholar, Europe PMC, Crossref",
     },
     {
         value: "nih",
@@ -54,6 +61,18 @@ const SOURCE_FILTERS: {
         shortName: "Scholar",
         description: "Ranked by relevance",
     },
+    {
+        value: "europe-pmc",
+        label: "Europe PMC",
+        shortName: "Europe PMC",
+        description: "Discovery and PMC index",
+    },
+    {
+        value: "crossref",
+        label: "Crossref",
+        shortName: "Crossref",
+        description: "DOI metadata index",
+    },
 ];
 
 const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
@@ -61,7 +80,17 @@ const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
     nih: styles.filterOptionNih,
     springer: styles.filterOptionSpringer,
     scholar: styles.filterOptionScholar,
+    "europe-pmc": styles.filterOptionEuropePmc,
+    crossref: styles.filterOptionCrossref,
 };
+
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+    { value: "any", label: "Any time" },
+    { value: "this-year", label: "This year" },
+    { value: "2-years", label: "Last 2 years" },
+    { value: "5-years", label: "Last 5 years" },
+    { value: "10-years", label: "Last 10 years" },
+];
 
 interface SearchResult {
     sourceId: string;
@@ -71,36 +100,66 @@ interface SearchResult {
     date: string;
     abstract: string | string[] | null;
     matchTier?: "title" | "abstract" | "body";
-    source?: "nih" | "nature" | "scholar";
+    source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
+    pmcid?: string;
     sourceLabel?: string;
     sourceUrl?: string;
     contentLabel?: "Abstract" | "Search snippet";
     access?: ContentAccessPolicy;
+    citationCount?: number;
+    citationSource?: "crossref" | "europepmc" | "scholar";
+    scholarCitesId?: string;
+    clusterId?: string;
 }
 
 const parseSourceFilter = (value: string | null): SourceFilter => {
-    if (value === "nih" || value === "springer" || value === "scholar") {
+    if (
+        value === "nih" ||
+        value === "springer" ||
+        value === "scholar" ||
+        value === "europe-pmc" ||
+        value === "crossref"
+    ) {
         return value;
     }
     return "all";
+};
+
+const parseDateFilter = (value: string | null): DateFilter => {
+    if (
+        value === "this-year" ||
+        value === "2-years" ||
+        value === "5-years" ||
+        value === "10-years"
+    ) {
+        return value;
+    }
+    return "any";
 };
 
 type SearchPaperClientProps = {
     initialQuery: string;
     initialPage: string;
     initialSource: string;
-    landingIntro: ReactNode;
+    initialDate: string;
+    landingIntro?: ReactNode;
+    modeChrome?: ReactNode;
+    skipInitialScroll?: boolean;
 };
 
 const SearchPaperClient = ({
     initialQuery,
     initialPage,
     initialSource,
+    initialDate,
     landingIntro,
+    modeChrome,
+    skipInitialScroll = false,
 }: SearchPaperClientProps) => {
     const qParam = initialQuery || null;
     const pageParam = initialPage || null;
     const sourceParam = parseSourceFilter(initialSource);
+    const dateParam = parseDateFilter(initialDate);
     const router = useRouter();
     const { isLoggedIn, refresh } = useSession();
 
@@ -114,11 +173,18 @@ const SearchPaperClient = ({
     const [error, setError] = useState("");
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
+    const [filterSidebarStuck, setFilterSidebarStuck] = useState(false);
+    const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
+    const filterSidebarRef = useRef<HTMLElement>(null);
     const previousPageRef = useRef<number | null>(null);
+    const searchTransitionStartedAtRef = useRef<number | null>(null);
+    const searchTransitionTimerRef =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const activePage = Math.max(Number.parseInt(pageParam || "0", 10) || 0, 0);
     const activeSource = sourceParam;
+    const activeDate = dateParam;
     const committedQuery = (pastSearchValue || qParam || "").trim();
     const hasCommittedSearch = Boolean(committedQuery);
     const displayError = error
@@ -143,30 +209,73 @@ const SearchPaperClient = ({
     };
 
     useLayoutEffect(() => {
+        if (skipInitialScroll) return;
         pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
         window.scrollTo({ top: 0, behavior: "auto" });
-    }, []);
+    }, [skipInitialScroll]);
 
     const pushSearchParams = (
         query: string,
         page: number,
         source: SourceFilter = activeSource,
+        date: DateFilter = activeDate,
     ) => {
         const params = new URLSearchParams({
             q: query,
             page: String(page),
         });
 
+        // Preserve combined-page mode so refresh and share links stay on Search.
+        if (
+            skipInitialScroll ||
+            modeChrome ||
+            new URLSearchParams(window.location.search).get("mode") === "search"
+        ) {
+            params.set("mode", "search");
+        }
+
         if (source !== "all") {
             params.set("source", source);
+        }
+        if (date !== "any") {
+            params.set("date", date);
         }
 
         router.push(`${window.location.pathname}?${params}`, { scroll: false });
     };
 
+    const beginSearchTransition = useCallback(() => {
+        if (searchTransitionTimerRef.current) {
+            clearTimeout(searchTransitionTimerRef.current);
+        }
+        searchTransitionStartedAtRef.current = performance.now();
+        setSearchTransitionActive(true);
+    }, []);
+
+    const finishSearchTransition = useCallback(() => {
+        const startedAt = searchTransitionStartedAtRef.current;
+        if (startedAt === null) return;
+        const remaining = Math.max(0, 850 - (performance.now() - startedAt));
+        searchTransitionTimerRef.current = setTimeout(() => {
+            setSearchTransitionActive(false);
+            searchTransitionStartedAtRef.current = null;
+            searchTransitionTimerRef.current = null;
+        }, remaining);
+    }, []);
+
+    useEffect(
+        () => () => {
+            if (searchTransitionTimerRef.current) {
+                clearTimeout(searchTransitionTimerRef.current);
+            }
+        },
+        [],
+    );
+
     const handleSubmit = (queryOverride?: string): void => {
         const query = (queryOverride ?? searchValue).trim();
         if (!query) return;
+        beginSearchTransition();
 
         if (
             queryOverride &&
@@ -198,6 +307,9 @@ const SearchPaperClient = ({
             if (source !== "all") {
                 params.set("source", source);
             }
+            if (activeDate !== "any") {
+                params.set("date", activeDate);
+            }
             const next = params.toString();
             router.push(
                 next
@@ -205,13 +317,25 @@ const SearchPaperClient = ({
                     : window.location.pathname,
                 { scroll: false },
             );
-            window.setTimeout(() => {
-                document.getElementById("paper-search-input")?.focus();
-            }, 0);
+            if (source !== "all") {
+                window.setTimeout(() => {
+                    document.getElementById("paper-search-input")?.focus();
+                }, 0);
+            }
             return;
         }
 
         pushSearchParams(query, 0, source);
+        if (window.matchMedia("(max-width: 720px)").matches) {
+            setFiltersExpanded(false);
+        }
+        scrollToTop();
+    };
+
+    const handleDateChange = (date: DateFilter) => {
+        const query = (pastSearchValue || qParam || searchValue).trim();
+        if (!query) return;
+        pushSearchParams(query, 0, activeSource, date);
         if (window.matchMedia("(max-width: 720px)").matches) {
             setFiltersExpanded(false);
         }
@@ -223,7 +347,20 @@ const SearchPaperClient = ({
             query: string,
             page: number = 0,
             source: SourceFilter = "all",
+            date: DateFilter = "any",
         ): Promise<void> => {
+            const searchStartedAt = performance.now();
+            const completeVisualTransition = async () => {
+                const remaining = Math.max(
+                    0,
+                    850 - (performance.now() - searchStartedAt),
+                );
+                if (remaining > 0) {
+                    await new Promise((resolve) =>
+                        window.setTimeout(resolve, remaining),
+                    );
+                }
+            };
             setLoading(true);
             setError("");
             const params = new URLSearchParams({
@@ -234,6 +371,9 @@ const SearchPaperClient = ({
             if (source !== "all") {
                 params.set("source", source);
             }
+            if (date !== "any") {
+                params.set("date", date);
+            }
 
             const res = await fetch(`/api/search?${params}`);
             const data = await res.json();
@@ -243,12 +383,14 @@ const SearchPaperClient = ({
                 setSearchResults([]);
                 setError(data.error || "Search is temporarily unavailable.");
                 setQuotaRemaining(data.quota?.remaining ?? null);
+                await completeVisualTransition();
                 setLoading(false);
                 posthog.capture("search_blocked", {
                     status: res.status,
                     code: data.code,
                     source,
                 });
+                finishSearchTransition();
                 return;
             }
 
@@ -257,7 +399,9 @@ const SearchPaperClient = ({
             setTotalPages(data.totalPages);
             setCurrentPage(page);
             setQuotaRemaining(data.quota?.remaining ?? null);
+            await completeVisualTransition();
             setLoading(false);
+            finishSearchTransition();
             posthog.capture("search_completed", {
                 source,
                 result_count: Array.isArray(data.results)
@@ -266,13 +410,13 @@ const SearchPaperClient = ({
                 cache_hit: Boolean(data.cacheHit),
             });
         },
-        [refresh],
+        [finishSearchTransition, refresh],
     );
 
     useEffect(() => {
         setSearchValue(qParam ?? "");
         if (qParam) {
-            doSearch(qParam, activePage, activeSource);
+            doSearch(qParam, activePage, activeSource, activeDate);
         } else {
             setSearchResults([]);
             setPastSearchValue("");
@@ -280,7 +424,7 @@ const SearchPaperClient = ({
             setCurrentPage(0);
             setLoading(false);
         }
-    }, [qParam, activePage, activeSource, doSearch]);
+    }, [qParam, activePage, activeSource, activeDate, doSearch]);
 
     useEffect(() => {
         if (loading || !qParam) return;
@@ -297,25 +441,81 @@ const SearchPaperClient = ({
 
     useEffect(() => {
         const scrollContainer = pageRef.current;
-        if (!scrollContainer) return;
+        const mainContent = document.querySelector(".main-content");
+        if (!scrollContainer && !(mainContent instanceof HTMLElement)) return;
 
         const handleScroll = () => {
+            const pageTop = scrollContainer?.scrollTop ?? 0;
+            const mainTop =
+                mainContent instanceof HTMLElement ? mainContent.scrollTop : 0;
             const scrolled =
-                scrollContainer.scrollTop > 240 || window.scrollY > 240;
+                pageTop > 240 || mainTop > 240 || window.scrollY > 240;
             setShowScrollTop(scrolled);
         };
 
         handleScroll();
-        scrollContainer.addEventListener("scroll", handleScroll, {
+        scrollContainer?.addEventListener("scroll", handleScroll, {
             passive: true,
         });
+        if (mainContent instanceof HTMLElement) {
+            mainContent.addEventListener("scroll", handleScroll, {
+                passive: true,
+            });
+        }
         window.addEventListener("scroll", handleScroll, { passive: true });
 
         return () => {
-            scrollContainer.removeEventListener("scroll", handleScroll);
+            scrollContainer?.removeEventListener("scroll", handleScroll);
+            if (mainContent instanceof HTMLElement) {
+                mainContent.removeEventListener("scroll", handleScroll);
+            }
             window.removeEventListener("scroll", handleScroll);
         };
     }, [loading]);
+
+    useEffect(() => {
+        if (!hasCommittedSearch) {
+            setFilterSidebarStuck(false);
+            return;
+        }
+        if (typeof window === "undefined") return;
+        if (window.matchMedia("(max-width: 900px)").matches) {
+            setFilterSidebarStuck(false);
+            return;
+        }
+
+        const sidebar = filterSidebarRef.current;
+        const layout = sidebar?.parentElement;
+        if (!sidebar || !layout) return;
+
+        const probe = document.createElement("div");
+        probe.setAttribute("aria-hidden", "true");
+        probe.style.cssText =
+            "width:1px;height:1px;margin:0;padding:0;pointer-events:none;";
+        layout.insertBefore(probe, sidebar);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setFilterSidebarStuck(!entry.isIntersecting);
+            },
+            {
+                root:
+                    document.querySelector(".main-content") instanceof
+                    HTMLElement
+                        ? document.querySelector(".main-content")
+                        : null,
+                // Match sticky top so "stuck" fires when the card pins under the nav.
+                rootMargin: "-20px 0px 0px 0px",
+                threshold: [1],
+            },
+        );
+        observer.observe(probe);
+
+        return () => {
+            observer.disconnect();
+            probe.remove();
+        };
+    }, [hasCommittedSearch, loading]);
 
     const activeQuery = pastSearchValue;
     const initialLoading =
@@ -326,10 +526,18 @@ const SearchPaperClient = ({
             className={clsx(styles.page, {
                 [styles.pageLanding]: !hasCommittedSearch,
             })}
+            data-search-paper-page
+            data-search-landing={hasCommittedSearch ? undefined : "true"}
             data-page-scroll
             ref={pageRef}
         >
-            <LoadingOverlay visible={loading} label="Finding research papers…" />
+            {!hasCommittedSearch ? (
+                <div className={styles.landingAura} aria-hidden="true" />
+            ) : null}
+            <SearchLoadingOverlay
+                visible={loading || searchTransitionActive}
+                label="Scanning research databases…"
+            />
             {showScrollTop && (
                 <button
                     type="button"
@@ -351,13 +559,26 @@ const SearchPaperClient = ({
                     [styles.searchboxResults]: hasCommittedSearch,
                 })}
             >
-                <div
-                    className={clsx(styles.landingIntro, {
-                        [styles.landingIntroHidden]: hasCommittedSearch,
-                    })}
-                >
-                    {landingIntro}
-                </div>
+                {modeChrome ? (
+                    <div
+                        className={clsx(styles.modeChrome, {
+                            [styles.modeChromeResults]: hasCommittedSearch,
+                        })}
+                    >
+                        {modeChrome}
+                    </div>
+                ) : null}
+                {landingIntro ? (
+                    <div
+                        className={clsx(styles.landingIntro, {
+                            [styles.landingIntroHidden]: hasCommittedSearch,
+                        })}
+                    >
+                        {landingIntro}
+                    </div>
+                ) : !hasCommittedSearch ? (
+                    <h1 className={styles.srOnly}>Search papers</h1>
+                ) : null}
                 <SearchBar
                     searchValue={searchValue}
                     setSearchValue={handleSearchValueChange}
@@ -367,6 +588,7 @@ const SearchPaperClient = ({
                     onAcceptGhost={handleAcceptGhost}
                     inputId="paper-search-input"
                     accentSource={activeSource}
+                    searching={loading || searchTransitionActive}
                 />
                 <div
                     className={clsx(styles.databaseCatalog, {
@@ -377,20 +599,6 @@ const SearchPaperClient = ({
                         activeSource={activeSource}
                         onSelect={handleSourceChange}
                     />
-                    <ul className={styles.landingProof}>
-                        <li>
-                            <span className={styles.proofDot} data-tone="pink" />
-                            Free to explore
-                        </li>
-                        <li>
-                            <span className={styles.proofDot} data-tone="violet" />
-                            Chat with any paper
-                        </li>
-                        <li>
-                            <span className={styles.proofDot} data-tone="blue" />
-                            Understand it. Share it.
-                        </li>
-                    </ul>
                 </div>
                 <div
                     className={clsx(styles.searchLayout, {
@@ -398,16 +606,19 @@ const SearchPaperClient = ({
                     })}
                 >
                     <aside
+                        ref={filterSidebarRef}
                         className={clsx(styles.filterSidebar, {
                             [styles.filterSidebarHidden]: !hasCommittedSearch,
                             [styles.filterSidebarCollapsed]: !filtersExpanded,
+                            [styles.filterSidebarStuck]:
+                                filterSidebarStuck && hasCommittedSearch,
                         })}
                     >
                         <div className={styles.filterHeader}>
                             <div className={styles.filterHeaderTop}>
-                                <h2 className={styles.filterTitle}>Sources</h2>
+                                <h2 className={styles.filterTitle}>Filters</h2>
                                 <span className={styles.filterCountDesktop}>
-                                    {SOURCE_FILTERS.length}
+                                    2
                                 </span>
                                 <button
                                     type="button"
@@ -436,7 +647,7 @@ const SearchPaperClient = ({
                                         !filtersExpanded,
                                 })}
                             >
-                                Filter results by database
+                                Source and publication date
                             </p>
                         </div>
                         <div
@@ -495,6 +706,32 @@ const SearchPaperClient = ({
                                 );
                             })}
                         </div>
+                        <div className={styles.dateFilter}>
+                                <span className={styles.dateFilterTitle}>
+                                    Published
+                                </span>
+                                <div className={styles.dateOptions}>
+                                    {DATE_FILTERS.map((filter) => (
+                                        <button
+                                            key={filter.value}
+                                            type="button"
+                                            className={clsx(
+                                                styles.dateOption,
+                                                activeDate === filter.value &&
+                                                    styles.dateOptionActive,
+                                            )}
+                                            onClick={() =>
+                                                handleDateChange(filter.value)
+                                            }
+                                            aria-pressed={
+                                                activeDate === filter.value
+                                            }
+                                        >
+                                            {filter.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                     </aside>
 
                     {hasCommittedSearch && (
@@ -537,6 +774,18 @@ const SearchPaperClient = ({
                                         }
                                     </span>
                                 )}
+                                {activeDate !== "any" && (
+                                    <span className={styles.activeFilterLabel}>
+                                        {" "}
+                                        ·{" "}
+                                        {
+                                            DATE_FILTERS.find(
+                                                (filter) =>
+                                                    filter.value === activeDate,
+                                            )?.label
+                                        }
+                                    </span>
+                                )}
                                 {quotaRemaining !== null && (
                                     <span className={styles.activeFilterLabel}>
                                         {" "}
@@ -548,7 +797,7 @@ const SearchPaperClient = ({
                                         className={styles.synthesizeCta}
                                         href={`/discover?q=${encodeURIComponent(committedQuery)}`}
                                     >
-                                        Synthesize this topic
+                                        Discover this topic
                                     </Link>
                                 )}
                             </div>

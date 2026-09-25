@@ -8,14 +8,22 @@ import pageStyles from "./discover.module.scss";
 import styles from "./paper-preview-drawer.module.scss";
 import type { PaperExtraction } from "../api/discover/report-types";
 import {
-    evidenceTypeLabel,
     publicationYear,
 } from "../lib/evidence-type";
+import {
+    paperDesignLabel,
+    supportRelationLabel,
+} from "../lib/claim-evidence";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import { resolveScholarCitesId } from "../lib/citing-works";
+import PaperImpactBadge from "../components/PaperImpactBadge";
+import type { CitationSource } from "../lib/paper-impact";
 
 export type PreviewPaper = {
     index: number;
     database: "nih" | "springer" | "scholar";
+    paperId?: string;
+    idName?: string;
     title: string;
     authors: string[];
     date: string;
@@ -23,6 +31,9 @@ export type PreviewPaper = {
     sourceUrl: string;
     href: string;
     doi?: string;
+    citationCount?: number;
+    citationSource?: CitationSource;
+    scholarCitesId?: string;
 };
 
 type PaperPreviewDrawerProps = {
@@ -118,6 +129,7 @@ export default function PaperPreviewDrawer({
         publicationYear(paper.date) ||
         publicationYear(extraction?.publicationDate);
     const evidenceType = extraction?.evidenceType;
+    const designLabel = extraction ? paperDesignLabel(extraction) : "";
     const hasEvidence =
         Boolean(extraction?.supportingExcerpt) ||
         Boolean(extraction && extraction.keyFindings.length > 0) ||
@@ -148,6 +160,23 @@ export default function PaperPreviewDrawer({
                         >
                             {paper.sourceLabel}
                         </span>
+                        <PaperImpactBadge
+                            citationCount={paper.citationCount}
+                            citationSource={paper.citationSource}
+                            doi={paper.doi}
+                            scholarCitesId={resolveScholarCitesId({
+                                scholarCitesId: paper.scholarCitesId,
+                                database: paper.database,
+                                idName: paper.idName,
+                                paperId: paper.paperId,
+                            })}
+                            sourcePaper={{
+                                title: paper.title,
+                                doi: paper.doi,
+                                authors: paper.authors,
+                                year: paper.date,
+                            }}
+                        />
                         {year ? (
                             <span className={styles.yearChip}>{year}</span>
                         ) : null}
@@ -158,7 +187,17 @@ export default function PaperPreviewDrawer({
                                     evidenceBadgeClass(evidenceType),
                                 )}
                             >
-                                {evidenceTypeLabel(evidenceType)}
+                                {designLabel || "Other"}
+                            </span>
+                        ) : null}
+                        {extraction?.includedStudyDesign ? (
+                            <span className={pageStyles.evidenceBadge}>
+                                Includes {extraction.includedStudyDesign} studies
+                            </span>
+                        ) : null}
+                        {extraction?.populationMatch === "indirect" ? (
+                            <span className={pageStyles.evidenceBadge}>
+                                Indirect population
                             </span>
                         ) : null}
                     </div>
@@ -202,7 +241,37 @@ export default function PaperPreviewDrawer({
                             <p className={styles.evidenceKicker}>
                                 Evidence used in this report
                             </p>
-                            {extraction?.supportingExcerpt ? (
+                            {extraction?.claims && extraction.claims.length > 0 ? (
+                                <div className={styles.evidenceBlock}>
+                                    <h3>Claim passages</h3>
+                                    <ul>
+                                        {extraction.claims.map((claim) => (
+                                            <li key={claim.claimId}>
+                                                <p>{claim.claimText}</p>
+                                                <p>
+                                                    {supportRelationLabel(
+                                                        claim.supportRelation,
+                                                    )}
+                                                    {" · "}
+                                                    Population {claim.populationMatch}
+                                                    {" · "}
+                                                    {claim.verificationStatus ===
+                                                    "machine_checked"
+                                                        ? "Machine-checked. Not human review."
+                                                        : "Not checked against a passage."}
+                                                </p>
+                                                {claim.passageText ? (
+                                                    <blockquote className={styles.excerpt}>
+                                                        {claim.passageText}
+                                                    </blockquote>
+                                                ) : (
+                                                    <p>No source passage verified.</p>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : extraction?.supportingExcerpt ? (
                                 <blockquote className={styles.excerpt}>
                                     {extraction.supportingExcerpt}
                                 </blockquote>

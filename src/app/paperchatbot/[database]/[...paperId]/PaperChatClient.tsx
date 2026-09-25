@@ -24,6 +24,11 @@ import {
 } from "../../../lib/paper-sources";
 import type { PaperCitation } from "../../../lib/paper-citation";
 import type { PaperTool } from "../../../lib/region-capture";
+import {
+    consumeCiteFocusSource,
+    findCitedSourceInPaper,
+} from "../../../lib/cite-source-focus";
+import ResearchBot from "../../../components/ResearchBot";
 
 const ResponsiveChatPanel = dynamic(
     () => import("../../../components/paperchatbot/ResponsiveChatPanel"),
@@ -51,6 +56,10 @@ const BriefModal = dynamic(
     },
 );
 
+const SharePaperModal = dynamic(
+    () => import("../../../components/paperchatbot/SharePaperModal"),
+);
+
 const REDIRECT_DELAY_SECONDS = 15;
 
 const NOTICE_COPY: Record<RelatedResearchArticle["noticeType"], string> = {
@@ -62,9 +71,29 @@ const NOTICE_COPY: Record<RelatedResearchArticle["noticeType"], string> = {
         "This page is an expression of concern notice.",
 };
 
-const LeftArrowSVG = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" {...props}>
-        <path d="m0 13.453 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894L0 13.452Zm10.91 0 11.986 12.7 2.731-2.893-9.255-9.807 9.255-9.807-2.73-2.894-11.987 12.7Z" />
+const BackArrowIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        {...props}
+    >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+);
+
+const ShareIcon = () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+        <circle cx="6.5" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="7" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="17" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path
+            d="M8.4 11.1 14.5 8.1M8.4 12.9 14.5 15.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+        />
     </svg>
 );
 
@@ -75,6 +104,7 @@ type PaperChatClientProps = {
     focusExcerpt: string | null;
     locateMethod: boolean;
     requestedIdName: string | null;
+    citeFocus: boolean;
 };
 
 const PaperChatClient = ({
@@ -84,6 +114,7 @@ const PaperChatClient = ({
     focusExcerpt,
     locateMethod,
     requestedIdName,
+    citeFocus,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -116,6 +147,7 @@ const PaperChatClient = ({
         null,
     );
     const [briefOpen, setBriefOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
 
     const fetchPaperInfo = useCallback(async () => {
         setLoading(true);
@@ -174,6 +206,31 @@ const PaperChatClient = ({
         }
     }, [database, paperId, fetchPaperInfo]);
 
+    useEffect(() => {
+        if (!citeFocus || !researchPaper || loading) return;
+
+        const source = consumeCiteFocusSource();
+        if (source) {
+            const citation = findCitedSourceInPaper(researchPaper, source);
+            if (citation && citation.lines.join(" ").trim()) {
+                setFocusCitation(citation);
+                setFocusRequestId((current) => current + 1);
+            }
+        }
+
+        // Drop citeFocus from the URL so a refresh does not keep re-applying.
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("citeFocus")) {
+                url.searchParams.delete("citeFocus");
+                const next = `${url.pathname}${url.search}${url.hash}`;
+                router.replace(next, { scroll: false });
+            }
+        } catch {
+            // Ignore malformed URL edge cases.
+        }
+    }, [citeFocus, researchPaper, loading, router]);
+
     const buildRedirectPath = useCallback((related: RelatedResearchArticle) => {
         const basePath = buildPaperPath("nih", related.pmcid);
         const params = new URLSearchParams();
@@ -225,6 +282,8 @@ const PaperChatClient = ({
             researchPaper &&
                 (researchPaper.access.canSendToAI || canAnalyzeFigures),
         );
+    const canSharePaper =
+        authenticated && Boolean(researchPaper?.access.canPersistContent);
     const persistHighlights =
         authenticated && researchPaper?.access.canPersistContent
             ? {
@@ -236,6 +295,28 @@ const PaperChatClient = ({
 
     const toggleTool = (tool: PaperTool) => {
         setActiveTool((current) => (current === tool ? null : tool));
+    };
+
+    const handleShare = async () => {
+        if (!researchPaper) return;
+        const title = researchPaper.title || "Research paper";
+        const url =
+            typeof window !== "undefined" ? window.location.href : "";
+        if (
+            typeof navigator !== "undefined" &&
+            typeof navigator.share === "function" &&
+            url
+        ) {
+            try {
+                await navigator.share({ title, text: title, url });
+                return;
+            } catch (error) {
+                if (error instanceof DOMException && error.name === "AbortError") {
+                    return;
+                }
+            }
+        }
+        setBriefOpen(true);
     };
 
     const handleHighlight = (citation: PaperCitation) => {
@@ -267,6 +348,13 @@ const PaperChatClient = ({
                     paper={researchPaper}
                     open={briefOpen}
                     onClose={() => setBriefOpen(false)}
+                />
+            )}
+            {researchPaper && shareOpen && (
+                <SharePaperModal
+                    paper={researchPaper}
+                    open={shareOpen}
+                    onClose={() => setShareOpen(false)}
                 />
             )}
             {showNoticePrompt && (
@@ -308,38 +396,56 @@ const PaperChatClient = ({
             <div className={styles.toolsbox}>
                 <div className={styles.searcharea}>
                     <button
+                        type="button"
                         className={styles.searchbutton}
                         onClick={() => router.back()}
+                        aria-label="Back"
                     >
-                        <LeftArrowSVG />
-                        <div className={styles.text}>Back to research</div>
+                        <BackArrowIcon />
+                        <span className={styles.text}>Back</span>
                     </button>
                 </div>
-                {canUseChatTools && (
+                {(canUseChatTools || canSharePaper) && (
                     <div className={styles.paperTools} role="toolbar" aria-label="Paper tools">
-                        <button
-                            type="button"
-                            className={`${styles.toolButton} ${
-                                activeTool === "highlight" ? styles.toolButtonActive : ""
-                            }`}
-                            onClick={() => toggleTool("highlight")}
-                            aria-pressed={activeTool === "highlight"}
-                        >
-                            <Image
-                                src="/highlighticon.svg"
-                                alt=""
-                                width={16}
-                                height={16}
-                            />
-                            Highlight
-                        </button>
+                        {canUseChatTools && (
+                            <button
+                                type="button"
+                                className={`${styles.toolButton} ${
+                                    activeTool === "highlight" ? styles.toolButtonActive : ""
+                                }`}
+                                onClick={() => toggleTool("highlight")}
+                                aria-pressed={activeTool === "highlight"}
+                            >
+                                <Image
+                                    src="/highlighticon.svg"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                />
+                                Highlight
+                            </button>
+                        )}
+                        {canSharePaper && (
+                            <button
+                                type="button"
+                                className={styles.toolButtonPrimary}
+                                onClick={() => setShareOpen(true)}
+                            >
+                                <ShareIcon />
+                                Share paper
+                            </button>
+                        )}
                         {researchPaper?.access.canSendToAI && (
                             <button
                                 type="button"
-                                className={styles.toolButton}
-                                onClick={() => setBriefOpen(true)}
+                                className={styles.toolButtonX}
+                                onClick={() => {
+                                    void handleShare();
+                                }}
+                                aria-label="Share this paper"
                             >
-                                Share summary
+                                <ShareIcon />
+                                Share
                             </button>
                         )}
                     </div>
@@ -425,6 +531,7 @@ const PaperChatClient = ({
                             </div>
                         ) : researchPaper?.access.canSendToAI ? (
                             <div className={styles.restrictedChat}>
+                                <ResearchBot className={styles.restrictedBot} />
                                 <p className={styles.restrictedEyebrow}>
                                     Paper assistant
                                 </p>
@@ -450,6 +557,7 @@ const PaperChatClient = ({
                             </div>
                         ) : researchPaper ? (
                             <div className={styles.restrictedChat}>
+                                <ResearchBot className={styles.restrictedBot} />
                                 <p className={styles.restrictedEyebrow}>
                                     Paper assistant
                                 </p>

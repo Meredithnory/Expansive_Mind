@@ -11,6 +11,7 @@ import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import { deferUsageRecording } from "../../lib/usage-meter";
 import { resolvePlan } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
+import { attachFormattedPaperImpact } from "../../lib/paper-impact-lookup";
 import { loadCachedPaperBySource } from "./load-paper";
 import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 
@@ -166,10 +167,12 @@ export const GET = withOptionalAuth(async (request: NextRequest) => {
             measure("chat_history", historyStartedAt);
         }
 
+        const paperWithImpact = await attachFormattedPaperImpact(paper);
+
         measure("total", requestStartedAt);
         return NextResponse.json(
             {
-                paper,
+                paper: paperWithImpact,
                 messages,
                 authenticated: Boolean(request.user),
                 plan: resolvePlan(request.user),

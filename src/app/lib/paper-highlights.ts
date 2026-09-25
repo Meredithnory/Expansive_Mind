@@ -8,10 +8,15 @@ import { MAX_REGION_EXCERPT_CHARS } from "./region-capture";
 
 export const MAX_HIGHLIGHTS_PER_PAPER = 50;
 
+export const HIGHLIGHT_COLORS = ["pink", "blue", "yellow"] as const;
+export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = "pink";
+
 export interface PaperHighlightRecord {
     id: string;
     excerpt: string;
     citation: PaperCitation;
+    color: HighlightColor;
     createdAt?: string;
 }
 
@@ -82,10 +87,21 @@ export function parseHighlightExcerpt(input: unknown) {
     return input.replace(/\s+/g, " ").trim().slice(0, MAX_REGION_EXCERPT_CHARS);
 }
 
+export function parseHighlightColor(input: unknown): HighlightColor {
+    if (
+        typeof input === "string" &&
+        (HIGHLIGHT_COLORS as readonly string[]).includes(input)
+    ) {
+        return input as HighlightColor;
+    }
+    return DEFAULT_HIGHLIGHT_COLOR;
+}
+
 export function serializePaperHighlight(doc: {
     _id: { toString(): string };
     excerpt: string;
     citation: PaperCitation;
+    color?: string | null;
     createdAt?: Date;
 }): PaperHighlightRecord {
     return {
@@ -97,6 +113,7 @@ export function serializePaperHighlight(doc: {
             endLine: doc.citation.endLine,
             lines: [...doc.citation.lines],
         },
+        color: parseHighlightColor(doc.color),
         createdAt: doc.createdAt?.toISOString(),
     };
 }
@@ -134,11 +151,32 @@ export async function savePaperHighlight(input: {
     idName: string;
     excerpt: string;
     citation: PaperCitation;
+    color?: HighlightColor;
 }): Promise<PaperHighlightRecord | null> {
     const response = await fetch("/api/highlights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+            ...input,
+            color: parseHighlightColor(input.color),
+        }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { highlight?: PaperHighlightRecord };
+    return data.highlight?.id ? data.highlight : null;
+}
+
+export async function updatePaperHighlightColor(input: {
+    highlightId: string;
+    color: HighlightColor;
+}): Promise<PaperHighlightRecord | null> {
+    const response = await fetch("/api/highlights", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            highlightId: input.highlightId,
+            color: parseHighlightColor(input.color),
+        }),
     });
     if (!response.ok) return null;
     const data = (await response.json()) as { highlight?: PaperHighlightRecord };

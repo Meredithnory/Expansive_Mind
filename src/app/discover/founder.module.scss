@@ -1,0 +1,442 @@
+.report {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+    color: #d7ebff;
+    line-height: 1.55;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+
+    h2 {
+        margin: 4px 0 8px;
+        color: #fff;
+        font-size: clamp(1.45rem, 3vw, 2rem);
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+    }
+}
+
+.charts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 12px;
+}
+
+.chart {
+    min-width: 0;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 16px;
+    background: #101722;
+
+    figcaption {
+        margin: 0 0 12px;
+        color: #fff;
+        font-size: 0.84rem;
+        font-weight: 650;
+    }
+}
+
+.chartWide {
+    grid-column: 1 / -1;
+}
+
+.chartKey {
+    margin: 10px 0 0;
+    color: rgba(215, 235, 255, 0.48);
+    font-size: 0.72rem;
+}
+
+.scoreChart {
+    display: grid;
+    gap: 12px;
+}
+
+.barRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2rem;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.legend li span:last-child {
+    overflow: hidden;
+    color: rgba(215, 235, 255, 0.78);
+    font-size: 0.74rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.barLabel {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: flex-start;
+    gap: 6px;
+    color: rgba(215, 235, 255, 0.82);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.swatch {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+}
+
+.trackStack {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.track {
+    display: block;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.08);
+}
+
+.fill,
+.fillMuted {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.fillMuted {
+    opacity: 0.35;
+}
+
+.barValue {
+    color: #fff;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    text-align: right;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        margin: 0;
+    }
+}
+
+.criterionChart,
+.areaChart {
+    display: grid;
+    align-items: end;
+    height: 148px;
+}
+
+.criterionChart {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.criterionCol,
+.areaCol {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.criterionBars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    height: 112px;
+}
+
+.criterionBar {
+    display: block;
+    width: 8px;
+    min-height: 4px;
+    border-radius: 999px 999px 3px 3px;
+}
+
+.criterionName,
+.areaName {
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 0.62rem;
+    line-height: 1.15;
+    text-align: center;
+}
+
+.areaChart {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 8px;
+    height: 132px;
+}
+
+.areaTrack {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 28px;
+    height: 78px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(215, 235, 255, 0.06);
+
+    span {
+        display: block;
+        width: 100%;
+        border-radius: inherit;
+    }
+}
+
+.areaCount {
+    color: rgba(215, 235, 255, 0.7);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+    margin: 0;
+    color: #ff8ec8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.scope,
+.meta,
+.note,
+.next {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.58);
+    font-size: 0.84rem;
+}
+
+.scope {
+    margin-bottom: 6px;
+    color: rgba(215, 235, 255, 0.72);
+}
+
+.note {
+    margin: -4px 0 0;
+    font-size: 0.78rem;
+}
+
+.next {
+    margin-top: 10px;
+    color: rgba(215, 235, 255, 0.7);
+}
+
+.report button {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 10px;
+    background: #f51b83;
+    color: #fff;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.options article,
+.area {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid rgba(215, 235, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.leadOption {
+    border-color: rgba(255, 0, 132, 0.35);
+    background:
+        linear-gradient(180deg, rgba(255, 0, 132, 0.1), transparent 42%),
+        rgba(255, 255, 255, 0.025);
+}
+
+.report h3 {
+    margin: 0 0 10px;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.options h3 {
+    margin-bottom: 8px;
+}
+
+.score {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 14px;
+    color: #b4f0d2;
+    font-size: 1.55rem;
+    font-weight: 650;
+
+    span {
+        color: rgba(215, 235, 255, 0.5);
+        font-size: 0.72rem;
+        font-weight: 500;
+    }
+}
+
+.options dl {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 12px;
+}
+
+.options dl div {
+    min-width: 0;
+}
+
+.options dt {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.45);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.options dd {
+    margin: 3px 0 0;
+    color: rgba(215, 235, 255, 0.82);
+    font-size: 0.86rem;
+}
+
+.scoreCriterion {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(215, 235, 255, 0.08);
+    font-size: 0.82rem;
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    p {
+        margin: 6px 0 0;
+    }
+}
+
+.nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 0.78rem;
+}
+
+.area {
+    scroll-margin-top: 24px;
+}
+
+.unknown {
+    color: #ffd49a;
+}
+
+.finding {
+    margin-bottom: 14px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(10, 177, 255, 0.45);
+}
+
+.report p {
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.report a {
+    color: #ff9acc;
+    overflow-wrap: anywhere;
+}
+
+.report summary {
+    cursor: pointer;
+    color: rgba(215, 235, 255, 0.62);
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+.report blockquote {
+    margin: 10px 0;
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.84rem;
+}
+
+.report ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+}
+
+.report li {
+    margin: 8px 0;
+    font-size: 0.84rem;
+}
+
+.report :is(button, a, input, textarea, summary):focus-visible {
+    outline: 2px solid #ff8ec8;
+    outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+    .charts {
+        grid-template-columns: 1fr;
+    }
+
+    .criterionName,
+    .areaName {
+        font-size: 0.58rem;
+    }
+}
+
+@media (max-width: 620px) {
+    .header {
+        flex-direction: column;
+    }
+
+    .report button {
+        width: 100%;
+    }
+
+    .options {
+        grid-template-columns: 1fr;
+    }
+
+    .area,
+    .options article {
+        padding: 15px;
+    }
+}

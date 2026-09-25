@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import ReactMarkdown from "react-markdown";
+import SafeAssistantMarkdown from "../SafeAssistantMarkdown";
 import styles from "../styles/briefmodal.module.scss";
 import type { FormattedPaper } from "../../api/general-interfaces";
 import { useSession } from "../../lib/use-session";
@@ -165,24 +165,24 @@ const BriefModal = ({ paper, open, onClose }: BriefModalProps) => {
                 {brief ? (
                     <>
                         <div className={styles.briefBody}>
-                            <ReactMarkdown>{brief.brief}</ReactMarkdown>
+                            <SafeAssistantMarkdown>{brief.brief}</SafeAssistantMarkdown>
                         </div>
                         <footer className={styles.actions}>
                             <button
                                 type="button"
                                 className={styles.primaryAction}
+                                onClick={shareOnX}
+                            >
+                                Post on X
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.secondaryAction}
                                 onClick={() => copy("link")}
                             >
                                 {copied === "link"
                                     ? "Link copied!"
                                     : "Copy share link"}
-                            </button>
-                            <button
-                                type="button"
-                                className={styles.secondaryAction}
-                                onClick={shareOnX}
-                            >
-                                Post on X
                             </button>
                             <button
                                 type="button"
@@ -212,8 +212,8 @@ const BriefModal = ({ paper, open, onClose }: BriefModalProps) => {
                 ) : (
                     <div className={styles.emptyState}>
                         <p>
-                            Distill this paper into a short, shareable summary:
-                            a plain-language TL;DR, key findings with
+                            Distill this paper into a short summary you can post
+                            on X: a plain-language TL;DR, key findings with
                             citations, why it matters, and limitations.
                         </p>
                         <button

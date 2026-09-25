@@ -271,6 +271,20 @@ export function toSearchRow(hit: DiscoverCandidate): SearchRow {
         contentLabel:
             hit.database === "scholar" ? "Search snippet" : "Abstract",
         access: hit.access,
+        ...(hit.database === "scholar" ? { clusterId: hit.paperId } : {}),
+        ...(hit.citationCount != null
+            ? {
+                  citationCount: hit.citationCount,
+                  ...(hit.citationSource
+                      ? { citationSource: hit.citationSource }
+                      : {}),
+              }
+            : {}),
+        ...(hit.scholarCitesId
+            ? { scholarCitesId: hit.scholarCitesId }
+            : hit.database === "scholar"
+              ? { scholarCitesId: hit.paperId }
+              : {}),
     };
 }
 

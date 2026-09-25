@@ -1,6 +1,9 @@
 import "server-only";
 import Stripe from "stripe";
 
+/** Cloud-based AI workspace for individuals. Stripe Tax AI catalog: AIaaS - Cloud Based - Personal Use. */
+export const RESEARCHER_PRO_TAX_CODE = "txcd_10105001";
+
 let stripeClient: Stripe | null = null;
 
 export function isStripeConfigured() {
@@ -30,4 +33,17 @@ export function getStripePrice(interval: "month" | "year") {
         );
     }
     return priceId;
+}
+
+export async function ensureStripeProductTaxCode(productId: string) {
+    const stripe = getStripe();
+    const product = await stripe.products.retrieve(productId);
+    const current =
+        typeof product.tax_code === "string"
+            ? product.tax_code
+            : product.tax_code?.id;
+    if (current) return product;
+    return stripe.products.update(productId, {
+        tax_code: RESEARCHER_PRO_TAX_CODE,
+    });
 }

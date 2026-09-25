@@ -53,9 +53,9 @@ _Meredith: logo rules, color tokens (today: dark shell, Manrope, `#000` theme), 
 <!-- OWNER-EDIT:start north-star -->
 **Locked 2026-09-05 (Meredith).** Discover to shareable brief for biomedical researchers: fuzzy question → cited opportunity report → shareable brief. Other surfaces (search, reader chat, projects/plans) serve that wedge and must not compete with it this launch.
 
-**Claim ledger is Must-have before share.** A Discover opportunity brief is not shareable until every claim sits on a claim ledger (source DOI + quote/excerpt). Done (from the phone): open a brief → every claim links to a paper → Share synthesis is allowed. Missing a source link means share stays blocked.
+**Share synthesis** is available once a Discover run is saved for a signed-in user. Claim-excerpt completeness does not block the share link. Quote/license rules for displaying paper body on shared pages remain separate from link creation.
 
-**Build framing:** reshape existing gaps + citations into ledger rows — not a full report rewrite. REFINE Discover→Brief vs Elicit/Undermind.
+**Build framing:** Discover → shareable brief is the launch wedge. REFINE Discover→Brief vs Elicit/Undermind.
 
 **First-50 validation:** mix of ECR personal pay and PI/lab. Learn which mix holds in a concierge test. Do not assume a single buyer.
 <!-- OWNER-EDIT:end north-star -->

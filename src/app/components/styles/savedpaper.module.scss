@@ -11,7 +11,8 @@
     transition:
         border-color 180ms ease,
         background-color 180ms ease,
-        transform 180ms ease;
+        transform 180ms ease,
+        opacity 180ms ease;
 
     &:hover,
     &:focus-within {
@@ -28,6 +29,15 @@
             transform: translateY(0) scale(1);
             pointer-events: auto;
         }
+    }
+
+    /* Non-blocking hint while Link navigates; does not delay the route change. */
+    &.exiting,
+    &.exiting:hover,
+    &.exiting:focus-within {
+        opacity: 0.45;
+        transform: translateY(-3px);
+        pointer-events: none;
     }
 }
 
@@ -190,5 +200,23 @@
 
     .title {
         font-size: 0.98rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+
+        &:hover,
+        &:focus-within {
+            transform: none;
+        }
+
+        &.exiting,
+        &.exiting:hover,
+        &.exiting:focus-within {
+            opacity: 1;
+            transform: none;
+        }
     }
 }
