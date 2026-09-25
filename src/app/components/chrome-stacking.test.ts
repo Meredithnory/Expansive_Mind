@@ -93,10 +93,16 @@ describe("mobile chrome stacking", () => {
     it("lets a vertical swipe on a source rail scroll the page", () => {
         const carousel = read("../discover/source-logo-carousel.module.scss");
         const chips = read("styles/databasemind.module.scss");
-        expect(carousel).toMatch(/touch-action:\s*pan-x\s+pan-y\s*;/);
-        expect(chips).toMatch(/touch-action:\s*pan-x\s+pan-y\s*;/);
-        expect(carousel).not.toMatch(/touch-action:\s*pan-x\s*;/);
-        expect(chips).not.toMatch(/touch-action:\s*pan-x\s*;/);
+        const carouselView = read("../discover/SourceLogoCarousel.tsx");
+        const mind = read("DatabaseMind.tsx");
+        expect(carousel).toMatch(/overflow-y:\s*clip\s*;/);
+        expect(chips).toMatch(/overflow-y:\s*clip\s*;/);
+        expect(carousel).toMatch(/touch-action:\s*pan-y\s*;/);
+        expect(chips).toMatch(/touch-action:\s*pan-y\s*;/);
+        expect(carousel).not.toMatch(/touch-action:\s*pan-x/);
+        expect(chips).not.toMatch(/touch-action:\s*pan-x/);
+        expect(carouselView).toMatch(/attachHorizontalRail/);
+        expect(mind).toMatch(/attachHorizontalRail/);
     });
 
     it("keeps phone footer links on one wrapping row", () => {

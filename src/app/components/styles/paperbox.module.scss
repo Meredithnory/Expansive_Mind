@@ -21,6 +21,9 @@
     min-width: 0;
     border-radius: 4px;
     padding-right: 8px;
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
 
     /* On desktop the paper scrolls inside its own column while the chat
        panel stays fixed beside it. Mobile keeps normal page flow. */
@@ -30,6 +33,23 @@
         overflow-y: auto;
         overscroll-behavior: contain;
         padding-right: 14px;
+    }
+
+    p,
+    h1,
+    h4,
+    h6,
+    .authors,
+    .title {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+
+    button,
+    a,
+    img {
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     p {

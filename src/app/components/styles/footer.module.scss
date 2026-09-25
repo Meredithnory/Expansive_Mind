@@ -107,10 +107,13 @@
 
 @media (max-width: 720px) {
     .footer {
-        margin-top: 20px;
-        padding:
-            18px 4px
-            max(12px, env(safe-area-inset-bottom));
+        margin-top: 12px;
+        padding: 12px 4px 4px;
+    }
+
+    .legal {
+        margin-top: 8px;
+        padding-top: 8px;
     }
 
     .top,
