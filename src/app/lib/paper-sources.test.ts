@@ -84,3 +84,14 @@ describe("searchSourceTag / locatorFromLoadedPaper", () => {
         });
     });
 });
+
+describe("buildPaperFocusHref without method intent", () => {
+    it("adds only the focus passage", () => {
+        const href = buildPaperFocusHref(
+            "/paperchatbot/springer/10.1186/abc",
+            "  A saved   highlight ",
+            { method: false },
+        );
+        expect(href).toBe("/paperchatbot/springer/10.1186/abc?focus=A+saved+highlight");
+    });
+});

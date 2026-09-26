@@ -135,6 +135,7 @@ export const PAPER_FOCUS_MAX_CHARS = 240;
 export function buildPaperFocusHref(
     href: string,
     excerpt?: string | null,
+    { method = true }: { method?: boolean } = {},
 ) {
     if (!href.startsWith("/paperchatbot/")) return href;
     const [path, query = ""] = href.split("?");
@@ -144,7 +145,7 @@ export function buildPaperFocusHref(
         .trim()
         .slice(0, PAPER_FOCUS_MAX_CHARS);
     if (snippet) params.set("focus", snippet);
-    params.set("intent", "method");
+    if (method) params.set("intent", "method");
     const search = params.toString();
     return search ? `${path}?${search}` : path;
 }
