@@ -402,7 +402,17 @@ function DiscoverClient({
         if (!footer) return;
 
         const syncClearance = () => {
-            const top = footer.getBoundingClientRect().top;
+            const rect = footer.getBoundingClientRect();
+            // Phones hide the footer on research screens. A hidden footer
+            // reports top 0, which pushed the composer off the top of the
+            // screen; fall back to the stylesheet's nav clearance instead.
+            if (rect.height === 0) {
+                document.documentElement.style.removeProperty(
+                    "--discover-composer-bottom",
+                );
+                return;
+            }
+            const top = rect.top;
             const clearance = Math.max(
                 12,
                 Math.round(window.innerHeight - top + 10),
