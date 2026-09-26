@@ -97,7 +97,9 @@ export default function PrivacyPage() {
                                 <li>
                                     <strong>AI models</strong> (through
                                     OpenRouter): your questions and the paper
-                                    text needed to answer them.
+                                    text needed to answer them. We only use
+                                    providers that agree not to store your
+                                    requests or train on them.
                                 </li>
                                 <li>
                                     <strong>Research databases</strong> such as
