@@ -604,3 +604,56 @@
         }
     }
 }
+
+/* Phone highlighting: floats just above the "Ask this paper" peek
+   (76px nav clearance + 52px peek on phones). */
+.touchHighlightBar {
+    position: fixed;
+    right: 16px;
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    z-index: 85;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+
+    @media (min-width: 721px) {
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.touchHighlightButton,
+.touchHighlightHint {
+    pointer-events: auto;
+    border-radius: 999px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.touchHighlightButton {
+    min-height: 48px;
+    padding: 12px 22px;
+    border: 0;
+    background: #ff0084;
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.touchHighlightHint {
+    max-width: 34ch;
+    margin: 0;
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(8, 8, 10, 0.92);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}

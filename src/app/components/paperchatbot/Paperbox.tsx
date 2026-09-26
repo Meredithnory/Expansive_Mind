@@ -24,8 +24,6 @@ import {
     type PaperTool,
 } from "../../lib/region-capture";
 import {
-    SYNTHETIC_MOUSE_WINDOW_MS,
-    TOUCH_HIGHLIGHT_SETTLE_MS,
     isSyntheticMouseAfterTouch,
 } from "../../lib/highlight-gesture";
 import {
@@ -290,6 +288,11 @@ const Paperbox = ({
     const settleTimer = useRef<number | null>(null);
     const commitHighlightRef = useRef<() => void>(() => {});
     const scheduleTouchCommitRef = useRef<() => void>(() => {});
+    // Phones: a long-press selects one word, so saving on finger-up saved a
+    // single word. Instead, let the reader adjust the selection handles and
+    // tap an explicit "Highlight selection" button.
+    const [touchSelection, setTouchSelection] = useState(false);
+    const [coarsePointer, setCoarsePointer] = useState(false);
     const paperId = paper?.paperId;
     const persistDatabase = persistHighlights?.database || "";
     const persistPaperId = persistHighlights?.paperId || "";
@@ -303,15 +306,26 @@ const Paperbox = ({
         setAgentTextHighlight(null);
     }, [paperId]);
 
-    scheduleTouchCommitRef.current = () => {
-        if (settleTimer.current != null) {
-            window.clearTimeout(settleTimer.current);
-        }
-        settleTimer.current = window.setTimeout(() => {
-            settleTimer.current = null;
-            commitHighlightRef.current();
-        }, TOUCH_HIGHLIGHT_SETTLE_MS);
+    useEffect(() => {
+        setCoarsePointer(window.matchMedia("(pointer: coarse)").matches);
+    }, []);
+
+    const syncTouchSelection = () => {
+        const selection = window.getSelection();
+        const root = paperRef.current;
+        setTouchSelection(
+            Boolean(
+                root &&
+                    selection &&
+                    selection.rangeCount > 0 &&
+                    !selection.isCollapsed &&
+                    root.contains(selection.getRangeAt(0).commonAncestorContainer) &&
+                    selection.toString().trim(),
+            ),
+        );
     };
+
+    scheduleTouchCommitRef.current = syncTouchSelection;
 
     useEffect(() => {
         if (activeTool !== "highlight") {
@@ -319,13 +333,13 @@ const Paperbox = ({
                 window.clearTimeout(settleTimer.current);
                 settleTimer.current = null;
             }
+            setTouchSelection(false);
             return;
         }
         const onSelectionChange = () => {
-            if (fingerDown.current) return;
-            const ended = touchEndedAt.current;
-            if (ended == null) return;
-            if (Date.now() - ended > SYNTHETIC_MOUSE_WINDOW_MS) return;
+            // Handle drags fire no touchend on the paper; track the selection
+            // itself so the button follows whatever is selected.
+            if (touchEndedAt.current == null && !fingerDown.current) return;
             scheduleTouchCommitRef.current();
         };
         document.addEventListener("selectionchange", onSelectionChange);
@@ -528,6 +542,7 @@ const Paperbox = ({
                 ?.getAttribute("data-section-title") || "Paper";
         selection.removeAllRanges();
         touchEndedAt.current = null;
+        setTouchSelection(false);
         const id = crypto.randomUUID();
         const citation = locateExcerptInPaper(paper, text, fallbackSection);
         const mark: InkMark = {
@@ -918,6 +933,29 @@ const Paperbox = ({
                 </div>
             )}
             </div>
+            {activeTool === "highlight" && coarsePointer && (
+                <div className={styles.touchHighlightBar} role="status">
+                    {touchSelection ? (
+                        <button
+                            type="button"
+                            className={styles.touchHighlightButton}
+                            // Act on pointerdown and keep focus off the button,
+                            // or iOS clears the selection before the tap lands.
+                            onPointerDown={(event) => {
+                                event.preventDefault();
+                                commitHighlightRef.current();
+                            }}
+                        >
+                            Highlight selection
+                        </button>
+                    ) : (
+                        <p className={styles.touchHighlightHint}>
+                            Press and hold text, drag the handles, then tap
+                            Highlight selection.
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
