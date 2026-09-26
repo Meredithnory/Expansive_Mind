@@ -112,7 +112,11 @@ body:has([data-research-workspace]) {
 }
 
 /* Search widens body for results; keep site chrome at the standard width
-   so the shared footer matches Discover and every other route. */
+   so the shared footer matches Discover and every other route.
+   Research itself is full-bleed, so the nav has to be pulled back to the
+   same column Login and Sign up use. Above 900px that column is 80vw.
+   From the phone breakpoint up to 900px the other pages are inset 16px
+   each side — match that, or the research bar is wider and flush left. */
 @media (min-width: 901px) {
     body:has([data-search-paper-page]) [data-app-nav],
     body:has([data-search-paper-page]) [data-app-footer] {
@@ -124,6 +128,16 @@ body:has([data-research-workspace]) {
     body:has([data-research-workspace]) [data-app-footer] {
         width: min(80vw, 1440px);
         max-width: 1440px;
+        justify-self: center;
+    }
+}
+
+@media (max-width: 900px) and (min-width: 721px) {
+    body:has([data-search-paper-page]) [data-app-nav],
+    body:has([data-search-paper-page]) [data-app-footer],
+    body:has([data-research-workspace]) [data-app-nav],
+    body:has([data-research-workspace]) [data-app-footer] {
+        width: calc(100% - 32px);
         justify-self: center;
     }
 }

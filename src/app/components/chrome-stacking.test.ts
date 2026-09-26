@@ -124,6 +124,31 @@ describe("mobile chrome stacking", () => {
         expect(globals).toMatch(/html\[data-keyboard-open\]\[data-vv-pan\]/);
     });
 
+    it("keeps the research nav on the same column as login above the phone layout", () => {
+        const globals = read("../globals.scss");
+        const start = globals.indexOf(
+            "@media (max-width: 900px) and (min-width: 721px)",
+        );
+        expect(start).toBeGreaterThan(-1);
+        const body = globals.slice(start, start + 800);
+        expect(body).toMatch(
+            /body:has\(\[data-research-workspace\]\) \[data-app-nav\]/,
+        );
+        expect(body).toMatch(/width:\s*calc\(100% - 32px\)/);
+        expect(body).toMatch(/justify-self:\s*center/);
+    });
+
+    it("locks the shared nav box height on desktop and on the phone pill", () => {
+        const nav = read("styles/navbar.module.scss");
+        const shellStart = nav.indexOf(".navbarShell {");
+        const shell = nav.slice(shellStart, nav.indexOf(".navbar {"));
+        expect(shell).toMatch(/height:\s*72px/);
+        expect(shell).toMatch(/min-width:\s*0/);
+        const phone = nav.slice(nav.indexOf("@media (max-width: 720px)"));
+        expect(phone).toMatch(/\.navbarShell\s*\{[^}]*height:\s*auto/);
+        expect(phone).toMatch(/\.navbar\s*\{[^}]*height:\s*58px/);
+    });
+
     it("keeps the search scroll-to-top control above the bottom nav", () => {
         const scss = read("../searchpaper/searchpaper.module.scss");
         const rule = scss.slice(scss.lastIndexOf(".scrollTopButton"));
