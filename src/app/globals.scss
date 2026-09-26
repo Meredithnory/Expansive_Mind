@@ -271,32 +271,27 @@ textarea {
         max-height: var(--stable-viewport-height, 100dvh);
         overflow-x: clip;
         overflow-y: hidden;
-        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-rows: minmax(0, 1fr);
     }
 
     body:has([data-research-workspace]) .main-content {
         grid-row: 1;
-        justify-content: center;
+        justify-content: flex-start;
         min-height: 0;
         overflow-x: clip;
         overflow-y: auto;
     }
 
+    /* Pin the question and search box near the top. Centered, they sat low
+       enough that the iOS keyboard covered them and Safari panned the page. */
     body:has([data-research-workspace]) .page-transition-shell {
-        justify-content: safe center;
+        justify-content: flex-start;
     }
 
-    /* Rich marketing footer is too tall for the locked research viewport.
-       Keep brand + legal; drop the large link columns on small screens. */
-    body:has([data-research-workspace]) [data-app-footer-top] {
-        display: none;
-    }
-
+    /* The phone research screen is a workspace: give it the whole viewport.
+       Home and every other page still show the footer and its legal links. */
     body:has([data-research-workspace]) [data-app-footer] {
-        grid-row: 2;
-        align-self: start;
-        padding-top: 10px;
-        padding-bottom: 4px;
+        display: none;
     }
 }
 

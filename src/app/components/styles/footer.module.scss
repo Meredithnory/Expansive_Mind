@@ -1,4 +1,8 @@
 .footer {
+    /* Above the home page's fixed background video (z-index 0), still
+       below the nav shell. */
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -125,18 +129,34 @@
     .top,
     .legal {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        text-align: center;
+    }
+
+    .brand {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tagline {
+        margin-inline: auto;
     }
 
     .columns {
         width: 100%;
+        justify-content: center;
         gap: 8px 28px;
+    }
+
+    .legalLinks {
+        justify-content: center;
     }
 
     .links {
         min-width: 0;
         flex-direction: row;
         flex-wrap: wrap;
+        justify-content: center;
         gap: 0 16px;
 
         a {
