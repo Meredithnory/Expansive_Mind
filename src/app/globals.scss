@@ -293,6 +293,14 @@ textarea {
         justify-content: flex-start;
     }
 
+    /* Start screens on tall phones: center the cluster in the spare room
+       instead of leaving a band above the nav. `safe` falls back to the top
+       on short phones, where centering would push the box under the keyboard. */
+    body:has([data-research-workspace]) .page-transition-shell:has([data-search-landing]),
+    body:has([data-research-workspace]) .page-transition-shell:has([data-discover-landing]) {
+        justify-content: safe center;
+    }
+
     /* The phone research screen is a workspace: give it the whole viewport.
        Home and every other page still show the footer and its legal links. */
     body:has([data-research-workspace]) [data-app-footer] {
