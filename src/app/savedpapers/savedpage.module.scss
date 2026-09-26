@@ -841,3 +841,14 @@
 .noteYellow {
   --note-color: #ffd23f;
 }
+
+.noteLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover blockquote,
+  &:focus-visible blockquote {
+    color: #fff;
+  }
+}

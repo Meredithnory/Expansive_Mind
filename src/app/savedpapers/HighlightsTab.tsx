@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { HighlightNotesPaper } from "../lib/highlight-notes";
 import type { HighlightColor } from "../lib/paper-highlights";
+import { buildPaperFocusHref } from "../lib/paper-sources";
 import styles from "./savedpage.module.scss";
 
 const COLORS: Array<{ id: HighlightColor | "all"; label: string }> = [
@@ -18,6 +19,11 @@ const COLOR_CLASS: Record<HighlightColor, string> = {
     blue: styles.noteBlue,
     yellow: styles.noteYellow,
 };
+
+// Opens the paper scrolled to (and marking) this passage.
+function passageHref(href: string, excerpt?: string) {
+    return buildPaperFocusHref(href, excerpt, { method: false });
+}
 
 function formatDate(value?: string) {
     if (!value) return "";
@@ -173,7 +179,7 @@ export default function HighlightsTab({
                 <div className={`${styles.libraryList} ${styles.noteColumns}`}>
                     {visible.map((paper) => (
                         <article key={paper.key} className={styles.libraryCard}>
-                            <Link href={paper.href}>
+                            <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
                                 <span className={styles.cardKicker}>
                                     {paper.primarySource} · {paper.highlights.length}{" "}
                                     {paper.highlights.length === 1 ? "highlight" : "highlights"}
@@ -186,7 +192,13 @@ export default function HighlightsTab({
                                         key={highlight.id}
                                         className={`${styles.note} ${COLOR_CLASS[highlight.color]}`}
                                     >
-                                        <blockquote>{highlight.excerpt}</blockquote>
+                                        <Link
+                                            href={passageHref(paper.href, highlight.excerpt)}
+                                            className={styles.noteLink}
+                                            aria-label="Open this highlight in the paper"
+                                        >
+                                            <blockquote>{highlight.excerpt}</blockquote>
+                                        </Link>
                                         <div className={styles.noteMeta}>
                                             <span>
                                                 {highlight.citation.sectionTitle}
@@ -215,7 +227,7 @@ export default function HighlightsTab({
                                 ))}
                             </ol>
                             <div className={styles.cardActions}>
-                                <Link href={paper.href}>
+                                <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
                                     Open paper <span aria-hidden="true">→</span>
                                 </Link>
                             </div>
