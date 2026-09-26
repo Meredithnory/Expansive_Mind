@@ -8,7 +8,7 @@ import { SITE_STATUS } from "./components/site-status";
 
 const features = [
     { label: "Discover", detail: "Synthesize evidence across papers" },
-    { label: "Read", detail: "Open every claim at its source" },
+    { label: "Read", detail: "Trace every claim to its source" },
     { label: "Plan", detail: "Turn evidence gaps into next steps" },
 ];
 
@@ -65,7 +65,7 @@ export default function Home() {
                 </div>
                 <p className={styles.tagline}>
                     Ask a research question, understand the evidence across
-                    papers, then read every source behind the synthesis.
+                    papers, then check every source behind the synthesis.
                 </p>
                 <div className={styles.actions}>
                     <Link href="/discover" className={styles.primaryCta}>

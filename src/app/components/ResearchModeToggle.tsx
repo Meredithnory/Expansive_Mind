@@ -17,7 +17,7 @@ const COPY: Record<
         title: "Discovery",
         job: "Cited brief",
         subtitle:
-            "Ask one research question → findings, gaps, and startup opportunities.",
+            "Ask one research question → findings, gaps, and what to study next.",
         tone: "discover",
     },
     search: {
