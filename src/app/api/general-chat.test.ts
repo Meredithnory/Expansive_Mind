@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormattedPaper } from "./general-interfaces";
 const completion = vi.hoisted(()=>vi.fn());
 vi.mock("./openrouter",()=>({createPrivateChatCompletion:completion}));
-vi.mock("../lib/paper-context",()=>({selectPaperContext:()=>"Licensed evidence",truncateAtSentence:(s:string)=>s}));
+vi.mock("../lib/paper-context",()=>({truncateAtSentence:(s:string)=>s}));
+vi.mock("../lib/chat-context",()=>({selectChatContext:()=>"Licensed evidence"}));
 import { respondToMessage } from "./general-chat";
 describe("paper chat discovery context",()=>{
  beforeEach(()=>completion.mockResolvedValue({choices:[{message:{content:"Answer"}}]}));
