@@ -261,6 +261,11 @@ textarea {
         overflow-y: visible;
     }
 
+    /* Home renders no bottom nav, so don't reserve room for one. */
+    body:not(:has([data-app-nav])) {
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    }
+
     /* Research only: keep the locked viewport so the footer stays above the
        fixed bottom nav and does not jump when toggling modes.
        The nav is position:fixed, so it does not take a grid row. Two tracks:
