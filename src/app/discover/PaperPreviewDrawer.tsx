@@ -138,6 +138,11 @@ export default function PaperPreviewDrawer({
     const methodExcerpt =
         extraction?.methods || extraction?.supportingExcerpt || "";
     const methodHref = buildPaperFocusHref(paper.href, methodExcerpt);
+    // The passage the report cites; the reader scrolls to it and marks it.
+    const citedExcerpt = extraction?.supportingExcerpt || "";
+    const citedHref = citedExcerpt
+        ? buildPaperFocusHref(paper.href, citedExcerpt, { method: false })
+        : paper.href;
 
     return createPortal(
         <div className={styles.overlay}>
@@ -332,10 +337,10 @@ export default function PaperPreviewDrawer({
                             <span aria-hidden="true">→</span>
                         </Link>
                         <Link
-                            href={paper.href}
+                            href={citedHref}
                             className={styles.secondaryAction}
                         >
-                            Open paper
+                            {citedExcerpt ? "Open at cited passage" : "Open paper"}
                         </Link>
                         {paper.sourceUrl && (
                             <a
