@@ -173,6 +173,13 @@ const SearchPaperClient = ({
     const [error, setError] = useState("");
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
+
+    useEffect(() => {
+        // On a phone the open filter grid fills the screen and hides results.
+        if (window.matchMedia("(max-width: 720px)").matches) {
+            setFiltersExpanded(false);
+        }
+    }, []);
     const [filterSidebarStuck, setFilterSidebarStuck] = useState(false);
     const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);

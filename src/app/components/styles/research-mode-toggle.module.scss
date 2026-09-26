@@ -261,8 +261,11 @@
         gap: 14px;
     }
 
+    /* Centered, to match the phone home page. */
     .copy {
         width: 100%;
+        align-items: center;
+        text-align: center;
     }
 
     .title {
@@ -270,6 +273,7 @@
     }
 
     .subtitle {
+        max-width: 32ch;
         white-space: normal;
         font-size: 0.84rem;
         line-height: 1.35;

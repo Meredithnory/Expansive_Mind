@@ -1129,34 +1129,25 @@
 
             .landingIntro {
                 order: 1;
-                margin-bottom: 30px;
+                margin-bottom: 18px;
             }
 
             .landingIntroHidden {
                 margin-bottom: 0;
             }
 
-            .databaseCatalog {
+            /* In the flow, right under the heading: a bar pinned to the
+               bottom sat under the keyboard, so iOS shoved the page up. */
+            .searchbar {
                 order: 2;
-                margin-top: 0;
+                width: 100%;
+                max-width: none;
+                margin: 0 0 22px;
             }
 
-            .searchbar {
-                position: fixed;
-                right: 16px;
-                bottom: calc(
-                    68px + env(safe-area-inset-bottom, 0px) +
-                        var(--keyboard-inset, 0px)
-                );
-                left: 16px;
-                z-index: 70;
+            .databaseCatalog {
                 order: 3;
-                width: auto;
-                max-width: none;
-                margin: 0;
-                box-shadow:
-                    0 -14px 38px rgba(0, 0, 0, 0.62),
-                    0 0 0 1px rgba(255, 0, 132, 0.08);
+                margin-top: 0;
             }
         }
 
