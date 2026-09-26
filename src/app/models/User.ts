@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { DEFAULT_PROFILE_COLOR, PROFILE_COLOR_IDS } from "../lib/profile-colors";
 const bcrypt = require("bcrypt");
 
 //MongoDB Schema Form User Submission
@@ -41,6 +42,11 @@ const userSchema = new mongoose.Schema({
         enum: ["pro", null],
         default: null,
         index: true,
+    },
+    profileColor: {
+        type: String,
+        enum: PROFILE_COLOR_IDS,
+        default: DEFAULT_PROFILE_COLOR,
     },
     subscriptionStatus: {
         type: String,

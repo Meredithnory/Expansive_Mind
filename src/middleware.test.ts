@@ -51,6 +51,7 @@ describe("auth navigation middleware", () => {
         expect(config.matcher).toEqual([
             "/savedpapers/:path*",
             "/projects/:path*",
+            "/profile/:path*",
             "/admin/:path*",
             "/login",
             "/signup",

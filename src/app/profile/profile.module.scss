@@ -1,0 +1,96 @@
+.page {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    width: 100%;
+    padding: 32px 16px 48px;
+    box-sizing: border-box;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    width: min(560px, 100%);
+    padding: 32px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    background: rgba(8, 8, 10, 0.82);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    box-sizing: border-box;
+
+    @media (max-width: 720px) {
+        align-items: center;
+        padding: 28px 20px;
+        text-align: center;
+    }
+}
+
+.identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+
+    h1 {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(1.5rem, 5vw, 2rem);
+        line-height: 1.15;
+    }
+
+    @media (max-width: 720px) {
+        flex-direction: column;
+        gap: 14px;
+    }
+}
+
+.email {
+    margin: 6px 0 0;
+    color: rgba(215, 235, 255, 0.55);
+    font-size: 0.9rem;
+}
+
+.picker h2 {
+    margin: 0 0 12px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    @media (max-width: 720px) {
+        justify-content: center;
+    }
+}
+
+.swatch {
+    display: grid;
+    place-items: center;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+
+    &[aria-checked="true"] {
+        border-color: #fff;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+    }
+}
+
+.status {
+    min-height: 1.2em;
+    margin: 10px 0 0;
+    color: rgba(215, 235, 255, 0.6);
+    font-size: 0.82rem;
+}

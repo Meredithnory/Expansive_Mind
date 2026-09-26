@@ -3,6 +3,7 @@ export interface SessionUser {
     firstName: string;
     lastName: string;
     email: string;
+    profileColor?: import("./profile-colors").ProfileColor;
     plan: "free" | "pro";
     isAdmin: boolean;
     subscriptionStatus: string;

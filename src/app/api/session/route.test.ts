@@ -59,6 +59,7 @@ describe("GET /api/session", () => {
                 firstName: "Ada",
                 lastName: "Lovelace",
                 email: "ada@example.com",
+                profileColor: "pink",
                 plan: "free",
                 isAdmin: false,
                 subscriptionStatus: "active",

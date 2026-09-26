@@ -2,11 +2,13 @@ import React from "react";
 import styles from "./styles/navigationmenu.module.scss";
 import Link from "next/link";
 import { RESEARCH_PATH } from "../lib/research-mode";
+import ProfileMark from "./ProfileMark";
 
 interface NavMenuProps {
     isLoggedIn: boolean;
     sessionLoading: boolean;
     isAdmin: boolean;
+    profileColor?: string | null;
     handleLogout: () => void;
     pathname: string;
     isOpen: boolean;
@@ -37,6 +39,7 @@ const NavigationMenu = ({
     isLoggedIn,
     sessionLoading,
     isAdmin,
+    profileColor,
     handleLogout,
     pathname,
     isOpen,
@@ -70,6 +73,14 @@ const NavigationMenu = ({
                         onClick={onNavigate}
                     >
                         Library
+                    </Link>
+                    <Link
+                        href="/profile"
+                        className={`${linkClass("/profile")} ${styles.profileLink}`}
+                        onClick={onNavigate}
+                    >
+                        <ProfileMark color={profileColor} size={22} />
+                        Profile
                     </Link>
                     {isAdmin && (
                         <Link
