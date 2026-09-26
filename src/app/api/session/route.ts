@@ -5,6 +5,10 @@ import {
     resolvePlan,
 } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
+import {
+    DEFAULT_PROFILE_COLOR,
+    parseProfileColor,
+} from "../../lib/profile-colors";
 
 export const GET = withAuth(async (request: NextRequest) => {
     const userID = request.user._id.toString();
@@ -24,6 +28,9 @@ export const GET = withAuth(async (request: NextRequest) => {
                 firstName: request.user.firstName,
                 lastName: request.user.lastName,
                 email: request.user.email,
+                profileColor:
+                    parseProfileColor(request.user.profileColor) ??
+                    DEFAULT_PROFILE_COLOR,
                 plan,
                 isAdmin,
                 subscriptionStatus: request.user.subscriptionStatus || "none",

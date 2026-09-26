@@ -96,6 +96,7 @@ const NavBar = () => {
                 isLoggedIn={isLoggedIn}
                 sessionLoading={loading}
                 isAdmin={Boolean(user?.isAdmin)}
+                profileColor={user?.profileColor}
                 handleLogout={handleLogout}
                 pathname={pathname}
                 isOpen={menuOpen}
