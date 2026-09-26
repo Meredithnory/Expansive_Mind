@@ -19,9 +19,10 @@ import {
   PAPER_TOPICS,
   type PaperTopic,
 } from "../lib/paper-topics";
+import HighlightsTab from "./HighlightsTab";
 
 const PAPERS_PER_PAGE = 6;
-type LibraryTab = "papers" | "syntheses" | "projects";
+type LibraryTab = "papers" | "syntheses" | "projects" | "highlights";
 type TopicFilter = "all" | PaperTopic;
 
 function prefersReducedMotion() {
@@ -165,6 +166,7 @@ const SavedLibraryClient = ({
   const [syntheses, setSyntheses] = useState<SavedSynthesis[]>([]);
   const [projects, setProjects] = useState<SerializedProject[]>([]);
   const [activeTab, setActiveTab] = useState<LibraryTab>(initialTab);
+  const [highlightCount, setHighlightCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -266,8 +268,9 @@ const SavedLibraryClient = ({
       papers: allPapers.length,
       syntheses: syntheses.length,
       projects: projects.length,
+      highlights: highlightCount,
     }),
-    [allPapers.length, projects.length, syntheses.length],
+    [allPapers.length, projects.length, syntheses.length, highlightCount],
   );
 
   async function deletePaper(paper: Paper) {
@@ -325,6 +328,7 @@ const SavedLibraryClient = ({
     { id: "papers", label: "Papers" },
     { id: "syntheses", label: "Syntheses" },
     { id: "projects", label: "Research plans" },
+    { id: "highlights", label: "Highlights" },
   ];
 
   return (
@@ -341,11 +345,14 @@ const SavedLibraryClient = ({
             className={activeTab === tab.id ? styles.activeTab : ""}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label} <span>{counts[tab.id]}</span>
+            {tab.label}{" "}
+            {counts[tab.id] != null ? <span>{counts[tab.id]}</span> : null}
           </button>
         ))}
       </div>
-      {loading ? (
+      {activeTab === "highlights" ? (
+        <HighlightsTab onCount={setHighlightCount} />
+      ) : loading ? (
         <div className={styles.savedPapersSkeleton} aria-hidden="true">
           {[0, 1, 2, 3, 4, 5].map((item) => (
             <div

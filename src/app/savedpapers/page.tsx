@@ -5,14 +5,16 @@ import SavedLibraryClient from "./SavedLibraryClient";
 import PaperStack from "../components/PaperStack";
 import styles from "./savedpage.module.scss";
 
-type LibraryTab = "papers" | "syntheses" | "projects";
+type LibraryTab = "papers" | "syntheses" | "projects" | "highlights";
 type SavedPapersPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function initialTab(value: string | string[] | undefined): LibraryTab {
     const tab = Array.isArray(value) ? value[0] : value;
-    return tab === "syntheses" || tab === "projects" ? tab : "papers";
+    return tab === "syntheses" || tab === "projects" || tab === "highlights"
+        ? tab
+        : "papers";
 }
 
 export default async function SavedPapersPage({ searchParams }: SavedPapersPageProps) {
