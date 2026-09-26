@@ -39,6 +39,19 @@
     .introBot {
         width: 68px;
     }
+
+    /* Phone, inside Discover's paper chat: the paper preview right above
+       already shows the title, so drop the repeated title and big bot. */
+    @media (max-width: 720px) {
+        .chatBot,
+        .chatTitle {
+            display: none;
+        }
+
+        .introBot {
+            width: 48px;
+        }
+    }
 }
 
 .chatHeader {
