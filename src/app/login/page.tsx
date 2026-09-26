@@ -6,6 +6,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "../lib/use-session";
 import { safeInternalPath } from "../lib/safe-internal-path";
+import {
+    ContinueWithGoogle,
+    useGoogleAuthNotice,
+} from "../components/ContinueWithGoogle";
 
 type LoginPhase = "idle" | "submitting" | "success" | "error";
 
@@ -18,6 +22,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const googleNotice = useGoogleAuthNotice();
     const [phase, setPhase] = useState<LoginPhase>("idle");
     const router = useRouter();
     const { refresh } = useSession();
@@ -95,12 +100,18 @@ const LoginPage = () => {
                     >
                         <div className={styles.loginText}>Login</div>
 
-                        {/* Show error message if exists */}
-                        {error && <div className={styles.error}>{error}</div>}
+                        {(error || googleNotice) && (
+                            <div className={styles.error}>
+                                {error || googleNotice}
+                            </div>
+                        )}
                         <form
                             className={styles.maincontent}
                             onSubmit={handleLogin}
                         >
+                            <div className={styles.googleSlot}>
+                                <ContinueWithGoogle intent="login" />
+                            </div>
                             <div className={styles.email}>
                                 Email
                                 <div className={styles.inputwrapper}>

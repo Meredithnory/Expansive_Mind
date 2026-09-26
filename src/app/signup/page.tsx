@@ -8,6 +8,10 @@ import { LoadingOverlay } from "../components/Loading";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
 import { safeInternalPath } from "../lib/safe-internal-path";
+import {
+    ContinueWithGoogle,
+    useGoogleAuthNotice,
+} from "../components/ContinueWithGoogle";
 
 const perks = [
     { label: "Search", detail: "NIH, Nature, and Scholar" },
@@ -29,6 +33,7 @@ const SignupPage = () => {
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
     const { refresh } = useSession();
+    const googleNotice = useGoogleAuthNotice();
 
     const passwordReady = password.length >= 6;
     const passwordHint =
@@ -118,16 +123,20 @@ const SignupPage = () => {
                         <p>We&apos;ll take you straight to search after this.</p>
                     </div>
 
-                    {message ? (
+                    {message || googleNotice ? (
                         <div
                             className={
-                                status === "error"
+                                status === "error" || (!message && googleNotice)
                                     ? styles.errorBanner
                                     : styles.successBanner
                             }
-                            role={status === "error" ? "alert" : "status"}
+                            role={
+                                status === "error" || (!message && googleNotice)
+                                    ? "alert"
+                                    : "status"
+                            }
                         >
-                            {message}
+                            {message || googleNotice}
                             {status === "error" &&
                             message.includes("already has an account") ? (
                                 <>
@@ -137,6 +146,10 @@ const SignupPage = () => {
                             ) : null}
                         </div>
                     ) : null}
+
+                    <div className={styles.googleSlot}>
+                        <ContinueWithGoogle intent="signup" />
+                    </div>
 
                     <div className={styles.nameRow}>
                         <div className={styles.field}>

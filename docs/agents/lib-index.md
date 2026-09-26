@@ -23,6 +23,8 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `figure-context.ts` | both | Build figure prompt context |
 | `figure-image.ts` | server | Validate / fetch figure bytes |
 | `founder-report.ts` | both | Founder diligence markdown merged onto a Discover brief |
+| `google-auth-messages.ts` | client | Google sign-in error copy |
+| `google-oauth.ts` | server | Google authorize URL, state cookie, and verified email |
 | `guest-cost-cap.ts` | server | Daily guest provider caps |
 | `guest-discovery.ts` | client | localStorage last guest result |
 | `guest-usage.ts` | both | Summarize guest counters |

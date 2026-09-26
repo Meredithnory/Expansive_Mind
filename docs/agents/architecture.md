@@ -45,6 +45,7 @@ Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [cl
 ## Auth & session
 
 - Login/signup set `auth_token` (`id`, `email`, `tokenVersion`). Admin MFA is a separate issuer. See [admin-auth.md](admin-auth.md).
+- Google sign-in (`src/app/api/auth/google`) uses those same claims. It finds the user by normalized email, or creates one the way email signup does. It does not set `admin_session`.
 - `attachAuthenticatedUser` loads User and checks `session-version`.
 - `tokenVersion` bump (password change / logout-all) revokes cookies.
 - Client session: `use-session.tsx` → `GET /api/session`.
