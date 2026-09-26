@@ -622,3 +622,45 @@
         white-space: normal;
     }
 }
+
+/* Phone reader toolbar: its own solid strip at the top, so the paper title
+   never scrolls underneath see-through buttons. The phone nav is at the
+   bottom, so the 72px tablet offset only left a gap. */
+@media (max-width: 720px) {
+    .page {
+        .toolsbox {
+            top: 0;
+            z-index: 40;
+            flex-wrap: nowrap;
+            margin-inline: -16px;
+            padding: max(8px, env(safe-area-inset-top, 0px)) 16px 8px;
+            width: calc(100% + 32px);
+            background: #000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .searchbutton {
+            padding: 8px 10px;
+
+            .text {
+                display: none;
+            }
+        }
+
+        .paperTools {
+            flex-wrap: nowrap;
+            min-width: 0;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        /* "Share paper" already covers sharing; the second Share button
+           was a duplicate on a narrow screen. */
+        .paperTools:has(.toolButtonPrimary) .toolButtonX {
+            display: none;
+        }
+    }
+}
