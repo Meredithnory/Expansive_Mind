@@ -212,6 +212,12 @@ function PricingContent() {
                                           pricing.prices.year.currency,
                                       )} yearly`}
                             </button>
+                            <p className={styles.renewal}>
+                                Pro renews automatically every month or year
+                                until you cancel. Cancel anytime from Manage
+                                billing. By subscribing you agree to the{" "}
+                                <Link href="/terms">Terms</Link>.
+                            </p>
                         </div>
                     ) : (
                         <Link

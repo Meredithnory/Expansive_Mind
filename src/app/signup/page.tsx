@@ -260,6 +260,12 @@ const SignupPage = () => {
                             : "Create free account"}
                     </button>
 
+                    <p className={styles.agreement}>
+                        By creating an account or continuing with Google, you
+                        agree to the <Link href="/terms">Terms</Link> and{" "}
+                        <Link href="/privacy">Privacy Policy</Link>.
+                    </p>
+
                     <p className={styles.signIn}>
                         Already exploring? <Link href="/login">Sign in</Link>
                     </p>
