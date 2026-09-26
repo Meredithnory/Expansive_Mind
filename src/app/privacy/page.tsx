@@ -190,6 +190,19 @@ export default function PrivacyPage() {
                     ),
                 },
                 {
+                    heading: "California residents",
+                    body: (
+                        <p>
+                            If you live in California, you have the right to
+                            know what personal information we collect, to ask
+                            us to delete or correct it, and to not be
+                            discriminated against for using these rights. We do
+                            not sell or share your personal information for
+                            advertising. To make a request, email {email}.
+                        </p>
+                    ),
+                },
+                {
                     heading: "Security",
                     body: (
                         <p>

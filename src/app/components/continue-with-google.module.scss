@@ -54,6 +54,19 @@
     flex: none;
 }
 
+.agreement {
+    margin: -6px 0 0;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-align: center;
+
+    a {
+        color: inherit;
+        text-decoration: underline;
+    }
+}
+
 .or {
     display: flex;
     align-items: center;

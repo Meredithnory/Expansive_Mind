@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "./continue-with-google.module.scss";
 import { googleAuthErrorMessage } from "../lib/google-auth-messages";
 
@@ -55,6 +56,13 @@ export function ContinueWithGoogle({
                 <GoogleMark />
                 {opening ? "Opening Google…" : "Continue with Google"}
             </a>
+            {intent === "login" && (
+                <p className={styles.agreement}>
+                    By continuing with Google, you agree to the{" "}
+                    <Link href="/terms">Terms</Link> and{" "}
+                    <Link href="/privacy">Privacy Policy</Link>.
+                </p>
+            )}
             <p className={styles.or}>or</p>
         </div>
     );

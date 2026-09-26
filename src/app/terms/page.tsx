@@ -100,9 +100,10 @@ export default function TermsPage() {
                         <p>
                             Paid plans are billed through Stripe at the price
                             shown on the <Link href="/pricing">Pricing</Link>{" "}
-                            page and renew automatically until you cancel. You
-                            can cancel at any time from your billing settings;
-                            cancelling stops future charges.
+                            page and renew automatically each month or year
+                            until you cancel. You can cancel online at any time
+                            from Manage billing on the Pricing page. Cancelling
+                            stops future charges.
                         </p>
                     ),
                 },
@@ -126,6 +127,28 @@ export default function TermsPage() {
                             online. To the extent the law allows, we are not
                             liable for indirect or consequential losses from
                             using it.
+                        </p>
+                    ),
+                },
+                {
+                    heading: "Copyright complaints",
+                    body: (
+                        <p>
+                            If you believe something on Expansive Mind
+                            infringes your copyright, email {email} with the
+                            work, where it appears on the site, and your
+                            contact details. We will review it and remove
+                            content that infringes.
+                        </p>
+                    ),
+                },
+                {
+                    heading: "Governing law",
+                    body: (
+                        <p>
+                            These terms are governed by the laws of the State
+                            of California, without regard to its conflict of
+                            law rules.
                         </p>
                     ),
                 },
