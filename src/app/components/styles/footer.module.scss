@@ -72,6 +72,12 @@
     }
 }
 
+.legalLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+
 .legal {
     display: flex;
     align-items: center;
