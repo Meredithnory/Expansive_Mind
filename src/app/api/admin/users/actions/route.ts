@@ -6,6 +6,7 @@ import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { getStripe } from "../../../../lib/stripe";
 import type { QuotaFeature } from "../../../../lib/plan-config";
 import Message from "../../../../models/Message";
+import PageEngagement from "../../../../models/PageEngagement";
 import PaperBrief from "../../../../models/PaperBrief";
 import PaperHighlight from "../../../../models/PaperHighlight";
 import PaperShare from "../../../../models/PaperShare";
@@ -14,6 +15,7 @@ import SavedDiscovery from "../../../../models/SavedDiscovery";
 import SavedPaper from "../../../../models/SavedPaper";
 import User from "../../../../models/User";
 import UsageCounter from "../../../../models/UsageCounter";
+import UsageEvent from "../../../../models/UsageEvent";
 
 const actions = new Set([
     "grant_pro",
@@ -220,6 +222,8 @@ export const POST = withAdmin(async (request: NextRequest) => {
             discoveries,
             briefs,
             shares,
+            usageEvents,
+            visits,
         ] = await Promise.all([
             UsageCounter.deleteMany({ userID: user._id }),
             SavedPaper.deleteMany({ userID: user._id }),
@@ -228,6 +232,15 @@ export const POST = withAdmin(async (request: NextRequest) => {
             SavedDiscovery.deleteMany({ userID: user._id }),
             PaperBrief.deleteMany({ userID: user._id }),
             PaperShare.deleteMany({ ownerID: user._id }),
+            // Keep cost and traffic totals, but cut the link to the person.
+            UsageEvent.updateMany(
+                { userID: user._id },
+                { $unset: { userID: "" } },
+            ),
+            PageEngagement.updateMany(
+                { userID: user._id },
+                { $unset: { userID: "" } },
+            ),
         ]);
 
         await User.deleteOne({ _id: user._id });
@@ -244,6 +257,8 @@ export const POST = withAdmin(async (request: NextRequest) => {
                 discoveries: discoveries.deletedCount,
                 briefs: briefs.deletedCount,
                 shares: shares.deletedCount,
+                usageEventsAnonymized: usageEvents.modifiedCount,
+                visitsAnonymized: visits.modifiedCount,
                 user: 1,
             },
         };

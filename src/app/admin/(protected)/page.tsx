@@ -154,7 +154,14 @@ export default function AdminPage() {
         feature?: Feature,
     ) => {
         const label = action.replaceAll("_", " ");
-        if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) return;
+        if (action === "remove_user") {
+            const typed = window.prompt(
+                `This permanently deletes ${selectedUser.email}, cancels any Stripe subscription, and erases their papers, chats, projects, discoveries, briefs, and share links. Type their email to confirm.`,
+            );
+            if (typed?.trim().toLowerCase() !== selectedUser.email.toLowerCase()) return;
+        } else if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) {
+            return;
+        }
         setBusy(`${selectedUser._id}:${action}`);
         setError("");
         try {
@@ -353,6 +360,7 @@ export default function AdminPage() {
                                                 <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "cancel_subscription")}>Cancel renewal</button>
                                             )}
                                             <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "refund_latest")}>Refund latest</button>
+                                            <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "remove_user")}>Delete user</button>
                                         </div>
                                     </td>
                                 </tr>
