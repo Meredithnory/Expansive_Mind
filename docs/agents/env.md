@@ -6,6 +6,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | --- | --- |
 | `MONGODB_URI` | Mongoose (`src/app/db/connectDB.ts`) |
 | `JWT_SECRET` | Auth cookie + middleware |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in. OAuth web client in Google Cloud. Redirect URI is `{APP_URL}/api/auth/google/callback` (`http://localhost:3000/api/auth/google/callback` locally, `https://expansivemind.ai/api/auth/google/callback` in production) |
 | `RATE_LIMIT_SECRET` | Rate-limit hashing |
 | `API_KEY` | NIH E-Utilities |
 | `NCBI_EMAIL`, `NCBI_TOOL` | NCBI request identity (`NCBI_TOOL` defaults to `ExpansiveMind`) |

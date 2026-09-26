@@ -202,6 +202,17 @@
         }
     }
 
+    .googleSlot {
+        width: 100%;
+        max-width: 378px;
+
+        a,
+        a:visited,
+        a:hover {
+            color: #fff;
+            text-decoration: none;
+        }
+    }
     .signupPrompt {
         width: 100%;
         max-width: 378px;
@@ -409,6 +420,7 @@
         .password,
         .codeField,
         .loginButton,
+        .googleSlot,
         .signupPrompt,
         .qrWrap {
             max-width: 100%;
