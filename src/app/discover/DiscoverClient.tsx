@@ -139,7 +139,7 @@ type AgentStep =
 
 const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
     expanding: "Expanding your question into targeted searches…",
-    searching: "Searching Springer Nature, NIH PMC, Google Scholar, Europe PMC, and Crossref…",
+    searching: "Searching Springer Nature, NIH PMC, Europe PMC, OpenAlex, and Google Scholar…",
     reading: "Reading licensed paper excerpts…",
     extracting: "Extracting findings, methods, and limitations…",
     analyzing: "Analyzing gaps and contradictions…",
