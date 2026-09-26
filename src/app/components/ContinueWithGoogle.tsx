@@ -30,11 +30,30 @@ export function ContinueWithGoogle({
         setHref(`/api/auth/google?${start.toString()}`);
     }, [intent]);
 
+    const [opening, setOpening] = useState(false);
+
+    useEffect(() => {
+        // Coming back with the browser Back button restores this page from
+        // cache; clear the pending state so the button works again.
+        const reset = () => setOpening(false);
+        window.addEventListener("pageshow", reset);
+        return () => window.removeEventListener("pageshow", reset);
+    }, []);
+
     return (
         <div className={styles.block}>
-            <a className={styles.button} href={href}>
+            <a
+                className={styles.button}
+                href={href}
+                aria-busy={opening}
+                data-opening={opening || undefined}
+                onClick={(event) => {
+                    if (opening) event.preventDefault();
+                    setOpening(true);
+                }}
+            >
                 <GoogleMark />
-                Continue with Google
+                {opening ? "Opening Google…" : "Continue with Google"}
             </a>
             <p className={styles.or}>or</p>
         </div>
