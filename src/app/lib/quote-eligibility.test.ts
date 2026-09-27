@@ -9,6 +9,8 @@ import {
     isScholarSnippetSource,
     paperHasFullTextBody,
     quoteLicenseFromHome,
+    quoteLicenseResult,
+    visiblePaperQuote,
 } from "./quote-eligibility";
 
 describe("isScholarSnippetSource", () => {
@@ -93,6 +95,58 @@ describe("evaluateQuoteEligibility", () => {
         ).toBe("license_not_commercial_friendly");
     });
 
+    it("fails closed for missing, empty, unrecognized, and undetermined licenses", () => {
+        const blocked = [
+            { rawLicense: null, licenseUrl: null },
+            { rawLicense: "", licenseUrl: "" },
+            { rawLicense: "   ", licenseUrl: null },
+            { rawLicense: "unknown", licenseUrl: null },
+            { rawLicense: "we couldn't determine the license", licenseUrl: null },
+            { rawLicense: "All rights reserved", licenseUrl: null },
+            { rawLicense: null, licenseUrl: "https://example.com/license" },
+        ];
+        for (const license of blocked) {
+            const result = evaluateQuoteEligibility({
+                source: "nih",
+                hasFullTextBody: true,
+                ...license,
+            });
+            expect(result.allowed).toBe(false);
+            expect(result.reason === "null_license" || result.reason === "license_not_commercial_friendly").toBe(true);
+            const passage = result.allowed ? "Events fell by 12%." : "";
+            expect(passage).toBe("");
+        }
+        expect(
+            quoteLicenseResult(
+                evaluateQuoteEligibility({
+                    source: "nih",
+                    hasFullTextBody: true,
+                    rawLicense: "we couldn't determine the license",
+                }),
+            ),
+        ).toBe("unknown");
+        expect(
+            quoteLicenseResult(
+                evaluateQuoteEligibility({
+                    source: "nih",
+                    hasFullTextBody: true,
+                    rawLicense: "CC BY-NC 4.0",
+                }),
+            ),
+        ).toBe("fail-closed");
+    });
+
+    it("does not treat a commercial-friendly URL as undetermined", () => {
+        const result = evaluateQuoteEligibility({
+            source: "nih",
+            hasFullTextBody: true,
+            rawLicense: "we couldn't determine the license",
+            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        });
+        expect(result.allowed).toBe(true);
+        expect(result.license).toBe("CC-BY");
+    });
+
     it("evaluates quotes in strict mode even when the process default is legacy", () => {
         const previous = process.env.CONTENT_ACCESS_MODE;
         process.env.CONTENT_ACCESS_MODE = "legacy";
@@ -171,6 +225,64 @@ describe("quoteLicenseFromHome", () => {
         );
         expect(gate.ok).toBe(false);
         expect(gate.reason).toBe("incomplete_rows");
+    });
+});
+
+describe("visiblePaperQuote", () => {
+    const CC_BY = "https://creativecommons.org/licenses/by/4.0/";
+
+    it("returns no quote for an unknown license", () => {
+        expect(
+            visiblePaperQuote({
+                quote: "Events fell by 12% in the treatment arm.",
+                title: "Treatment arm outcomes",
+                doi: "10.1/one",
+                href: "/paperchatbot/springer/10.1/one",
+                licenseUrl: null,
+            }),
+        ).toBeNull();
+        expect(
+            visiblePaperQuote({
+                quote: "Events fell by 12% in the treatment arm.",
+                title: "Treatment arm outcomes",
+                doi: "10.1/one",
+                licenseUrl: "we couldn't determine the license",
+            }),
+        ).toBeNull();
+    });
+
+    it("includes the title and a resolvable link on a shown quote", () => {
+        expect(
+            visiblePaperQuote({
+                quote: "Events fell by 12% in the treatment arm.",
+                title: "Treatment arm outcomes",
+                doi: "10.1/one",
+                href: "/paperchatbot/springer/10.1/one",
+                licenseUrl: CC_BY,
+            }),
+        ).toEqual({
+            quote: "Events fell by 12% in the treatment arm.",
+            title: "Treatment arm outcomes",
+            link: "https://doi.org/10.1/one",
+        });
+    });
+
+    it("omits the quote when the title or the link is missing", () => {
+        expect(
+            visiblePaperQuote({
+                quote: "Events fell by 12% in the treatment arm.",
+                title: "",
+                href: "/paperchatbot/nih/PMC99",
+                licenseUrl: CC_BY,
+            }),
+        ).toBeNull();
+        expect(
+            visiblePaperQuote({
+                quote: "Events fell by 12% in the treatment arm.",
+                title: "Follow-up horizon",
+                licenseUrl: CC_BY,
+            }),
+        ).toBeNull();
     });
 });
 

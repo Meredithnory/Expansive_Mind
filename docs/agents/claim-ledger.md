@@ -8,7 +8,7 @@ Two checks. They are not the same gate.
 
 **Public page.** `src/app/lib/shared-brief.ts` serves `/brief/[slug]` from `src/app/brief/[slug]/page.tsx`. A discovery brief rebuilds the ledger on read with `attachClaimLedger`, using stored sections, papers, and extractions. After the route merge, saved `report` is `{ sections, founder }` and may omit `claimLedger`.
 
-Which sentences may be quoted is decided earlier. See [content-access.md](content-access.md).
+Which sentences may be quoted is decided earlier. See [content-access.md](content-access.md). A ledger row keeps a quote only when the home license is commercial-friendly and the row has a paper title plus a DOI or paper URL. `ClaimLedgerView` renders that title and link with the passage. The shared brief uses the same view. Missing title, missing link, or an unknown license omits the passage. Record: [quote-compliance.md](quote-compliance.md).
 
 ## Leave alone
 

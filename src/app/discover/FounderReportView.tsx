@@ -5,9 +5,28 @@ import {
     VENTURE_SCORE_CRITERIA,
     founderReportMarkdown,
     rankFounderOptions,
+    safeSourceUrl,
     type FounderReport,
+    type FounderSource,
 } from "../lib/founder-report";
+import QuoteWithAttribution from "./QuoteWithAttribution";
 import styles from "./founder.module.scss";
+
+function FounderQuote({
+    quote,
+    source,
+}: {
+    quote: string;
+    source?: FounderSource;
+}) {
+    return (
+        <QuoteWithAttribution
+            quote={quote}
+            title={source?.title}
+            link={source && safeSourceUrl(source.url) ? source.url : null}
+        />
+    );
+}
 
 const OPTION_COLORS = ["#ff8ec8", "#7ad4ff", "#8be8b8"];
 const CRITERION_LABELS: Record<string, string> = {
@@ -347,21 +366,12 @@ export default function FounderReportView({ report }: { report: FounderReport })
                                                                 <summary>
                                                                     {source.id}
                                                                 </summary>
-                                                                <blockquote>
-                                                                    {
+                                                                <FounderQuote
+                                                                    quote={
                                                                         evidence.quote
                                                                     }
-                                                                </blockquote>
-                                                                <a
-                                                                    href={
-                                                                        source.url
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                >
-                                                                    {source.title}{" "}
-                                                                    ↗
-                                                                </a>
+                                                                    source={source}
+                                                                />
                                                             </details>
                                                         ) : null;
                                                     },
@@ -411,16 +421,10 @@ export default function FounderReportView({ report }: { report: FounderReport })
                                     {source ? (
                                         <details>
                                             <summary>{finding.sourceId}</summary>
-                                            <blockquote>
-                                                {finding.quote}
-                                            </blockquote>
-                                            <a
-                                                href={source.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {source.title} ↗
-                                            </a>
+                                            <FounderQuote
+                                                quote={finding.quote}
+                                                source={source}
+                                            />
                                         </details>
                                     ) : null}
                                 </article>

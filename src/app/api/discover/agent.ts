@@ -7,8 +7,11 @@ import {
 import {
     evaluateQuoteEligibility,
     isScholarSnippetSource,
+    logQuoteDecision,
     paperHasFullTextBody,
     quoteLicenseFromHome,
+    quoteLicenseResult,
+    resolvableQuoteLink,
 } from "../../lib/quote-eligibility";
 import {
     PAPER_SOURCES,
@@ -222,10 +225,31 @@ async function readPaperExcerpts(
                 rawLicense: quoteLicenses.rawLicense,
                 licenseUrl: quoteLicenses.licenseUrl,
             });
-            const quoteExcerpt = quote.allowed
-                ? selectQuotableExcerpt(paper, question)
-                : "";
             const doi = loaded.citation.doi || candidate.doi;
+            const href = buildPaperPath(
+                loaded.locator.database,
+                loaded.locator.paperId,
+                loaded.locator.idName,
+            );
+            const title = (paper.title || candidate.title || "").trim();
+            const quoteLink = resolvableQuoteLink({
+                doi,
+                sourceUrl: paper.access.canonicalUrl || candidate.sourceUrl,
+                href,
+            });
+            const titlePresent = title.length > 0;
+            const linkPresent = Boolean(quoteLink);
+            const quoteExcerpt =
+                quote.allowed && titlePresent && linkPresent
+                    ? selectQuotableExcerpt(paper, question)
+                    : "";
+            logQuoteDecision({
+                paperId: loaded.locator.paperId,
+                licenseResult: quoteLicenseResult(quote),
+                quoteOmitted: quoteExcerpt.trim().length === 0,
+                titlePresent,
+                linkPresent,
+            });
             const scholarCitesId = resolveScholarCitesId({
                 scholarCitesId: candidate.scholarCitesId,
                 database: loaded.locator.database,
@@ -245,11 +269,7 @@ async function readPaperExcerpts(
                 sourceLabel: paper.primarySource || candidate.sourceLabel,
                 sourceUrl:
                     paper.access.canonicalUrl || candidate.sourceUrl,
-                href: buildPaperPath(
-                    loaded.locator.database,
-                    loaded.locator.paperId,
-                    loaded.locator.idName,
-                ),
+                href,
                 ...(doi ? { doi } : {}),
                 ...(candidate.indexedBy?.length
                     ? { indexedBy: candidate.indexedBy }
@@ -263,7 +283,7 @@ async function readPaperExcerpts(
                       }
                     : {}),
                 ...(scholarCitesId ? { scholarCitesId } : {}),
-                ...(quote.allowed && quote.licenseUrl
+                ...(quoteExcerpt && quote.licenseUrl
                     ? { licenseUrl: quote.licenseUrl }
                     : {}),
             };

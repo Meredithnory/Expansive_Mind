@@ -154,6 +154,17 @@ export function calculateFounderScenario(input: ScenarioInputs) {
     return { revenue, operatingProfit, fundingRequired };
 }
 
+function attributedFounderExcerpt(
+    quote: string,
+    source: { title: string; url: string } | undefined,
+): string {
+    const title = source?.title.trim() ?? "";
+    const url = source?.url.trim() ?? "";
+    const text = quote.trim();
+    if (!text || !title || !url || !safeSourceUrl(url)) return "";
+    return `“${text}” ([${title}](${url}))`;
+}
+
 export function founderReportMarkdown(report: FounderReport) {
     const ranking = rankFounderOptions(report.options);
     return ["## Founder diligence", `Scope: ${report.scope}. Retrieved: ${report.generatedAt}.`,
@@ -163,9 +174,17 @@ export function founderReportMarkdown(report: FounderReport) {
         "Scores are source-linked analyst judgments, not probabilities or verified outcomes. Weights: customer demand 25%, technical feasibility 20%, reachable revenue 15%, differentiation 15%, capital efficiency 15%, execution 10%. Each criterion is rated 1–5 and maps to 0–100. Score = weighted points / assessed weight. Coverage is assessed weight, not statistical confidence. Unknown criteria stay unscored; the range shows all possible scores if missing criteria were resolved. Ranking requires 70% coverage plus demand, technical, and capital assessments. A first choice needs at least 60/100, no critical rating of 1, and a range entirely above every eligible competitor. These are product heuristics, not empirically calibrated cutoffs.",
         ...ranking.entries.map(({ option, rank, score, coverage, lower, upper, criticalBarrier }) => `### ${rank === null ? "Unranked" : `Rank ${rank}`} — ${option.title}\n\nPriority score: ${score === null ? "Not scored" : `${score}/100`}; evidence coverage: ${coverage}%; range from missing criteria: ${lower}–${upper}/100.${criticalBarrier ? " Critical feasibility, demand, or capital barrier: validate before proceeding." : ""}\n\n${VENTURE_SCORE_CRITERIA.map(criterion => {
             const assessment = option.assessments?.find(entry => entry.id === criterion.id);
-            return `${criterion.label} (${criterion.weight}%): ${assessment?.rating ?? "Unknown"}${assessment?.rating != null ? "/5" : ""}. ${assessment?.rationale || "No assessment available."}\n\n${assessment?.evidence.map(entry => `[${entry.sourceId}] “${entry.quote}”`).join("\n\n") || ""}`;
+            return `${criterion.label} (${criterion.weight}%): ${assessment?.rating ?? "Unknown"}${assessment?.rating != null ? "/5" : ""}. ${assessment?.rationale || "No assessment available."}\n\n${assessment?.evidence.map(entry => {
+                const source = report.sources.find(item => item.id === entry.sourceId);
+                const excerpt = attributedFounderExcerpt(entry.quote, source);
+                return excerpt ? `[${entry.sourceId}] ${excerpt}` : "";
+            }).filter(Boolean).join("\n\n") || ""}`;
         }).join("\n\n")}\n\nBuyer: ${option.customer}\n\nProduct: ${option.product}\n\nPotential upside: ${option.upside}\n\nRisk: ${option.risk}\n\nNext milestone: ${option.nextMilestone}`),
-        ...report.areas.map(area => `### ${DILIGENCE_AREAS.find(([id]) => id === area.id)?.[1]}\n\n${area.findings.length ? area.findings.map(finding => `${finding.claim} [${finding.sourceId}]\n\nSource excerpt: “${finding.quote}”`).join("\n\n") : "No supporting source excerpt validated for this area."}\n\nAnalysis (inference): ${area.analysis || "Insufficient evidence."}\n\nNext check: ${area.nextCheck}`),
+        ...report.areas.map(area => `### ${DILIGENCE_AREAS.find(([id]) => id === area.id)?.[1]}\n\n${area.findings.length ? area.findings.map(finding => {
+            const source = report.sources.find(item => item.id === finding.sourceId);
+            const excerpt = attributedFounderExcerpt(finding.quote, source);
+            return `${finding.claim} [${finding.sourceId}]${excerpt ? `\n\nSource excerpt: ${excerpt}` : ""}`;
+        }).join("\n\n") : "No supporting source excerpt validated for this area."}\n\nAnalysis (inference): ${area.analysis || "Insufficient evidence."}\n\nNext check: ${area.nextCheck}`),
         "### Coverage limits", ...report.limitations.map(limit => `- ${limit}`),
         "### Diligence sources", ...report.sources.map(source => `[${source.id}: ${source.title}](${source.url}) — accessed ${source.retrievedAt}`),
     ].join("\n\n");
