@@ -3,32 +3,19 @@ import mongoose from "mongoose";
 import { withAuth } from "../../../authMiddleware";
 import GroupPost from "../../../../models/GroupPost";
 import GroupComment from "../../../../models/GroupComment";
-import PaperHighlight from "../../../../models/PaperHighlight";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { consumeRateLimit } from "../../../../lib/rate-limit";
 import { parseHighlightLookup } from "../../../../lib/paper-highlights";
-import {
-    evaluateQuoteEligibility,
-    paperHasFullTextBody,
-    quoteLicenseFromHome,
-} from "../../../../lib/quote-eligibility";
 import {
     GROUP_NOTE_MAX,
     GROUP_POST_HIGHLIGHT_LIMIT,
     parseGroupText,
 } from "../../../../lib/groups";
-import { loadCachedPaperBySource } from "../../../paper/load-paper";
+import { snapshotSharedHighlights } from "../../../../lib/shared-highlights";
 import { loadMembership } from "../../access";
 
 type RouteContext = { params: Promise<{ id: string }> };
 const noStore = { "Cache-Control": "private, no-store" };
-
-type HighlightDoc = {
-    _id: mongoose.Types.ObjectId;
-    excerpt: string;
-    color: string;
-    citation: { sectionTitle: string; startLine: number; endLine: number };
-};
 
 // Share a paper (and some of your highlights on it) into a group.
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -70,40 +57,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
             return NextResponse.json({ error: `Share up to ${GROUP_POST_HIGHLIGHT_LIMIT} highlights at a time.` }, { status: 400 });
         }
 
-        // Only your own highlights, and only ones on this paper.
-        const highlights = (await PaperHighlight.find({
-            _id: { $in: highlightIds },
-            userID: req.user._id,
-            primarySource: lookup.primarySource,
-            paperId: lookup.paperId,
-            idName: lookup.idName,
-        })
-            .sort({ createdAt: 1 })
-            .lean()) as unknown as HighlightDoc[];
-        if (highlights.length === 0 && !note) {
-            return NextResponse.json({ error: "Add a note or pick at least one highlight." }, { status: 400 });
-        }
-
-        const loaded = await loadCachedPaperBySource(
-            lookup.database,
-            lookup.paperId,
-            lookup.idName,
-        ).catch(() => null);
-        const paper = loaded?.value;
-        if (!paper) {
+        const snapshot = await snapshotSharedHighlights(
+            req.user._id,
+            lookup,
+            highlightIds,
+        );
+        if (!snapshot) {
             return NextResponse.json({ error: "That paper couldn't be loaded. Try again." }, { status: 502 });
         }
-        // Same strict gate as claim-ledger quotes: only open-license home
-        // full text may be shown to other people.
-        const licenses = quoteLicenseFromHome(paper.access);
-        const quotable = evaluateQuoteEligibility({
-            source: paper.source || lookup.database,
-            database: lookup.database,
-            contentLabel: paper.contentLabel,
-            hasFullTextBody: paperHasFullTextBody(paper),
-            rawLicense: licenses.rawLicense,
-            licenseUrl: licenses.licenseUrl,
-        }).allowed;
+        if (snapshot.highlights.length === 0 && !note) {
+            return NextResponse.json({ error: "Add a note or pick at least one highlight." }, { status: 400 });
+        }
+        const { quotable } = snapshot;
 
         const post = await GroupPost.create({
             groupID: id,
@@ -111,16 +76,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
             database: lookup.database,
             paperId: lookup.paperId,
             idName: lookup.idName,
-            paperTitle: String(paper.title || "Untitled paper").slice(0, 500),
+            paperTitle: snapshot.paperTitle,
             note,
             quotable,
-            highlights: highlights.map((highlight) => ({
-                excerpt: quotable ? highlight.excerpt : null,
-                sectionTitle: highlight.citation.sectionTitle,
-                startLine: highlight.citation.startLine,
-                endLine: highlight.citation.endLine,
-                color: highlight.color || "pink",
-            })),
+            highlights: snapshot.highlights,
         });
         return NextResponse.json(
             { postId: post._id.toString(), quotable },

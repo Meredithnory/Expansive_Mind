@@ -878,7 +878,8 @@
   background: rgba(255, 0, 132, 0.04);
 
   select,
-  textarea {
+  textarea,
+  input:not([type="checkbox"]) {
     width: 100%;
     min-height: 44px;
     padding: 10px 12px;

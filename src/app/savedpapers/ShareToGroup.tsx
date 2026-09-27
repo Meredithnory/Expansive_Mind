@@ -15,7 +15,9 @@ export default function ShareToGroup({
     onClose: () => void;
 }) {
     const [groups, setGroups] = useState<GroupOption[] | null>(null);
-    const [groupId, setGroupId] = useState("");
+    // "public" posts to the forum; anything else is a group id.
+    const [groupId, setGroupId] = useState("public");
+    const [tags, setTags] = useState("");
     const [note, setNote] = useState("");
     const [picked, setPicked] = useState<Set<string>>(
         () => new Set(paper.highlights.map((highlight) => highlight.id)),
@@ -30,7 +32,6 @@ export default function ShareToGroup({
             const data = await response.json().catch(() => ({}));
             const list: GroupOption[] = response.ok ? data.groups || [] : [];
             setGroups(list);
-            if (list[0]) setGroupId(list[0].id);
         })();
     }, []);
 
@@ -48,16 +49,19 @@ export default function ShareToGroup({
         if (!groupId || sending) return;
         setSending(true);
         setStatus("");
-        const response = await fetch(`/api/groups/${groupId}/posts`, {
+        const isPublic = groupId === "public";
+        const payload = {
+            database: paper.database,
+            paperId: paper.paperId,
+            idName: paper.idName,
+            highlightIds: [...picked].slice(0, isPublic ? 10 : 20),
+        };
+        const response = await fetch(isPublic ? "/api/forum" : `/api/groups/${groupId}/posts`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                database: paper.database,
-                paperId: paper.paperId,
-                idName: paper.idName,
-                note,
-                highlightIds: [...picked],
-            }),
+            body: JSON.stringify(
+                isPublic ? { ...payload, body: note, tags } : { ...payload, note },
+            ),
         });
         const data = await response.json().catch(() => ({}));
         setSending(false);
@@ -65,7 +69,7 @@ export default function ShareToGroup({
             setStatus(data.error || "Sharing didn't work. Try again.");
             return;
         }
-        setSharedTo(groupId);
+        setSharedTo(isPublic ? `/forum/${data.postId}` : `/groups/${groupId}`);
         setStatus(
             data.quotable
                 ? "Shared."
@@ -76,39 +80,51 @@ export default function ShareToGroup({
     return (
         <form className={styles.sharePanel} onSubmit={share}>
             <div className={styles.shareHead}>
-                <h3>Share to a group</h3>
+                <h3>Share this paper</h3>
                 <button type="button" onClick={onClose} aria-label="Close">
                     ×
                 </button>
             </div>
             {groups === null ? (
                 <p className={styles.emptyMessage}>Loading your groups…</p>
-            ) : groups.length === 0 ? (
-                <p className={styles.emptyMessage}>
-                    You&apos;re not in a group yet. <Link href="/groups">Create one</Link>{" "}
-                    and invite your labmates.
-                </p>
             ) : sharedTo ? (
                 <>
                     <p className={styles.emptyMessage}>{status}</p>
-                    <Link href={`/groups/${sharedTo}`} className={styles.shareButton}>
-                        Open the group
+                    <Link href={sharedTo} className={styles.shareButton}>
+                        {sharedTo.startsWith("/forum") ? "View your post" : "Open the group"}
                     </Link>
                 </>
             ) : (
                 <>
                     <label className={styles.shareLabel}>
-                        Group
+                        Share to
                         <select value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+                            <option value="public">Public forum (anyone can read)</option>
                             {groups.map((group) => (
                                 <option key={group.id} value={group.id}>
-                                    {group.name}
+                                    Group: {group.name}
                                 </option>
                             ))}
                         </select>
                     </label>
+                    {groupId === "public" && (
+                        <label className={styles.shareLabel}>
+                            Topics (up to 3)
+                            <input
+                                value={tags}
+                                maxLength={100}
+                                placeholder="e.g. immunology crispr"
+                                onChange={(event) => setTags(event.target.value)}
+                            />
+                        </label>
+                    )}
+                    {groups.length === 0 && groupId === "public" && (
+                        <p className={styles.emptyMessage}>
+                            Want to share privately instead? <Link href="/groups">Create a group</Link>.
+                        </p>
+                    )}
                     <label className={styles.shareLabel}>
-                        Note (optional)
+                        {groupId === "public" ? "Your take (optional)" : "Note (optional)"}
                         <textarea
                             value={note}
                             maxLength={1000}

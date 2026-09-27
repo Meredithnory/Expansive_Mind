@@ -75,6 +75,13 @@ const NavigationMenu = ({
                         Library
                     </Link>
                     <Link
+                        href="/forum"
+                        className={linkClass("/forum")}
+                        onClick={onNavigate}
+                    >
+                        Forum
+                    </Link>
+                    <Link
                         href="/groups"
                         className={linkClass("/groups")}
                         onClick={onNavigate}
@@ -133,6 +140,13 @@ const NavigationMenu = ({
             ) : (
                 <>
                     {researchLink}
+                    <Link
+                        href="/forum"
+                        className={linkClass("/forum")}
+                        onClick={onNavigate}
+                    >
+                        Forum
+                    </Link>
                     <Link
                         href="/about"
                         className={linkClass("/about")}

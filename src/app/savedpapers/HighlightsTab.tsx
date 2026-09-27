@@ -242,7 +242,7 @@ export default function HighlightsTab({
                                         )
                                     }
                                 >
-                                    Share to group
+                                    Share
                                 </button>
                             </div>
                             {sharingKey === paper.key && (
