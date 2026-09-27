@@ -31,6 +31,7 @@ export default async function PaperChatPage({ params, searchParams }: PaperChatP
                 locateMethod={first(query.intent) === "method"}
                 requestedIdName={first(query.idName)}
                 citeFocus={first(query.citeFocus) === "1"}
+                focusLines={first(query.lines)}
             />
         </Suspense>
     );

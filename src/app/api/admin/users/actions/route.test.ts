@@ -67,6 +67,21 @@ vi.mock("../../../../models/PaperBrief", () => ({
 vi.mock("../../../../models/PaperShare", () => ({
     default: { deleteMany: mocks.shareDeleteMany },
 }));
+vi.mock("../../../../models/Group", () => ({
+    default: {
+        find: () => ({ select: () => ({ lean: () => Promise.resolve([{ _id: "g1" }]) }) }),
+        deleteMany: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    },
+}));
+vi.mock("../../../../models/GroupComment", () => ({
+    default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 3 }) },
+}));
+vi.mock("../../../../models/GroupPost", () => ({
+    default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 2 }) },
+}));
+vi.mock("../../../../models/GroupMember", () => ({
+    default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 4 }) },
+}));
 vi.mock("../../../../models/UsageEvent", () => ({
     default: { updateMany: mocks.usageEventUpdateMany },
 }));
@@ -163,6 +178,10 @@ describe("POST /api/admin/users/actions remove_user", () => {
         expect(body.result.deleted).toMatchObject({
             usageEventsAnonymized: 7,
             visitsAnonymized: 6,
+            groupsOwned: 1,
+            groupPosts: 2,
+            groupComments: 3,
+            groupMemberships: 4,
             user: 1,
         });
         expect(mocks.stripeCancel).not.toHaveBeenCalled();

@@ -22,7 +22,11 @@ import {
     buildPaperPath,
     getSourceByDatabase,
 } from "../../../lib/paper-sources";
-import type { PaperCitation } from "../../../lib/paper-citation";
+import {
+    citationFromLineRange,
+    type PaperCitation,
+} from "../../../lib/paper-citation";
+import { parseLineRange } from "../../../lib/paper-lines";
 import type { PaperTool } from "../../../lib/region-capture";
 import {
     consumeCiteFocusSource,
@@ -105,6 +109,7 @@ type PaperChatClientProps = {
     locateMethod: boolean;
     requestedIdName: string | null;
     citeFocus: boolean;
+    focusLines?: string | null;
 };
 
 const PaperChatClient = ({
@@ -115,6 +120,7 @@ const PaperChatClient = ({
     locateMethod,
     requestedIdName,
     citeFocus,
+    focusLines = null,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -205,6 +211,19 @@ const PaperChatClient = ({
             fetchPaperInfo();
         }
     }, [database, paperId, fetchPaperInfo]);
+
+    // ?lines=12-15 (group posts): open at a line range without putting the
+    // passage text in the link.
+    useEffect(() => {
+        if (!focusLines || !researchPaper || loading) return;
+        const range = parseLineRange(focusLines);
+        if (!range) return;
+        const citation = citationFromLineRange(researchPaper, range.start, range.end);
+        if (citation) {
+            setFocusCitation(citation);
+            setFocusRequestId((current) => current + 1);
+        }
+    }, [focusLines, researchPaper, loading]);
 
     useEffect(() => {
         if (!citeFocus || !researchPaper || loading) return;

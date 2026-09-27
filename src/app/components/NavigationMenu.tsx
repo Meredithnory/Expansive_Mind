@@ -75,6 +75,13 @@ const NavigationMenu = ({
                         Library
                     </Link>
                     <Link
+                        href="/groups"
+                        className={linkClass("/groups")}
+                        onClick={onNavigate}
+                    >
+                        Groups
+                    </Link>
+                    <Link
                         href="/profile"
                         className={`${linkClass("/profile")} ${styles.profileLink}`}
                         onClick={onNavigate}

@@ -135,6 +135,24 @@ const citationFromMatch = (
     };
 };
 
+/** Citation for a line range, as stored on highlights and group posts. */
+export function citationFromLineRange(
+    paper: FormattedPaper,
+    start: number,
+    end: number,
+): PaperCitation | null {
+    const lines = buildPaperLines(paper).filter(
+        (line) => line.number >= start && line.number <= end,
+    );
+    if (lines.length === 0) return null;
+    return {
+        sectionTitle: lines[0].sectionTitle,
+        startLine: lines[0].number,
+        endLine: lines[lines.length - 1].number,
+        lines: lines.map((line) => line.text),
+    };
+}
+
 export function locateExcerptInPaper(
     paper: FormattedPaper,
     excerpt: string,

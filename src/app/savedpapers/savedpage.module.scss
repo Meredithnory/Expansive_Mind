@@ -852,3 +852,136 @@
     color: #fff;
   }
 }
+
+/* Share to group (Highlights tab). The card's own action buttons fade in on
+   hover; this one stays visible so phones can reach it. */
+.pagecontainer .pagecontent .cardActions .shareToggle {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  color: rgba(215, 235, 255, 0.8);
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+  }
+}
+
+.sharePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px solid rgba(255, 0, 132, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 0, 132, 0.04);
+
+  select,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid rgba(215, 235, 255, 0.14);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+}
+
+.shareHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+}
+
+.shareLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: rgba(215, 235, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.sharePicks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 0;
+
+  legend {
+    margin-bottom: 6px;
+    color: rgba(215, 235, 255, 0.7);
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  input {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex: none;
+    accent-color: #ff0084;
+  }
+
+  span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+.shareButton {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #ff0084;
+  color: #fff !important;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
