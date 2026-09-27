@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { HighlightNotesPaper } from "../lib/highlight-notes";
 import type { HighlightColor } from "../lib/paper-highlights";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import ShareToGroup from "./ShareToGroup";
 import styles from "./savedpage.module.scss";
 
 const COLORS: Array<{ id: HighlightColor | "all"; label: string }> = [
@@ -43,6 +44,7 @@ export default function HighlightsTab({
     const [error, setError] = useState("");
     const [color, setColor] = useState<HighlightColor | "all">("all");
     const [copiedId, setCopiedId] = useState("");
+    const [sharingKey, setSharingKey] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setError("");
@@ -230,7 +232,26 @@ export default function HighlightsTab({
                                 <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
                                     Open paper <span aria-hidden="true">→</span>
                                 </Link>
+                                <button
+                                    type="button"
+                                    className={styles.shareToggle}
+                                    aria-expanded={sharingKey === paper.key}
+                                    onClick={() =>
+                                        setSharingKey((current) =>
+                                            current === paper.key ? null : paper.key,
+                                        )
+                                    }
+                                >
+                                    Share to group
+                                </button>
                             </div>
+                            {sharingKey === paper.key && (
+                                <ShareToGroup
+                                    // Share from the full paper, not a color-filtered view.
+                                    paper={papers?.find((item) => item.key === paper.key) ?? paper}
+                                    onClose={() => setSharingKey(null)}
+                                />
+                            )}
                         </article>
                     ))}
                 </div>

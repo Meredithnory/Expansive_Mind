@@ -52,6 +52,7 @@ describe("auth navigation middleware", () => {
             "/savedpapers/:path*",
             "/projects/:path*",
             "/profile/:path*",
+            "/groups/:path*",
             "/admin/:path*",
             "/login",
             "/signup",

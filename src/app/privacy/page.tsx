@@ -130,8 +130,11 @@ export default function PrivacyPage() {
                             </ul>
                             <p>
                                 If you create a share link, anyone with that
-                                link can see what you shared. We may also
-                                disclose information if the law requires it.
+                                link can see what you shared. If you join a
+                                private group, its members can see your name,
+                                profile color, and what you share or comment
+                                there. We may also disclose information if the
+                                law requires it.
                             </p>
                         </>
                     ),

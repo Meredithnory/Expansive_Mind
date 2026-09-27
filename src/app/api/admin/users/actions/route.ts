@@ -5,6 +5,10 @@ import { recordAdminAction } from "../../../../lib/admin-audit";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { getStripe } from "../../../../lib/stripe";
 import type { QuotaFeature } from "../../../../lib/plan-config";
+import Group from "../../../../models/Group";
+import GroupComment from "../../../../models/GroupComment";
+import GroupMember from "../../../../models/GroupMember";
+import GroupPost from "../../../../models/GroupPost";
 import Message from "../../../../models/Message";
 import PageEngagement from "../../../../models/PageEngagement";
 import PaperBrief from "../../../../models/PaperBrief";
@@ -203,6 +207,25 @@ export const POST = withAdmin(async (request: NextRequest) => {
             );
         }
 
+        // Groups they own go away entirely; elsewhere, their posts,
+        // comments, and memberships are removed.
+        const ownedGroups = (await Group.find({ ownerID: user._id })
+            .select("_id")
+            .lean()) as unknown as Array<{ _id: unknown }>;
+        const ownedGroupIds = ownedGroups.map((group) => group._id);
+        const [groupComments, groupPosts, groupMemberships] = await Promise.all([
+            GroupComment.deleteMany({
+                $or: [{ authorID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+            GroupPost.deleteMany({
+                $or: [{ authorID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+            GroupMember.deleteMany({
+                $or: [{ userID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+        ]);
+        const groups = await Group.deleteMany({ _id: { $in: ownedGroupIds } });
+
         const savedPapers = await SavedPaper.find({ userID: user._id })
             .select("_id")
             .lean();
@@ -259,6 +282,10 @@ export const POST = withAdmin(async (request: NextRequest) => {
                 shares: shares.deletedCount,
                 usageEventsAnonymized: usageEvents.modifiedCount,
                 visitsAnonymized: visits.modifiedCount,
+                groupsOwned: groups.deletedCount,
+                groupPosts: groupPosts.deletedCount,
+                groupComments: groupComments.deletedCount,
+                groupMemberships: groupMemberships.deletedCount,
                 user: 1,
             },
         };
