@@ -1,5 +1,5 @@
 "use client";
-import DiscoveryPaperChat from "./DiscoveryPaperChat";
+import DiscoveryPaperChat, { type PaperChatFocus } from "./DiscoveryPaperChat";
 
 import React, {
     useCallback,
@@ -338,6 +338,9 @@ function DiscoverClient({
     );
     const [dockedComposerOpen, setDockedComposerOpen] = useState(false);
     const [paperChatOpen, setPaperChatOpen] = useState(false);
+    // Set by a citation click: the passage to highlight and where the panel grows from.
+    const [paperChatFocus, setPaperChatFocus] =
+        useState<PaperChatFocus | null>(null);
     const [selectedPaperIndex, setSelectedPaperIndex] = useState<
         number | undefined
     >();
@@ -682,6 +685,20 @@ function DiscoverClient({
             );
             if (!exists) return;
             if (isLoggedIn) {
+                const rect = trigger?.getBoundingClientRect();
+                setPaperChatFocus((current) => ({
+                    paperIndex,
+                    excerpt:
+                        extractionForPaper(result?.extractions, paperIndex)
+                            ?.supportingExcerpt || "",
+                    requestId: (current?.requestId ?? 0) + 1,
+                    origin: rect
+                        ? {
+                              x: rect.left + rect.width / 2,
+                              y: rect.top + rect.height / 2,
+                          }
+                        : null,
+                }));
                 setPreviewPaperIndex(null);
                 setSelectedPaperIndex(paperIndex);
                 setComposerMode("paper");
@@ -2323,6 +2340,7 @@ function DiscoverClient({
                     selected={selectedPaperIndex}
                     pendingQuestion={pendingPaperQuestion}
                     onPendingQuestionHandled={() => setPendingPaperQuestion(null)}
+                    focus={paperChatFocus}
                     onClose={() => {
                         setPaperChatOpen(false);
                         setComposerMode("discover");

@@ -11,6 +11,7 @@ import {
 } from "../../api/general-interfaces";
 import Image from "next/image";
 import { HighlightSearchTitle } from "../../lib/highlight-search";
+import { scrollRangeIntoView } from "../../lib/scroll-to-range";
 import type { PaperCitation } from "../../lib/paper-citation";
 import {
     citationLabel,
@@ -404,15 +405,7 @@ const Paperbox = ({
                     citation,
                     color: DEFAULT_HIGHLIGHT_COLOR,
                 });
-                if (scrollToMatch) {
-                    const node = range.startContainer;
-                    const target =
-                        node instanceof Element ? node : node.parentElement;
-                    target?.scrollIntoView({
-                        block: "center",
-                        behavior: "smooth",
-                    });
-                }
+                if (scrollToMatch) scrollRangeIntoView(range);
                 return true;
             }
 
