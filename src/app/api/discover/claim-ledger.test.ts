@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { OpportunityReport } from "./report-types";
 import {
     SHARE_LOCKED_ERROR,
@@ -16,6 +16,7 @@ const papers = [
     {
         index: 1,
         paperId: "10.1/one",
+        title: "Treatment arm outcomes",
         href: "/paperchatbot/springer/10.1/one",
         doi: "10.1/one",
         licenseUrl: CC_BY,
@@ -24,6 +25,7 @@ const papers = [
     {
         index: 2,
         paperId: "PMC99",
+        title: "Follow-up horizon",
         href: "/paperchatbot/nih/PMC99",
         licenseUrl: CC_BY,
         database: "nih" as const,
@@ -84,6 +86,7 @@ describe("buildClaimLedger", () => {
             claim: "Durability unknown",
             paperIndex: 1,
             doi: "10.1/one",
+            title: "Treatment arm outcomes",
             quote: "Events fell by 12% in the treatment arm.",
             licenseUrl: CC_BY,
             confidence: "suggested",
@@ -172,6 +175,86 @@ describe("evaluateClaimLedger / share gate", () => {
         expect(ledger.rows[0].quote).toBe("");
         expect(ledger.rows[0].licenseUrl).toBeUndefined();
         expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
+    });
+
+    it("omits the quote when the license is unknown, empty, unrecognized, or undetermined", () => {
+        const gap = {
+            sections: {
+                ...completeReport.sections,
+                gaps: [completeReport.sections.gaps[0]],
+                problems: [],
+                venturePotential: [],
+            },
+        };
+        for (const licenseUrl of [
+            undefined,
+            "",
+            "we couldn't determine the license",
+            "https://example.com/all-rights-reserved",
+            "https://creativecommons.org/licenses/by-nc/4.0/",
+        ]) {
+            const ledger = buildClaimLedger(
+                gap,
+                papers.map((paper) => ({
+                    ...paper,
+                    licenseUrl,
+                })),
+                extractions,
+            );
+            expect(ledger.rows.every((row) => row.quote === "")).toBe(true);
+        }
+    });
+
+    it("omits the quote when the title or the link is missing", () => {
+        const gap = {
+            sections: {
+                ...completeReport.sections,
+                gaps: [
+                    {
+                        ...completeReport.sections.gaps[0],
+                        citations: [1],
+                    },
+                ],
+                problems: [],
+                venturePotential: [],
+            },
+        };
+        const noTitle = buildClaimLedger(
+            gap,
+            [{ ...papers[0], title: "  " }],
+            extractions,
+        );
+        expect(noTitle.rows[0].quote).toBe("");
+        const noLink = buildClaimLedger(
+            gap,
+            [{ ...papers[0], doi: undefined, href: "", sourceUrl: "" }],
+            extractions,
+        );
+        expect(noLink.rows[0].quote).toBe("");
+    });
+
+    it("logs an unknown license without the quote text", () => {
+        const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+        try {
+            buildClaimLedger(
+                {
+                    sections: {
+                        ...completeReport.sections,
+                        gaps: [completeReport.sections.gaps[0]],
+                        problems: [],
+                        venturePotential: [],
+                    },
+                },
+                papers.map((paper) => ({ ...paper, licenseUrl: undefined })),
+                extractions,
+            );
+            const lines = spy.mock.calls.map((call) => String(call[0]));
+            expect(lines.some((line) => line.includes('"licenseResult":"unknown"'))).toBe(true);
+            expect(lines.some((line) => line.includes('"quoteOmitted":true'))).toBe(true);
+            expect(lines.join("\n")).not.toContain("Events fell");
+        } finally {
+            spy.mockRestore();
+        }
     });
 
     it("opens share when every row has a quote and a paper citation", () => {

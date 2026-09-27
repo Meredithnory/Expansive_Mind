@@ -65,6 +65,15 @@ describe("founder source provenance", () => {
         expect(report.areas.find(area => area.id === "capital")?.findings).toHaveLength(1);
         expect(report.areas).toHaveLength(8);
     });
+    it("omits a founder quote when the title is missing", () => {
+        const report = parseFounderReport({
+            ...fixture,
+            sources: [{ ...source, title: "  " }],
+        })!;
+        const markdown = founderReportMarkdown(report);
+        expect(markdown).not.toContain(source.text);
+        expect(markdown).not.toContain("Source excerpt:");
+    });
     it("rejects unsafe source links and their dependent findings", () => {
         const report = parseFounderReport({ ...fixture, sources: [{ ...source, url: "javascript:alert(1)" }] })!;
         expect(report.sources).toHaveLength(0);
@@ -73,7 +82,10 @@ describe("founder source provenance", () => {
     it("preserves founder diligence through guest restoration and includes it in export", () => {
         const report = parseGuestOpportunityReport({ sections: { stateOfScience: "Science summary" }, founder: fixture })!;
         expect(report.founder?.scope).toBe("US labs");
-        expect(founderReportMarkdown(report.founder!)).toContain(source.url);
+        const markdown = founderReportMarkdown(report.founder!);
+        expect(markdown).toContain(source.url);
+        expect(markdown).toContain(`[${source.title}](${source.url})`);
+        expect(markdown).toContain(source.text);
         expect(parseGuestOpportunityReport({ sections: { stateOfScience: "Old report" } })?.founder).toBeUndefined();
     });
 });

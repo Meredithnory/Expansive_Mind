@@ -1,5 +1,12 @@
 import type { SourceDatabase } from "../../lib/paper-sources";
-import { isCommercialFriendlyLicenseUri } from "../../lib/quote-eligibility";
+import {
+    isCommercialFriendlyLicenseUri,
+    isUndeterminedLicenseText,
+    logQuoteDecision,
+    resolvableQuoteLink,
+    visiblePaperQuote,
+    type QuoteLicenseResult,
+} from "../../lib/quote-eligibility";
 import type {
     ClaimLedger,
     ClaimLedgerKind,
@@ -18,7 +25,9 @@ export type LedgerPaper = Pick<
     DiscoverPaperCard,
     "index" | "paperId" | "href"
 > & {
+    title?: string;
     doi?: string;
+    sourceUrl?: string;
     licenseUrl?: string;
     database?: SourceDatabase;
 };
@@ -87,6 +96,55 @@ export function isClaimLedgerRowComplete(row: ClaimLedgerRow): boolean {
     );
 }
 
+function ledgerLicenseResult(paper: LedgerPaper | undefined): QuoteLicenseResult {
+    if (!paper || paper.database === "scholar") return "fail-closed";
+    const url = trimmed(paper.licenseUrl);
+    if (!url || isUndeterminedLicenseText(url)) return "unknown";
+    if (!isCommercialFriendlyLicenseUri(url)) return "fail-closed";
+    return "allowed";
+}
+
+function logLedgerQuoteDecisions(
+    papers: LedgerPaper[],
+    extractions: LedgerExtraction[],
+) {
+    const seen = new Set<string>();
+    for (const paper of papers) {
+        const paperId = trimmed(paper.paperId);
+        if (!paperId || seen.has(paperId)) continue;
+        seen.add(paperId);
+        const title = trimmed(paper.title);
+        const link = resolvableQuoteLink({
+            doi: paper.doi,
+            href: paper.href,
+            sourceUrl: paper.sourceUrl,
+        });
+        const licenseResult = ledgerLicenseResult(paper);
+        const excerpt =
+            paper.database === "scholar"
+                ? ""
+                : excerptByIndex(extractions, paper.index);
+        const shown =
+            licenseResult === "allowed"
+                ? visiblePaperQuote({
+                      quote: excerpt,
+                      title,
+                      doi: paper.doi,
+                      href: paper.href,
+                      sourceUrl: paper.sourceUrl,
+                      licenseUrl: paper.licenseUrl,
+                  })
+                : null;
+        logQuoteDecision({
+            paperId,
+            licenseResult,
+            quoteOmitted: !shown,
+            titlePresent: title.length > 0,
+            linkPresent: Boolean(link),
+        });
+    }
+}
+
 function rowForCitation(
     kind: ClaimLedgerKind,
     ordinal: number,
@@ -100,11 +158,19 @@ function rowForCitation(
     const doi = trimmed(paper?.doi) || undefined;
     const paperId = trimmed(paper?.paperId) || undefined;
     const href = trimmed(paper?.href) || undefined;
+    const title = trimmed(paper?.title) || undefined;
     const scholar = paper?.database === "scholar";
-    const licenseUrl =
-        !scholar && isCommercialFriendlyLicenseUri(paper?.licenseUrl)
-            ? trimmed(paper?.licenseUrl)
-            : "";
+    const shown = scholar
+        ? null
+        : visiblePaperQuote({
+              quote: excerptByIndex(extractions, paperIndex),
+              title,
+              doi,
+              href,
+              sourceUrl: paper?.sourceUrl,
+              licenseUrl: paper?.licenseUrl,
+          });
+    const licenseUrl = shown ? trimmed(paper?.licenseUrl) : "";
     return {
         id: `${kind}-${ordinal}-p${paperIndex}`,
         kind,
@@ -113,7 +179,8 @@ function rowForCitation(
         ...(paperId ? { paperId } : {}),
         ...(doi ? { doi } : {}),
         ...(href ? { href } : {}),
-        quote: scholar ? "" : excerptByIndex(extractions, paperIndex),
+        ...(title ? { title } : {}),
+        quote: shown?.quote ?? "",
         ...(licenseUrl ? { licenseUrl } : {}),
         ...(confidence ? { confidence } : {}),
     };
@@ -193,8 +260,14 @@ export function toLedgerPapers(papers: unknown): LedgerPaper[] {
                 index,
                 paperId: typeof value.paperId === "string" ? value.paperId : "",
                 href: typeof value.href === "string" ? value.href : "",
+                ...(typeof value.title === "string" && value.title
+                    ? { title: value.title }
+                    : {}),
                 ...(typeof value.doi === "string" && value.doi
                     ? { doi: value.doi }
+                    : {}),
+                ...(typeof value.sourceUrl === "string" && value.sourceUrl
+                    ? { sourceUrl: value.sourceUrl }
                     : {}),
                 ...(typeof value.licenseUrl === "string" && value.licenseUrl
                     ? { licenseUrl: value.licenseUrl }
@@ -232,6 +305,7 @@ export function buildClaimLedger(
     papers: LedgerPaper[],
     extractions: LedgerExtraction[],
 ): ClaimLedger {
+    logLedgerQuoteDecisions(papers, extractions);
     const rows: ClaimLedgerRow[] = [];
     const { gaps, problems, venturePotential } = report.sections;
 

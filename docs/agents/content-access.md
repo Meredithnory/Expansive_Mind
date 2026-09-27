@@ -6,7 +6,7 @@ One normalizer: `normalizeLicense` and `evaluateContentAccess` in `src/app/lib/c
 
 Figures: `canUseFigureImage`. A figure that declares its own permissions must itself be commercial-friendly. Otherwise it inherits the article flag.
 
-The quote gate is strict even when the mode is legacy. `evaluateQuoteEligibility` in `src/app/lib/quote-eligibility.ts` blocks Scholar snippets, abstract-only bodies, a null home license, a non-commercial-friendly license, and `license_conflict`. `quoteLicenseFromHome` ignores its OA argument.
+The quote gate is strict even when the mode is legacy. `evaluateQuoteEligibility` in `src/app/lib/quote-eligibility.ts` blocks Scholar snippets, abstract-only bodies, a null home license, a non-commercial-friendly license, and `license_conflict`. Missing, empty, unrecognized, and undetermined license text fail closed: the verbatim passage is omitted. `quoteLicenseFromHome` ignores its OA argument. What the code logs and how a shown quote carries a title and link: [quote-compliance.md](quote-compliance.md).
 
 Unpaywall (`src/app/api/research/adapters/unpaywall.ts`) and `oaConflictsWithHome` in `src/app/api/research/oa.ts`: a commercial-friendly home plus an OA license of `OTHER` drops the paper. An unknown OA record is not a conflict. An OA CC license does not upgrade an unknown home.
 

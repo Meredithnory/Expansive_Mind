@@ -24,6 +24,7 @@ const DOC_FILES = [
     "docs/agents/quotas.md",
     "docs/agents/billing.md",
     "docs/agents/content-access.md",
+    "docs/agents/quote-compliance.md",
 ];
 
 const REQUIRED_PATHS = [

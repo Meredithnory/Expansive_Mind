@@ -2,6 +2,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import type { ClaimLedger, ClaimLedgerRow } from "../api/discover/report-types";
 import { isClaimLedgerRowComplete } from "../api/discover/claim-ledger";
+import { visiblePaperQuote } from "../lib/quote-eligibility";
+import QuoteWithAttribution from "./QuoteWithAttribution";
 import styles from "./claim-ledger.module.scss";
 
 type CitePaper = (index: number, trigger?: HTMLElement | null) => void;
@@ -26,6 +28,13 @@ function LedgerRow({
         [styles.rowActive]: active,
         [styles.rowIncomplete]: !complete,
     });
+    const shown = visiblePaperQuote({
+        quote: row.quote,
+        title: row.title,
+        doi: row.doi,
+        href: row.href,
+        licenseUrl: row.licenseUrl,
+    });
     const body = (
         <>
             <div className={styles.rowHeader}>
@@ -36,13 +45,22 @@ function LedgerRow({
                 <span className={styles.source}>{sourceLabel(row)}</span>
             </div>
             <p className={styles.claim}>{row.claim}</p>
-            {row.quote ? (
-                <blockquote className={styles.quote}>{row.quote}</blockquote>
+            {shown ? (
+                <QuoteWithAttribution
+                    quote={shown.quote}
+                    title={shown.title}
+                    link={shown.link}
+                    className={styles.quote}
+                />
             ) : (
                 <p className={styles.missing}>Needs a source excerpt</p>
             )}
         </>
     );
+
+    if (shown) {
+        return <div className={className}>{body}</div>;
+    }
 
     if (onCitePaper && row.paperIndex) {
         return (
