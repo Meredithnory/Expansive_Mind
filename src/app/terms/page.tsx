@@ -95,6 +95,41 @@ export default function TermsPage() {
                     ),
                 },
                 {
+                    heading: "The public forum and groups",
+                    body: (
+                        <>
+                            <p>
+                                Posts and comments in the public forum can be
+                                read by anyone, including people without an
+                                account. Group posts are seen only by that
+                                group&apos;s members. In both, please:
+                            </p>
+                            <ul>
+                                <li>Be respectful. No harassment, hate, or personal attacks.</li>
+                                <li>No spam, advertising, or self-promotion unrelated to the research.</li>
+                                <li>
+                                    Represent research honestly. Don&apos;t misstate
+                                    what a paper found.
+                                </li>
+                                <li>
+                                    Don&apos;t post text you don&apos;t have the right to
+                                    share. Expansive Mind only shows quoted paper
+                                    text when the paper&apos;s license allows it.
+                                </li>
+                                <li>No private information about other people.</li>
+                            </ul>
+                            <p>
+                                You keep ownership of what you post and give us
+                                permission to display it on Expansive Mind. We may
+                                hide or remove posts and suspend accounts that
+                                break these rules. Anyone can report a post; items
+                                reported by several people are hidden until we
+                                review them.
+                            </p>
+                        </>
+                    ),
+                },
+                {
                     heading: "Paid plans",
                     body: (
                         <p>

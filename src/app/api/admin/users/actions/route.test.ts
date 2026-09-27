@@ -82,6 +82,11 @@ vi.mock("../../../../models/GroupPost", () => ({
 vi.mock("../../../../models/GroupMember", () => ({
     default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 4 }) },
 }));
+vi.mock("../../../../models/Block", () => ({ default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }) } }));
+vi.mock("../../../../models/Follow", () => ({ default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }) } }));
+vi.mock("../../../../models/ForumReport", () => ({ default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }) } }));
+vi.mock("../../../../models/ForumPost", () => ({ default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 5 }) } }));
+vi.mock("../../../../models/ForumComment", () => ({ default: { deleteMany: vi.fn().mockResolvedValue({ deletedCount: 6 }) } }));
 vi.mock("../../../../models/UsageEvent", () => ({
     default: { updateMany: mocks.usageEventUpdateMany },
 }));
@@ -182,6 +187,8 @@ describe("POST /api/admin/users/actions remove_user", () => {
             groupPosts: 2,
             groupComments: 3,
             groupMemberships: 4,
+            forumPosts: 5,
+            forumComments: 6,
             user: 1,
         });
         expect(mocks.stripeCancel).not.toHaveBeenCalled();
