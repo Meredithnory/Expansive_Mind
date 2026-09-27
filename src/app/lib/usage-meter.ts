@@ -26,6 +26,8 @@ const MODEL_PRICES_PER_MILLION: Record<
     "openai/gpt-4.1-mini": { input: 0.4, output: 1.6 },
     "openai/gpt-4.1-nano": { input: 0.1, output: 0.4 },
     "openai/text-embedding-3-small": { input: 0.02, output: 0 },
+    // Anthropic standard list price, ≤200K context: $3 input / $15 output per million tokens.
+    "anthropic/claude-sonnet-4.5": { input: 3, output: 15 },
 };
 
 export function estimateAiCostMicros(input: {
