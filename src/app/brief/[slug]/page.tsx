@@ -7,6 +7,9 @@ import {
     findSharedBrief,
 } from "../../lib/shared-brief";
 import ClaimLedgerView from "../../discover/ClaimLedgerView";
+import GapActivityView, {
+    gapActivityCaveat,
+} from "../../discover/GapActivityView";
 import styles from "./brief.module.scss";
 
 export async function generateMetadata({
@@ -83,6 +86,24 @@ const SharedBriefPage = async ({
                 <div className={styles.brief}>
                     <SafeAssistantMarkdown>{shared.brief}</SafeAssistantMarkdown>
                 </div>
+
+                {shared.gapActivity && (
+                    <section className={styles.gapActivity}>
+                        <h2>Who else is working on these gaps</h2>
+                        {shared.gapActivity.map((item) => (
+                            <div key={item.gapNumber} className={styles.gapActivityItem}>
+                                <h3>{`Gap ${item.gapNumber}: ${item.title}`}</h3>
+                                <GapActivityView
+                                    activity={item.activity}
+                                    showCaveat={false}
+                                />
+                            </div>
+                        ))}
+                        <p className={styles.gapActivityCaveat}>
+                            {gapActivityCaveat(shared.gapActivity[0].activity.checkedAt)}
+                        </p>
+                    </section>
+                )}
 
                 {shared.canonicalUrl && (
                     <p className={styles.sourceLink}>

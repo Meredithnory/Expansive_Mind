@@ -29,6 +29,7 @@ import {
     shouldDropForOaConflict,
 } from "../research/registry";
 import { attachClaimLedger } from "./claim-ledger";
+import { attachGapActivity } from "./gap-activity";
 import { synthesizeOpportunityReport } from "./synthesize";
 import {
     extractPaperFindings,
@@ -453,6 +454,10 @@ export async function runDiscoverAgent(
         );
     }
 
+    const report = synthesis.report
+        ? await attachGapActivity(synthesis.report)
+        : undefined;
+
     const nihFillCount = cards.filter(
         (paper) => paper.database === PAPER_SOURCES.nih.database,
     ).length;
@@ -465,8 +470,8 @@ export async function runDiscoverAgent(
         question,
         papers: cards,
         brief: synthesis.brief,
-        report: synthesis.report
-            ? attachClaimLedger(synthesis.report, cards, extractions)
+        report: report
+            ? attachClaimLedger(report, cards, extractions)
             : undefined,
         extractions,
         meta: {

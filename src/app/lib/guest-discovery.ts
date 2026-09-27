@@ -10,6 +10,7 @@ import type {
 import { parseJsonFromLlm } from "../api/discover/parse-llm-json";
 import { parseStoredPaperExtractions } from "./evidence-type";
 import { parseFounderReport } from "./founder-report";
+import { parseGapRegistryFields } from "./gap-activity";
 
 export const GUEST_DISCOVERY_STORAGE_KEY = "guest-discovery-last-result";
 
@@ -77,6 +78,7 @@ function parseGap(value: unknown): ReportGap | null {
         ...(asTrimmedString(gap.scopeNote)
             ? { scopeNote: asTrimmedString(gap.scopeNote) }
             : {}),
+        ...parseGapRegistryFields(gap),
     };
 }
 

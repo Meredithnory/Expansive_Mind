@@ -110,6 +110,42 @@
     }
 }
 
+.gapActivity {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 22px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+
+    h2 {
+        margin: 0;
+        color: rgba(215, 235, 255, 0.85);
+        font-size: 15px;
+        font-weight: 700;
+    }
+}
+
+.gapActivityCaveat {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.gapActivityItem {
+    min-width: 0;
+
+    h3 {
+        margin: 0;
+        color: #d7ebff;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+}
+
 .sources {
     display: flex;
     flex-direction: column;

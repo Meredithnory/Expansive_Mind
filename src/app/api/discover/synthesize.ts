@@ -2,6 +2,7 @@ import type { ChatCompletionMessageParam } from "openai/resources";
 import { createPrivateChatCompletion } from "../openrouter";
 import type { UsageContext } from "../../lib/usage-meter";
 import { parseJsonFromLlm } from "./parse-llm-json";
+import { parseGapRegistryFields } from "../../lib/gap-activity";
 import type {
     PaperExtraction,
     OpportunityReport,
@@ -70,6 +71,7 @@ const parseGap = (value: unknown): ReportGap | null => {
         whyItMatters: asString(gap.whyItMatters),
         citations: asIndexArray(gap.citations),
         confidence: asConfidence(gap.confidence),
+        ...parseGapRegistryFields(gap),
     };
 };
 
@@ -315,7 +317,8 @@ const REPORT_JSON_SCHEMA = `{
         "description": "string — what is missing, grounded in the papers",
         "whyItMatters": "string",
         "citations": [1],
-        "confidence": "established" | "suggested" | "speculative"
+        "confidence": "established" | "suggested" | "speculative",
+        "registryTerms": [["string", "string"]]
       }
     ],
     "problems": [
@@ -440,6 +443,7 @@ venturePotential is optional translation notes, not startup pitches. Omit it whe
 Do not give medical or investment advice. Prefer recency and human evidence when dates and evidence types are present.
 Return ONLY valid JSON matching this schema (no markdown, no commentary):
 ${REPORT_JSON_SCHEMA}
+registryTerms find NIH grants and clinical trials working on the same gap, by exact word match. Groups are OR'd, so every group must describe the whole gap: its specific subject (drug, intervention, target, cell type, pathway) AND the condition. Groups are alternative phrasings of that one idea, never separate sub-topics. Good: [["senolytics","alzheimer"],["senescent cells","alzheimer"]]. Bad: [["inflammation","alzheimer"],["long term","alzheimer"]]. Each group has 2–3 concepts; each concept is 1–2 words as a grant abstract would phrase it ("base editing", not "crispr base editing therapy"). Never use generic words (safety, efficacy, long term, biomarkers, mechanisms, cell type, therapy), quotes, or operators.
 Write 2–4 gaps, 2–4 problems, 0–2 venture items, 1–4 couldNotVerify notes, and 2–3 projectSeeds when the evidence supports them.`;
 
     const userContent = buildCompositionUserMessage(question, extractions);

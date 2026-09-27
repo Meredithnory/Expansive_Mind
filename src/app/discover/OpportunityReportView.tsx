@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import styles from "./discover.module.scss";
+import GapActivityView from "./GapActivityView";
 import type {
     OpportunityReport,
     ProjectSeed,
@@ -587,6 +588,9 @@ export default function OpportunityReportView({
                                         activePaperIndex={activePaperIndex}
                                         onCite={onCitePaper}
                                     />
+                                    {gap.activity ? (
+                                        <GapActivityView activity={gap.activity} />
+                                    ) : null}
                                     <StartProjectButton
                                         actionKey={`gap-${gapNumber}`}
                                         action={action}

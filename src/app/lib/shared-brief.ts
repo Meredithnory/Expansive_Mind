@@ -10,7 +10,7 @@ import {
     toLedgerPapers,
 } from "../api/discover/claim-ledger";
 import { parseOpportunityReport } from "../api/discover/synthesize";
-import type { ClaimLedger } from "../api/discover/report-types";
+import type { ClaimLedger, GapActivity } from "../api/discover/report-types";
 
 export interface SharedBriefPaperRef {
     title: string;
@@ -31,7 +31,15 @@ export interface SharedBrief {
     chatPath: string;
     papers: SharedBriefPaperRef[];
     claimLedger?: ClaimLedger;
+    /** Gaps that have a registry check. Grants carry no PI or institution. */
+    gapActivity?: SharedGapActivity[];
     createdAt: Date;
+}
+
+export interface SharedGapActivity {
+    gapNumber: number;
+    title: string;
+    activity: GapActivity;
 }
 
 export async function findSharedBrief(
@@ -102,6 +110,13 @@ export async function findSharedBrief(
                   toLedgerExtractions(discovery.extractions),
               ).claimLedger
             : undefined;
+        const gapActivity: SharedGapActivity[] = (report?.sections.gaps ?? [])
+            .map((gap, index) =>
+                gap.activity
+                    ? { gapNumber: index + 1, title: gap.title, activity: gap.activity }
+                    : null,
+            )
+            .filter((item): item is SharedGapActivity => item !== null);
         return {
             kind: "discovery",
             title: discovery.question,
@@ -119,6 +134,7 @@ export async function findSharedBrief(
                 date: paper.date || "",
             })),
             ...(claimLedger ? { claimLedger } : {}),
+            ...(gapActivity.length > 0 ? { gapActivity } : {}),
             createdAt: discovery.createdAt,
         };
     }

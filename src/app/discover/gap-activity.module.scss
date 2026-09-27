@@ -1,0 +1,82 @@
+.activity {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(215, 235, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(215, 235, 255, 0.025);
+}
+
+.block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 0.84rem;
+
+    strong {
+        color: #e4f1ff;
+        font-weight: 700;
+    }
+
+    span {
+        color: rgba(215, 235, 255, 0.62);
+    }
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    a {
+        color: #9fd0ff;
+        font-size: 0.86rem;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+    }
+}
+
+.meta {
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 0.76rem;
+}
+
+.more {
+    align-self: flex-start;
+    color: #9fd0ff;
+    font-size: 0.8rem;
+}
+
+.caveat {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
