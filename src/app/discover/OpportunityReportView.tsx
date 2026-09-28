@@ -812,7 +812,14 @@ export default function OpportunityReportView({
                                     </div>
                                     <h4>{seed.title}</h4>
                                     {seed.oneLiner && (
-                                        <p>{seed.oneLiner}</p>
+                                        <p>
+                                            <CitedText
+                                                text={seed.oneLiner}
+                                                paperCount={paperCount}
+                                                activePaperIndex={activePaperIndex}
+                                                onCite={onCitePaper}
+                                            />
+                                        </p>
                                     )}
                                     <StartProjectButton
                                         actionKey={seedKey}
@@ -920,7 +927,14 @@ export default function OpportunityReportView({
                     <article className={clsx(styles.briefCard, styles.limitsCard)}>
                         <ul className={styles.couldNotVerify}>
                             {sections.couldNotVerify.map((item, index) => (
-                                <li key={`${item}-${index}`}>{item}</li>
+                                <li key={`${item}-${index}`}>
+                                    <CitedText
+                                        text={item}
+                                        paperCount={paperCount}
+                                        activePaperIndex={activePaperIndex}
+                                        onCite={onCitePaper}
+                                    />
+                                </li>
                             ))}
                         </ul>
                     </article>

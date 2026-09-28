@@ -101,7 +101,8 @@ const ensureAgentHighlightStyle = () => {
     const style = document.createElement("style");
     style.id = AGENT_HIGHLIGHT_STYLE_ID;
     style.textContent =
-        "::highlight(agent-focus){color:inherit;background-color:rgba(255,0,132,.28)}";
+        // The cited passage: theme pink with a brighter underline, white text.
+        "::highlight(agent-focus){color:#fff;background-color:rgba(255,61,154,.42);text-decoration:underline 2px #ff8ec4;text-underline-offset:4px}";
     document.head.appendChild(style);
 };
 

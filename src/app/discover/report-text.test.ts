@@ -34,6 +34,35 @@ describe("splitCitedText", () => {
     });
 });
 
+describe("splitCitedText with grouped and numeric citations", () => {
+    const labels = (text: string, count = 10) =>
+        splitCitedText(text, count).map((segment) =>
+            segment.type === "cite" ? `<${segment.index}>` : segment.value,
+        ).join("");
+
+    it("turns every paper in a group into its own chip", () => {
+        expect(labels("reviews [Papers 2, 5], trade [Paper 3]")).toBe(
+            "reviews <2> <5>, trade <3>",
+        );
+        expect(labels("studies [Papers 1, 6, and 10].")).toBe("studies <1> <6> <10>.");
+        expect(labels("Papers 7 and 8 agree")).toBe("<7> <8> agree");
+    });
+
+    it("reads bare bracketed numbers and ranges", () => {
+        expect(labels("persist [10], exhaustion [1,6,9], stroma [2,3].")).toBe(
+            "persist <10>, exhaustion <1> <6> <9>, stroma <2> <3>.",
+        );
+        expect(labels("across [Papers 7–9]")).toBe("across <7> <8> <9>");
+    });
+
+    it("keeps brackets that aren't paper citations", () => {
+        expect(labels("in [2020] and [Papers 2, 14]", 10)).toBe(
+            "in [2020] and [Papers 2, 14]",
+        );
+        expect(labels("Paper 3, 4 patients", 10)).toBe("<3>, 4 patients");
+    });
+});
+
 describe("splitParagraphs", () => {
     it("splits on newlines and drops empty lines", () => {
         expect(splitParagraphs("First.\n\nSecond.\n")).toEqual([
