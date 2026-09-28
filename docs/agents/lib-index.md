@@ -52,6 +52,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `request-ip.ts` | server | Client IP from headers |
 | `request-security.ts` | server | Origin check + limited JSON body |
 | `saved-paper-utils.ts` | server | Find / migrate saved papers |
+| `scroll-to-range.ts` | client | Scroll a focused passage to the reading line by its own position |
 | `search-suggest.ts` | client | Ghost suggest + fetch helpers |
 | `session-types.ts` | both | Session / quota snapshot types |
 | `session-version.ts` | both | Revocable JWT `tokenVersion` |

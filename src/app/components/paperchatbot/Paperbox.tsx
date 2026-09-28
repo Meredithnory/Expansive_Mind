@@ -15,6 +15,7 @@ import { formatQuoteWithCitation } from "../../lib/quote-citation";
 import PaperContents from "./PaperContents";
 import PaperSignificance from "./PaperSignificance";
 import PaperAuthors from "./PaperAuthors";
+import { scrollRangeIntoView } from "../../lib/scroll-to-range";
 import type { PaperCitation } from "../../lib/paper-citation";
 import {
     citationLabel,
@@ -496,15 +497,7 @@ const Paperbox = ({
                     citation,
                     color: DEFAULT_HIGHLIGHT_COLOR,
                 });
-                if (scrollToMatch) {
-                    const node = range.startContainer;
-                    const target =
-                        node instanceof Element ? node : node.parentElement;
-                    target?.scrollIntoView({
-                        block: "center",
-                        behavior: "smooth",
-                    });
-                }
+                if (scrollToMatch) scrollRangeIntoView(range);
                 return true;
             }
 
