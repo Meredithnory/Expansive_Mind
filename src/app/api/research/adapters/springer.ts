@@ -80,6 +80,7 @@ export const springerSource: ResearchSource = {
             totalPages: search.totalPages,
             warnings: [],
             callCount: 1,
+            unavailable: search.unavailable,
         };
     },
     fetchFullText(locator: PaperLocator, fallback) {

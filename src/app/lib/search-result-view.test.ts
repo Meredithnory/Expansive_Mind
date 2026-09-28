@@ -9,6 +9,7 @@ import {
     resultYear,
     searchesLeftLabel,
     shortAuthors,
+    sourcesDownNotice,
 } from "./search-result-view";
 
 describe("search result rows", () => {
@@ -71,5 +72,16 @@ describe("search result rows", () => {
         expect(searchesLeftLabel(2, "guest")).toBe("2 searches left today");
         expect(searchesLeftLabel(1, "free")).toBe("1 search left this month");
         expect(searchesLeftLabel(null, "free")).toBeNull();
+    });
+
+    it("names the sources that didn't respond", () => {
+        expect(sourcesDownNotice([], true)).toBeNull();
+        expect(sourcesDownNotice(["NIH PubMed Central"], true)).toBe(
+            "NIH PubMed Central didn’t respond, so these results come from the other sources. Try again in a minute.",
+        );
+        expect(sourcesDownNotice(["NIH PubMed Central", "Europe PMC"], false)).toBe(
+            "NIH PubMed Central and Europe PMC didn’t respond. Try again in a minute.",
+        );
+        expect(sourcesDownNotice(["A", "B", "C"], false)).toBe("A, B, and C didn’t respond. Try again in a minute.");
     });
 });

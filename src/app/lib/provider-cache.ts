@@ -45,6 +45,8 @@ export async function cached<T>(input: {
     key: string;
     ttlSeconds: number;
     load: () => Promise<T>;
+    /** Skip storing a value that shouldn't outlive this request (a source was down). */
+    shouldCache?: (value: T) => boolean;
 }) {
     const id = cacheId(input.namespace, input.key);
     let hit: T | null = null;
@@ -62,6 +64,9 @@ export async function cached<T>(input: {
     pending.set(id, request);
     try {
         const value = await request;
+        if (input.shouldCache && !input.shouldCache(value)) {
+            return { value, cacheHit: false };
+        }
         try {
             await setCachedValue(
                 input.namespace,

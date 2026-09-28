@@ -29,6 +29,12 @@ import {
     type PublicationDateRange,
 } from "../../lib/search-filters";
 
+const SOURCE_NAME: Record<SourceDatabase, string> = {
+    nih: "NIH PubMed Central",
+    springer: "Springer Nature",
+    scholar: "Google Scholar",
+};
+
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
     includeSpringer: sourceFilter === "all" || sourceFilter === "springer",
@@ -72,6 +78,7 @@ async function runSearch(
             totalPages: europe.totalPages,
             warnings: [] as string[],
             callCount: 1,
+            unavailable: europe.unavailable ? ["Europe PMC"] : [],
         };
     }
     if (sourceFilter === "crossref") {
@@ -97,6 +104,7 @@ async function runSearch(
             totalPages: crossref.totalPages,
             warnings: [] as string[],
             callCount: 1,
+            unavailable: crossref.unavailable ? ["Crossref"] : [],
         };
     }
 
@@ -121,6 +129,7 @@ async function runSearch(
     let totalPages = found.totalPages;
     let warnings = found.warnings;
     let callCount = found.callCount;
+    const unavailable = found.unavailable.map((database) => SOURCE_NAME[database]);
 
     // On "all", also fold Europe PMC + Crossref index hits into the workspace.
     if (sourceFilter === "all") {
@@ -139,6 +148,8 @@ async function runSearch(
             > => result != null,
         );
         groups = [...groups, europeResults, crossrefResults];
+        if (europe.unavailable) unavailable.push("Europe PMC");
+        if (crossref.unavailable) unavailable.push("Crossref");
         totalCount += europe.totalCount + crossref.totalCount;
         totalPages = Math.max(totalPages, europe.totalPages, crossref.totalPages);
         callCount += 2;
@@ -163,6 +174,7 @@ async function runSearch(
         totalPages,
         warnings,
         callCount,
+        unavailable,
     };
 }
 
@@ -310,6 +322,8 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                     usageContext,
                     dateRange,
                 }),
+            // A source that timed out today shouldn't hide its papers for 6 hours.
+            shouldCache: (value) => value.unavailable.length === 0,
         });
         const search = cachedSearch.value;
         if (!cachedSearch.cacheHit) {
@@ -335,6 +349,8 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 date: dateFilter,
                 query: searchValue,
                 warnings: search.warnings,
+                // Older cached pages predate this field.
+                unavailable: search.unavailable ?? [],
                 plan,
                 quota,
                 cacheHit: cachedSearch.cacheHit,

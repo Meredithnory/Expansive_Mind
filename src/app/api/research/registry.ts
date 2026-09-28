@@ -127,6 +127,7 @@ async function searchHome(
             totalPages: 0,
             warnings: [],
             callCount: 0,
+            unavailable: true,
         };
     }
 }
@@ -302,6 +303,8 @@ export async function searchHomed(input: {
     totalPages: number;
     warnings: string[];
     callCount: number;
+    /** Sources that errored or timed out. */
+    unavailable: SourceDatabase[];
 }> {
     const settled = await Promise.all(
         input.databases.map(async (database) => {
@@ -320,7 +323,9 @@ export async function searchHomed(input: {
     let totalPages = 0;
     let callCount = 0;
     const warnings: string[] = [];
+    const unavailable: SourceDatabase[] = [];
     const byDatabase = settled.map(({ database, page }) => {
+        if (page.unavailable) unavailable.push(database);
         totalCount += page.totalCount;
         totalPages = Math.max(totalPages, page.totalPages);
         callCount += page.callCount;
@@ -331,7 +336,7 @@ export async function searchHomed(input: {
         };
     });
 
-    return { byDatabase, totalCount, totalPages, warnings, callCount };
+    return { byDatabase, totalCount, totalPages, warnings, callCount, unavailable };
 }
 
 export async function loadDocument(input: {

@@ -23,6 +23,8 @@ export interface SourcePage<T> {
     totalPages: number;
     warnings: string[];
     callCount: number;
+    /** The source errored or timed out, so the empty hits mean nothing. */
+    unavailable?: boolean;
 }
 
 export interface WorkLead {

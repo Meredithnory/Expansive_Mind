@@ -47,8 +47,13 @@ function chunk<T>(items: T[], size: number): T[][] {
     return groups;
 }
 
+/** Crossref's polite pool wants a contact address; search already sends NCBI_EMAIL. */
+function crossrefMailto() {
+    return process.env.CROSSREF_MAILTO?.trim() || process.env.NCBI_EMAIL?.trim() || "";
+}
+
 function crossrefHeaders() {
-    const mailto = process.env.CROSSREF_MAILTO?.trim();
+    const mailto = crossrefMailto();
     return {
         Accept: "application/json",
         ...(mailto
@@ -70,38 +75,37 @@ async function lookupCrossref(dois: string[]): Promise<Map<string, PaperImpact>>
     const found = new Map<string, PaperImpact>();
     if (dois.length === 0) return found;
 
-    await Promise.all(
-        chunk(dois, BATCH_SIZE).map(async (batch) => {
-            try {
-                const params = new URLSearchParams({
-                    filter: batch.map((doi) => `doi:${doi}`).join(","),
-                    rows: String(batch.length),
-                    select: "DOI,is-referenced-by-count",
-                });
-                if (process.env.CROSSREF_MAILTO) {
-                    params.set("mailto", process.env.CROSSREF_MAILTO);
+    // One batch at a time: Crossref refuses parallel requests (429) and the
+    // polite pool allows only a few concurrent ones.
+    for (const batch of chunk(dois, BATCH_SIZE)) {
+        try {
+            const params = new URLSearchParams({
+                filter: batch.map((doi) => `doi:${doi}`).join(","),
+                rows: String(batch.length),
+                select: "DOI,is-referenced-by-count",
+            });
+            const mailto = crossrefMailto();
+            if (mailto) params.set("mailto", mailto);
+            const data = record(await fetchJson(`${CROSSREF}?${params}`, crossrefHeaders()));
+            const items = record(data.message).items;
+            if (!Array.isArray(items)) continue;
+            for (const item of items) {
+                const row = record(item);
+                const doi = normalizePaperDoi(row.DOI);
+                const citationCount = parseCitationCount(
+                    row["is-referenced-by-count"],
+                );
+                if (doi && citationCount != null) {
+                    found.set(doi, {
+                        citationCount,
+                        citationSource: "crossref",
+                    });
                 }
-                const data = record(await fetchJson(`${CROSSREF}?${params}`, crossrefHeaders()));
-                const items = record(data.message).items;
-                if (!Array.isArray(items)) return;
-                for (const item of items) {
-                    const row = record(item);
-                    const doi = normalizePaperDoi(row.DOI);
-                    const citationCount = parseCitationCount(
-                        row["is-referenced-by-count"],
-                    );
-                    if (doi && citationCount != null) {
-                        found.set(doi, {
-                            citationCount,
-                            citationSource: "crossref",
-                        });
-                    }
-                }
-            } catch (error) {
-                console.warn("Crossref citation lookup failed", error);
             }
-        }),
-    );
+        } catch (error) {
+            console.warn("Crossref citation lookup failed", error);
+        }
+    }
 
     return found;
 }

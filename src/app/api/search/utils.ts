@@ -24,6 +24,11 @@ const NIH_API_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const NIH_API_KEY = process.env.API_KEY;
 const NCBI_EMAIL = process.env.NCBI_EMAIL;
 const NCBI_TOOL = process.env.NCBI_TOOL || "ExpansiveMind";
+/**
+ * NCBI sometimes stalls on a query (e.g. "GLP-1") and answers 500 after ~20s.
+ * Give up sooner so one stalled source doesn't hold up the whole search.
+ */
+const NCBI_TIMEOUT_MS = 12_000;
 const SPRINGER_API_URL = "https://api.springernature.com/openaccess/json";
 const SPRINGER_API_KEY = process.env.SPRINGER_API_KEY;
 const SERPAPI_URL = "https://serpapi.com/search.json";
@@ -94,7 +99,9 @@ const runNIHEsearch = async (
     params.append("sort", sort);
 
     await enforceOutboundLimit("ncbi", NIH_API_KEY ? 9 : 2, 1_000);
-    const res = await fetch(`${NIH_API_URL}/esearch.fcgi?${params}`);
+    const res = await fetch(`${NIH_API_URL}/esearch.fcgi?${params}`, {
+        signal: AbortSignal.timeout(NCBI_TIMEOUT_MS),
+    });
     const data = await res.text();
     const dataAsJSON = JSON.parse(convert.xml2json(data, { compact: true }));
 
@@ -210,7 +217,9 @@ export const getNIHPaperResults = async (
     addNcbiIdentification(params);
 
     await enforceOutboundLimit("ncbi", NIH_API_KEY ? 9 : 2, 1_000);
-    const res = await fetch(`${NIH_API_URL}/esummary.fcgi?${params}`);
+    const res = await fetch(`${NIH_API_URL}/esummary.fcgi?${params}`, {
+        signal: AbortSignal.timeout(NCBI_TIMEOUT_MS),
+    });
     if (!res.ok) {
         throw new Error(`NCBI summary request failed: ${res.status}`);
     }
@@ -429,6 +438,7 @@ export const searchSpringerNaturePapers = async (
             results: [],
             totalCount: 0,
             totalPages: 0,
+            unavailable: true,
         };
     }
 };
@@ -604,6 +614,7 @@ export const searchGoogleScholarPapers = async (
             results: [],
             totalCount: 0,
             totalPages: 0,
+            unavailable: true,
         };
     }
 };
@@ -634,7 +645,7 @@ export const searchEuropePmcPapers = async (
             { signal: AbortSignal.timeout(12_000) },
         );
         if (!response.ok) {
-            return { results: [], totalCount: 0, totalPages: 0 };
+            return { results: [], totalCount: 0, totalPages: 0, unavailable: true };
         }
         const data = await response.json();
         const rows = data?.resultList?.result;
@@ -688,10 +699,11 @@ export const searchEuropePmcPapers = async (
                 totalCount > 0
                     ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
                     : 0,
+            unavailable: false,
         };
     } catch (err) {
         console.error("Europe PMC search failed:", err);
-        return { results: [], totalCount: 0, totalPages: 0 };
+        return { results: [], totalCount: 0, totalPages: 0, unavailable: true };
     }
 };
 
@@ -722,7 +734,7 @@ export const searchCrossrefPapers = async (
             { signal: AbortSignal.timeout(12_000) },
         );
         if (!response.ok) {
-            return { results: [], totalCount: 0, totalPages: 0 };
+            return { results: [], totalCount: 0, totalPages: 0, unavailable: true };
         }
         const data = await response.json();
         const message = data?.message || {};
@@ -774,10 +786,11 @@ export const searchCrossrefPapers = async (
                 totalCount > 0
                     ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
                     : 0,
+            unavailable: false,
         };
     } catch (err) {
         console.error("Crossref search failed:", err);
-        return { results: [], totalCount: 0, totalPages: 0 };
+        return { results: [], totalCount: 0, totalPages: 0, unavailable: true };
     }
 };
 

@@ -132,3 +132,18 @@ export function searchesLeftLabel(
     const noun = remaining === 1 ? "search" : "searches";
     return `${remaining} ${noun} left ${plan === "guest" ? "today" : "this month"}`;
 }
+
+/** "NIH PubMed Central and Europe PMC didn't respond, so these results come from the other sources." */
+export function sourcesDownNotice(sources: string[], hasResults: boolean): string | null {
+    const names = [...new Set(sources.filter(Boolean))];
+    if (!names.length) return null;
+    const list =
+        names.length === 1
+            ? names[0]
+            : names.length === 2
+              ? `${names[0]} and ${names[1]}`
+              : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+    return hasResults
+        ? `${list} didn’t respond, so these results come from the other sources. Try again in a minute.`
+        : `${list} didn’t respond. Try again in a minute.`;
+}

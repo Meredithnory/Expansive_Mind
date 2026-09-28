@@ -222,7 +222,7 @@ describe("GET /api/search", () => {
     it("filters every source by publication year and caches per range", async () => {
         const year = new Date().getUTCFullYear();
         const range = { fromYear: year - 4, toYear: year };
-        const empty = { results: [], totalCount: 0, totalPages: 0 };
+        const empty = { results: [], totalCount: 0, totalPages: 0, unavailable: false };
         vi.mocked(searchEuropePmcPapers).mockResolvedValue(empty);
         vi.mocked(searchCrossrefPapers).mockResolvedValue(empty);
         vi.mocked(searchHomed).mockResolvedValue({
@@ -231,6 +231,7 @@ describe("GET /api/search", () => {
             totalPages: 0,
             warnings: [],
             callCount: 0,
+            unavailable: [],
         });
 
         const response = await GET(searchRequest("q=kinase&date=5-years"));
@@ -245,5 +246,26 @@ describe("GET /api/search", () => {
         );
         expect(searchEuropePmcPapers).toHaveBeenCalledWith("kinase", 0, range);
         expect(searchCrossrefPapers).toHaveBeenCalledWith("kinase", 0, range);
+    });
+
+    it("names a source that didn't respond and doesn't cache that page", async () => {
+        const empty = { results: [], totalCount: 0, totalPages: 0, unavailable: false };
+        vi.mocked(searchEuropePmcPapers).mockResolvedValue({ ...empty, unavailable: true });
+        vi.mocked(searchCrossrefPapers).mockResolvedValue(empty);
+        vi.mocked(searchHomed).mockResolvedValue({
+            byDatabase: [],
+            totalCount: 0,
+            totalPages: 0,
+            warnings: [],
+            callCount: 0,
+            unavailable: ["nih"],
+        });
+
+        await GET(searchRequest("q=kinase"));
+        const call = mocks.cached.mock.calls[0][0];
+        const page = await call.load();
+        expect(page.unavailable).toEqual(["NIH PubMed Central", "Europe PMC"]);
+        expect(call.shouldCache(page)).toBe(false);
+        expect(call.shouldCache({ ...page, unavailable: [] })).toBe(true);
     });
 });

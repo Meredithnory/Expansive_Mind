@@ -28,7 +28,11 @@ import {
     type DateFilter,
     type SourceFilter,
 } from "../lib/search-filters";
-import { resultCountLabel, searchesLeftLabel } from "../lib/search-result-view";
+import {
+    resultCountLabel,
+    searchesLeftLabel,
+    sourcesDownNotice,
+} from "../lib/search-result-view";
 import { SearchFilterBar, SearchFilterBox } from "./SearchFilters";
 
 export type { SourceFilter };
@@ -140,6 +144,8 @@ const SearchPaperClient = ({
     const [resultPlan, setResultPlan] = useState<string | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [moreError, setMoreError] = useState("");
+    // Sources that errored or timed out on this search.
+    const [downSources, setDownSources] = useState<string[]>([]);
     const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
     // Bumped by every new search so a slow "show more" can't land on the wrong list.
@@ -318,6 +324,7 @@ const SearchPaperClient = ({
             setError("");
             setErrorCode(null);
             setMoreError("");
+            setDownSources([]);
 
             const res = await fetch(
                 `/api/search?${searchParamsFor(query, page, source, date)}`,
@@ -354,6 +361,7 @@ const SearchPaperClient = ({
             setCurrentPage(page);
             setQuotaRemaining(data.quota?.remaining ?? null);
             setResultPlan(typeof data.plan === "string" ? data.plan : null);
+            setDownSources(Array.isArray(data.unavailable) ? data.unavailable : []);
             await completeVisualTransition();
             setLoading(false);
             finishSearchTransition();
@@ -392,6 +400,9 @@ const SearchPaperClient = ({
         });
         setCurrentPage(nextPage);
         setTotalPages(Number(data.totalPages) || 0);
+        if (Array.isArray(data.unavailable) && data.unavailable.length) {
+            setDownSources((down) => [...new Set([...down, ...data.unavailable])]);
+        }
         posthog.capture("search_more_loaded", {
             source: activeSource,
             date: activeDate,
@@ -454,6 +465,9 @@ const SearchPaperClient = ({
     const initialLoading =
         loading && searchResults.length === 0 && !pastSearchValue;
     const searchesLeft = searchesLeftLabel(quotaRemaining, resultPlan);
+    const downNotice = error
+        ? null
+        : sourcesDownNotice(downSources, searchResults.length > 0);
     const hasMore =
         !error && searchResults.length > 0 && currentPage < totalPages - 1;
     const filterProps = {
@@ -661,6 +675,12 @@ const SearchPaperClient = ({
                             </div>
                         ) : null}
 
+                        {downNotice && !initialLoading ? (
+                            <p className={resultStyles.sourceNotice} role="status">
+                                {downNotice}
+                            </p>
+                        ) : null}
+
                         <div className={resultStyles.grid}>
                             <div className={resultStyles.main}>
                                 {initialLoading ? (
@@ -684,7 +704,7 @@ const SearchPaperClient = ({
                                             </Link>
                                         ) : null}
                                     </div>
-                                ) : searchResults.length === 0 ? (
+                                ) : searchResults.length === 0 && downNotice ? null : searchResults.length === 0 ? (
                                     <div className={resultStyles.notice}>
                                         <p>
                                             No papers matched
