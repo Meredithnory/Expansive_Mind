@@ -1,0 +1,142 @@
+// Background ring behind the Research landing (Discovery and Search).
+// Fixed, so it sits in the same place on the loading screen and the page;
+// the Research scroll area contains it, keeping it behind the content.
+
+.orbit {
+    position: fixed;
+    top: 150px;
+    left: 50%;
+    z-index: -1;
+    width: 720px;
+    height: 720px;
+    margin-left: -360px;
+    pointer-events: none;
+    transition: opacity 320ms ease;
+}
+
+.glow {
+    position: absolute;
+    inset: 120px;
+    border-radius: 999px;
+    background: #ff0084;
+    opacity: 0.05;
+    transition: background-color 400ms ease;
+
+    .orbit[data-mode="search"] & {
+        background: #0ab1ff;
+    }
+}
+
+.ring {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    visibility: hidden;
+    animation: research-orbit-turn 40s linear infinite;
+
+    // Shown once its angle is set from the clock, so it never jumps.
+    &[data-ready="true"] {
+        visibility: visible;
+    }
+
+    span {
+        position: absolute;
+        border-radius: 999px;
+        opacity: 0.65;
+        transition: background-color 400ms ease;
+    }
+
+    span:nth-child(1) {
+        top: 150px;
+        left: 60px;
+        width: 8px;
+        height: 8px;
+        background: #22a06b;
+    }
+
+    span:nth-child(2) {
+        top: 110px;
+        right: 90px;
+        width: 6px;
+        height: 6px;
+        background: #ff0084;
+
+        .orbit[data-mode="search"] & {
+            background: #0ab1ff;
+        }
+    }
+
+    span:nth-child(3) {
+        right: 30px;
+        bottom: 260px;
+        width: 7px;
+        height: 7px;
+        background: #8b5cf6;
+    }
+
+    span:nth-child(4) {
+        bottom: 112px;
+        left: 104px;
+        width: 6px;
+        height: 6px;
+        background: #0ab1ff;
+    }
+}
+
+@keyframes research-orbit-turn {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// Reports, running discoveries, and search results have their own content.
+:global(body:has([data-discover-page]:not([data-discover-landing]))) .orbit,
+:global(body:has([data-discover-running])) .orbit,
+:global(body:has([data-search-paper-page]:not([data-search-landing]))) .orbit {
+    opacity: 0;
+}
+
+@media (max-width: 720px) {
+    .orbit {
+        top: 60px;
+        width: 520px;
+        height: 520px;
+        margin-left: -260px;
+    }
+
+    .glow {
+        inset: 80px;
+    }
+
+    .ring {
+        span:nth-child(1) {
+            top: 108px;
+            left: 43px;
+        }
+
+        span:nth-child(2) {
+            top: 79px;
+            right: 65px;
+        }
+
+        span:nth-child(3) {
+            right: 22px;
+            bottom: 188px;
+        }
+
+        span:nth-child(4) {
+            bottom: 81px;
+            left: 75px;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ring {
+        animation: none;
+    }
+}

@@ -12,9 +12,19 @@ Unpaywall (`src/app/api/research/adapters/unpaywall.ts`) and `oaConflictsWithHom
 
 Creating a share link is not this gate. See [claim-ledger.md](claim-ledger.md).
 
+## Unlicensed papers in strict mode
+
+Strict mode keeps an unlicensed body off our servers, but reading still works:
+
+- `getPaperDetails` returns metadata, the abstract, and `browserFullText` (PMCID + figure URLs, never text). The reader's browser loads the body from NIH E-utilities, falling back to Europe PMC (`src/app/lib/browser-paper.ts`). Nothing it loads is sent back. Figures are `displayOnly`, with no analysis.
+- Chat on those papers uses the abstract only (`paperChatMode` in `src/app/lib/chat-access.ts`). Passages and screenshots from them are not sent to the model. Highlights and share links stay off because `canPersistContent` is false.
+- Discover uses their abstracts (see [discover-pipeline.md](discover-pipeline.md)).
+- The paper cache namespace carries the mode (`paperDetailCacheNamespace`), so switching modes never serves the other mode's cached bodies.
+
 ## Leave alone
 
 - Do not add a second license allowlist.
 - Do not let an OA locator authorize a quote or a ledger `licenseUrl`.
+- Do not send an unlicensed body to the model or store it, including text the browser loaded.
 - Do not send a full paper to the model. Excerpts go through `selectPaperContext` and `selectQuotableExcerpt` in `src/app/lib/paper-context.ts`.
 - Do not persist article XML or HTML.

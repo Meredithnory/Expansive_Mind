@@ -7,7 +7,7 @@ import { fetchPaperHighlights } from "../../lib/paper-highlights";
 import styles from "../styles/share-paper-modal.module.scss";
 
 interface SharePaperModalProps {
-    paper: FormattedPaper;
+    paper: Pick<FormattedPaper, "source" | "paperId" | "idName" | "title">;
     open: boolean;
     onClose: () => void;
 }

@@ -709,6 +709,8 @@ export const searchCrossrefPapers = async (
         offset: String(page * PAGE_SIZE),
         select: "DOI,title,author,issued,abstract,URL",
     });
+    // Crossref routes requests with a contact address to its polite pool.
+    if (NCBI_EMAIL) params.set("mailto", NCBI_EMAIL);
     if (dateRange) {
         params.set(
             "filter",

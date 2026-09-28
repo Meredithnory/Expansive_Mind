@@ -5,11 +5,13 @@ import Link from "next/link";
 import clsx from "clsx";
 import styles from "./discover.module.scss";
 import type {
+    DiscoverPaperCard,
     OpportunityReport,
     ProjectSeed,
     ReportConfidence,
     ReportGap,
 } from "../api/discover/report-types";
+import { withReportOrigin } from "../lib/paper-sources";
 import { useSession } from "../lib/use-session";
 import { splitCitedText, splitParagraphs } from "./report-text";
 import {
@@ -286,6 +288,8 @@ function StartProjectButton({
 export default function OpportunityReportView({
     report,
     paperCount,
+    papers = [],
+    only,
     isLoggedIn,
     sourceDiscoveryId,
     activePaperIndex,
@@ -294,6 +298,10 @@ export default function OpportunityReportView({
 }: {
     report: OpportunityReport;
     paperCount: number;
+    /** The report's papers, so a gap can open its first paper in the reader. */
+    papers?: DiscoverPaperCard[];
+    /** Render only these sections (one report tab). All when omitted. */
+    only?: ReportSectionId[];
     isLoggedIn: boolean;
     sourceDiscoveryId: string | undefined;
     activePaperIndex?: number | null;
@@ -303,6 +311,8 @@ export default function OpportunityReportView({
     const { sections } = report;
     const { refresh } = useSession();
     const [highlightedGap, setHighlightedGap] = useState<number | null>(null);
+    // The gap shown large on the gap board (1-based).
+    const [selectedGap, setSelectedGap] = useState(1);
     const [action, setAction] = useState<ProjectActionState>({
         key: null,
         status: "idle",
@@ -318,10 +328,13 @@ export default function OpportunityReportView({
     }, [highlightedGap]);
 
     const scrollToGap = useCallback((gapIndex: number) => {
-        const target = document.getElementById(`discover-gap-${gapIndex}`);
-        if (!target) return;
+        setSelectedGap(gapIndex);
         setHighlightedGap(gapIndex);
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.requestAnimationFrame(() => {
+            document
+                .getElementById("discover-gap-focus")
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
     }, []);
 
     const startProject = useCallback(
@@ -470,12 +483,19 @@ export default function OpportunityReportView({
     const outline = reportOutline(report);
     const entryFor = (id: ReportSectionId) =>
         outline.find((entry) => entry.id === id);
-    const stateEntry = entryFor("state");
-    const gapsEntry = entryFor("gaps");
-    const problemsEntry = entryFor("problems");
-    const experimentsEntry = entryFor("experiments");
-    const translationEntry = entryFor("translation");
-    const limitsEntry = entryFor("limits");
+    const shows = (id: ReportSectionId) => !only || only.includes(id);
+    const stateEntry = shows("state") ? entryFor("state") : undefined;
+    const gapsEntry = shows("gaps") ? entryFor("gaps") : undefined;
+    const problemsEntry = shows("problems") ? entryFor("problems") : undefined;
+    const experimentsEntry = shows("experiments") ? entryFor("experiments") : undefined;
+    const translationEntry = shows("translation") ? entryFor("translation") : undefined;
+    const limitsEntry = shows("limits") ? entryFor("limits") : undefined;
+    const focusNumber = Math.min(Math.max(selectedGap, 1), sections.gaps.length || 1);
+    const focusGap = sections.gaps[focusNumber - 1];
+    const focusCitations = (focusGap?.citations || []).filter(
+        (index) => index >= 1 && index <= paperCount,
+    );
+    const focusPaper = papers.find((paper) => paper.index === focusCitations[0]);
 
     return (
         <div className={styles.briefGrid}>
@@ -527,84 +547,141 @@ export default function OpportunityReportView({
                 </section>
             )}
 
-            {gapsEntry && sections.gaps.length > 0 && (
+            {gapsEntry && focusGap && (
                 <section
                     id={reportSectionAnchor("gaps")}
-                    className={styles.reportSection}
+                    className={styles.gapBoard}
+                    aria-label="Gaps in the science"
                 >
-                    <SectionHead
-                        entry={gapsEntry}
-                        countLabel={pluralize(sections.gaps.length, "gap")}
-                    />
-                    <div className={styles.gapGrid}>
-                        {sections.gaps.map((gap, index) => {
-                            const gapNumber = index + 1;
-                            return (
-                                <article
-                                    key={`${gap.title}-${index}`}
-                                    id={`discover-gap-${gapNumber}`}
-                                    className={clsx(styles.gapCard, {
-                                        [styles.gapCardHighlighted]:
-                                            highlightedGap === gapNumber,
-                                    })}
-                                >
-                                    <div className={styles.gapCardHeader}>
-                                        <span>{`Gap ${gapNumber}`}</span>
-                                        <ConfidenceBadge
-                                            value={gap.confidence}
-                                        />
-                                    </div>
-                                    <h4>{gap.title}</h4>
-                                    {gap.description && (
-                                        <p>
-                                        <CitedText
-                                            text={gap.description}
-                                            paperCount={paperCount}
-                                            activePaperIndex={activePaperIndex}
-                                            onCite={onCitePaper}
-                                        />
-                                        </p>
-                                    )}
-                                    {gap.scopeNote ? (
-                                        <p className={styles.scopeNote}>
-                                            {gap.scopeNote}
-                                        </p>
-                                    ) : null}
-                                    {gap.whyItMatters && (
-                                        <p className={styles.whyItMatters}>
-                                            <strong>Why it matters</strong>
-                                        <CitedText
-                                            text={gap.whyItMatters}
-                                            paperCount={paperCount}
-                                            activePaperIndex={activePaperIndex}
-                                            onCite={onCitePaper}
-                                        />
-                                        </p>
-                                    )}
-                                    <CitationChips
-                                        citations={gap.citations}
-                                        paperCount={paperCount}
-                                        activePaperIndex={activePaperIndex}
-                                        onCite={onCitePaper}
-                                    />
-                                    <StartProjectButton
-                                        actionKey={`gap-${gapNumber}`}
-                                        action={action}
-                                        discarding={discarding}
-                                        onCancel={cancelProject}
-                                        onDiscard={() => void discardProject()}
-                                        onClick={() =>
-                                            void startProject(
-                                                `gap-${gapNumber}`,
-                                                gap.title,
-                                                gap,
-                                            )
-                                        }
-                                    />
-                                </article>
-                            );
+                    <article
+                        id="discover-gap-focus"
+                        className={clsx(styles.gapFocus, {
+                            [styles.gapCardHighlighted]:
+                                highlightedGap === focusNumber,
                         })}
-                    </div>
+                        aria-labelledby="discover-gap-focus-title"
+                    >
+                        <div className={styles.gapFocusHead}>
+                            <span className={styles.gapFocusLabel}>
+                                {`Gap ${focusNumber}`}
+                            </span>
+                            <ConfidenceBadge value={focusGap.confidence} />
+                        </div>
+                        <h2
+                            id="discover-gap-focus-title"
+                            className={styles.gapFocusTitle}
+                        >
+                            {focusGap.title}
+                        </h2>
+                        {focusGap.description && (
+                            <p className={styles.gapFocusText}>
+                                <CitedText
+                                    text={focusGap.description}
+                                    paperCount={paperCount}
+                                    activePaperIndex={activePaperIndex}
+                                    onCite={onCitePaper}
+                                />
+                            </p>
+                        )}
+                        {focusGap.scopeNote ? (
+                            <p className={styles.scopeNote}>{focusGap.scopeNote}</p>
+                        ) : null}
+                        {focusGap.whyItMatters && (
+                            <p className={styles.whyItMatters}>
+                                <strong>Why it matters</strong>
+                                <CitedText
+                                    text={focusGap.whyItMatters}
+                                    paperCount={paperCount}
+                                    activePaperIndex={activePaperIndex}
+                                    onCite={onCitePaper}
+                                />
+                            </p>
+                        )}
+                        {focusCitations.length > 0 && (
+                            <div className={styles.gapFrom}>
+                                <span className={styles.gapFromLabel}>From</span>
+                                {focusCitations.map((index, position) =>
+                                    position === 0 && focusPaper ? (
+                                        <Link
+                                            key={index}
+                                            href={withReportOrigin(
+                                                focusPaper.href,
+                                                index,
+                                                focusNumber,
+                                            )}
+                                            className={styles.gapOpenPaper}
+                                        >
+                                            {`Paper ${index} · open paper chat →`}
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            className={clsx(styles.gapPaperChip, {
+                                                [styles.citationChipActive]:
+                                                    activePaperIndex === index,
+                                            })}
+                                            aria-haspopup="dialog"
+                                            aria-expanded={activePaperIndex === index}
+                                            onClick={(event) =>
+                                                onCitePaper(index, event.currentTarget)
+                                            }
+                                        >
+                                            {`Paper ${index}`}
+                                        </button>
+                                    ),
+                                )}
+                            </div>
+                        )}
+                        <StartProjectButton
+                            actionKey={`gap-${focusNumber}`}
+                            action={action}
+                            discarding={discarding}
+                            onCancel={cancelProject}
+                            onDiscard={() => void discardProject()}
+                            onClick={() =>
+                                void startProject(
+                                    `gap-${focusNumber}`,
+                                    focusGap.title,
+                                    focusGap,
+                                )
+                            }
+                        />
+                    </article>
+                    {sections.gaps.length > 1 && (
+                        <div className={styles.gapList}>
+                            {sections.gaps.map((gap, index) => {
+                                const gapNumber = index + 1;
+                                if (gapNumber === focusNumber) return null;
+                                const cited = gap.citations.filter(
+                                    (paper) => paper >= 1 && paper <= paperCount,
+                                ).length;
+                                return (
+                                    <button
+                                        key={`${gap.title}-${index}`}
+                                        type="button"
+                                        id={`discover-gap-${gapNumber}`}
+                                        className={styles.gapItem}
+                                        onClick={() => setSelectedGap(gapNumber)}
+                                    >
+                                        <span className={styles.gapItemLabel}>
+                                            {`Gap ${gapNumber}`}
+                                        </span>
+                                        <span className={styles.gapItemTitle}>
+                                            {gap.title}
+                                        </span>
+                                        <span className={styles.gapItemMeta}>
+                                            {(CONFIDENCE_GUIDE[gap.confidence] ??
+                                                CONFIDENCE_GUIDE.suggested).label}
+                                            {cited > 0
+                                                ? ` · ${pluralize(cited, "paper")}`
+                                                : ""}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                 </section>
             )}
 

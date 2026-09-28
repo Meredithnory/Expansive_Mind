@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
     buildPaperFocusHref,
+    parseReportPaperNumber,
+    withReportOrigin,
     locatorFromLoadedPaper,
     makePaperLocator,
     normalizeStoredPaperId,
@@ -59,6 +61,37 @@ describe("buildPaperFocusHref", () => {
     });
 });
 
+describe("withReportOrigin", () => {
+    it("marks a reader link as opened from a report", () => {
+        const href = withReportOrigin(
+            buildPaperFocusHref("/paperchatbot/nih/1234567", "A passage."),
+            3,
+        );
+        const params = new URLSearchParams(href.split("?")[1]);
+        expect(href.startsWith("/paperchatbot/nih/1234567?")).toBe(true);
+        expect(params.get("from")).toBe("report");
+        expect(params.get("paper")).toBe("3");
+        expect(params.get("focus")).toBe("A passage.");
+    });
+
+    it("skips a missing paper number and external URLs", () => {
+        expect(withReportOrigin("/paperchatbot/nih/1234567")).toBe(
+            "/paperchatbot/nih/1234567?from=report",
+        );
+        expect(withReportOrigin("https://doi.org/10.1/example", 2)).toBe(
+            "https://doi.org/10.1/example",
+        );
+    });
+
+    it("reads only a small positive paper number back", () => {
+        expect(parseReportPaperNumber("3")).toBe(3);
+        expect(parseReportPaperNumber("0")).toBeNull();
+        expect(parseReportPaperNumber("3x")).toBeNull();
+        expect(parseReportPaperNumber("12345")).toBeNull();
+        expect(parseReportPaperNumber(null)).toBeNull();
+    });
+});
+
 describe("searchSourceTag / locatorFromLoadedPaper", () => {
     it("maps springer to the persisted nature search tag", () => {
         expect(searchSourceTag("nih")).toBe("nih");
@@ -82,5 +115,16 @@ describe("searchSourceTag / locatorFromLoadedPaper", () => {
             paperId: "1234567",
             idName: "pmcid",
         });
+    });
+});
+
+describe("buildPaperFocusHref without method intent", () => {
+    it("adds only the focus passage", () => {
+        const href = buildPaperFocusHref(
+            "/paperchatbot/springer/10.1186/abc",
+            "  A saved   highlight ",
+            { method: false },
+        );
+        expect(href).toBe("/paperchatbot/springer/10.1186/abc?focus=A+saved+highlight");
     });
 });

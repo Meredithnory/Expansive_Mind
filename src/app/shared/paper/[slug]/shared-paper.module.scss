@@ -149,6 +149,13 @@
     }
 }
 
+.hiddenQuote {
+    margin: 10px 0 0;
+    color: rgba(215, 235, 255, 0.6);
+    font-size: 14px;
+    font-style: italic;
+}
+
 .annotationLocation {
     display: flex;
     justify-content: space-between;

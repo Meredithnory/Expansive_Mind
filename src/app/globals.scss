@@ -97,6 +97,18 @@ body:has([data-search-paper-page]) {
     width: min(calc(100% - 32px), 1500px);
 }
 
+/* Paper reader on tablets (721–960px) scrolls as one page. overflow-x: hidden
+   makes <body> a scroll container that never scrolls, which silently breaks
+   every position: sticky inside it (site nav, reader toolbar, Contents bar).
+   clip trims sideways overflow without that side effect, as phones do. */
+@media (min-width: 721px) and (max-width: 960px) {
+    body:has([data-paper-reader]),
+    body:has([data-paper-reader]) .main-content {
+        overflow-x: clip;
+        overflow-y: visible;
+    }
+}
+
 /* Combined Research page: full viewport width so the page frame is not a
    left-shifted 80% column. The 720px research cluster centers inside it.
    Lock the body to the viewport so Discovery ↔ Search height differences
@@ -261,6 +273,11 @@ textarea {
         overflow-y: visible;
     }
 
+    /* Home renders no bottom nav, so don't reserve room for one. */
+    body:not(:has([data-app-nav])) {
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    }
+
     /* Research only: keep the locked viewport so the footer stays above the
        fixed bottom nav and does not jump when toggling modes.
        The nav is position:fixed, so it does not take a grid row. Two tracks:
@@ -271,32 +288,35 @@ textarea {
         max-height: var(--stable-viewport-height, 100dvh);
         overflow-x: clip;
         overflow-y: hidden;
-        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-rows: minmax(0, 1fr);
     }
 
     body:has([data-research-workspace]) .main-content {
         grid-row: 1;
-        justify-content: center;
+        justify-content: flex-start;
         min-height: 0;
         overflow-x: clip;
         overflow-y: auto;
     }
 
+    /* Pin the question and search box near the top. Centered, they sat low
+       enough that the iOS keyboard covered them and Safari panned the page. */
     body:has([data-research-workspace]) .page-transition-shell {
+        justify-content: flex-start;
+    }
+
+    /* Start screens on tall phones: center the cluster in the spare room
+       instead of leaving a band above the nav. `safe` falls back to the top
+       on short phones, where centering would push the box under the keyboard. */
+    body:has([data-research-workspace]) .page-transition-shell:has([data-search-landing]),
+    body:has([data-research-workspace]) .page-transition-shell:has([data-discover-landing]) {
         justify-content: safe center;
     }
 
-    /* Rich marketing footer is too tall for the locked research viewport.
-       Keep brand + legal; drop the large link columns on small screens. */
-    body:has([data-research-workspace]) [data-app-footer-top] {
-        display: none;
-    }
-
+    /* The phone research screen is a workspace: give it the whole viewport.
+       Home and every other page still show the footer and its legal links. */
     body:has([data-research-workspace]) [data-app-footer] {
-        grid-row: 2;
-        align-self: start;
-        padding-top: 10px;
-        padding-bottom: 4px;
+        display: none;
     }
 }
 

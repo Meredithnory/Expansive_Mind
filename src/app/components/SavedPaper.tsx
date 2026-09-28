@@ -5,6 +5,8 @@ import styles from "./styles/savedpaper.module.scss";
 import Link from "next/link";
 import clsx from "clsx";
 import { buildPaperPath, SourceDatabase } from "../lib/paper-sources";
+import { paperAccessLabel, paperOpenLabel } from "../savedpapers/library-view";
+import { ArrowRightIcon, ShareIcon, TrashIcon } from "./LibraryIcons";
 
 export interface Paper {
     title: string;
@@ -37,52 +39,35 @@ function isModifiedClick(event: React.MouseEvent) {
     );
 }
 
+/** One saved paper in the Research Library list. */
 const SavedPaper = ({
     page,
-    isLink,
+    topic,
     deletePaper,
+    onShare,
 }: {
     page: Paper;
-    isLink: boolean;
+    topic?: string;
     deletePaper: (paper: Paper) => void;
+    onShare?: (paper: Paper) => void;
 }) => {
     const cardRef = useRef<HTMLElement>(null);
     const paperPath = buildPaperPath(page.database, page.paperId, page.idName);
-    const openLabel =
-        page.canSendToAI === false
-            ? "View source"
-            : page.accessStatus === "check"
-              ? "Open paper"
-              : "Open chat";
-    const openHref =
-        page.canSendToAI === false && page.canonicalUrl
-            ? page.canonicalUrl
-            : paperPath;
+    const title = typeof page.title === "string" ? page.title : "Untitled";
+    const openLabel = paperOpenLabel(page);
+    const access = paperAccessLabel(page);
     const opensExternally = page.canSendToAI === false && Boolean(page.canonicalUrl);
 
-    /** Flash a quick fade/lift; never delay navigation. */
+    /** Flash a quick fade; never delay navigation. */
     const flashExit = (event: React.MouseEvent<HTMLAnchorElement>) => {
-        if (opensExternally || isModifiedClick(event) || prefersReducedMotion()) {
-            return;
-        }
+        if (isModifiedClick(event) || prefersReducedMotion()) return;
         cardRef.current?.classList.add(styles.exiting);
     };
 
     return (
-        <article
-            ref={cardRef}
-            className={clsx(styles.card, {
-                [styles.springerCard]: page.database === "springer",
-                [styles.scholarCard]: page.database === "scholar",
-            })}
-        >
-            <div className={styles.meta}>
-                <span
-                    className={clsx(styles.sourceTag, {
-                        [styles.springerTag]: page.database === "springer",
-                        [styles.scholarTag]: page.database === "scholar",
-                    })}
-                >
+        <article ref={cardRef} className={styles.row}>
+            <div className={styles.main}>
+                <p className={styles.meta}>
                     <span
                         className={clsx(styles.sourceDot, {
                             [styles.springerDot]: page.database === "springer",
@@ -91,51 +76,70 @@ const SavedPaper = ({
                         aria-hidden="true"
                     />
                     {page.primarySource}
-                </span>
-                {page.contentLabel ? (
-                    <span className={styles.contentLabel}>{page.contentLabel}</span>
+                    {topic ? <span className={styles.topic}> · {topic}</span> : null}
+                </p>
+                <h3 className={styles.title}>
+                    <Link href={paperPath} onClick={flashExit}>
+                        {title}
+                    </Link>
+                </h3>
+                {typeof page.authors === "string" && page.authors ? (
+                    <p className={styles.authors}>{page.authors}</p>
                 ) : null}
             </div>
-            <h3 className={styles.title}>
-                <Link href={paperPath} onClick={flashExit}>
-                    {typeof page.title === "string" ? page.title : "Untitled"}
-                </Link>
-            </h3>
-            {typeof page.authors === "string" && page.authors ? (
-                <p className={styles.authors}>{page.authors}</p>
-            ) : null}
-            {typeof page.description === "string" && page.description ? (
-                <p className={styles.description}>{page.description}</p>
-            ) : null}
-            {isLink ? (
-                <div className={styles.actions}>
-                    {opensExternally ? (
-                        <a
-                            className={styles.primaryAction}
-                            href={openHref}
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            {openLabel} <span aria-hidden="true">↗</span>
-                        </a>
-                    ) : (
-                        <Link
-                            className={styles.primaryAction}
-                            href={openHref}
-                            onClick={flashExit}
-                        >
-                            {openLabel} <span aria-hidden="true">→</span>
-                        </Link>
-                    )}
+            <div className={styles.actions}>
+                {access ? (
+                    <span
+                        className={clsx(styles.access, {
+                            [styles.fullText]: access === "Full text",
+                        })}
+                    >
+                        {access}
+                    </span>
+                ) : null}
+                {onShare ? (
                     <button
                         type="button"
-                        className={styles.deleteAction}
-                        onClick={() => deletePaper(page)}
+                        className={styles.iconButton}
+                        aria-label={`Share ${title}`}
+                        onClick={() => onShare(page)}
                     >
-                        Delete
+                        <ShareIcon size={15} />
                     </button>
-                </div>
-            ) : null}
+                ) : null}
+                <button
+                    type="button"
+                    className={styles.iconButton}
+                    aria-label={`Remove ${title} from your library`}
+                    onClick={() => deletePaper(page)}
+                >
+                    <TrashIcon size={15} />
+                </button>
+                {opensExternally ? (
+                    <a
+                        className={styles.openAction}
+                        href={page.canonicalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`${openLabel}: ${title} (opens in a new tab)`}
+                    >
+                        <span className={styles.openText}>{openLabel}</span>
+                        <span className={styles.openArrow} aria-hidden="true">↗</span>
+                    </a>
+                ) : (
+                    <Link
+                        className={styles.openAction}
+                        href={paperPath}
+                        onClick={flashExit}
+                        aria-label={`${openLabel}: ${title}`}
+                    >
+                        <span className={styles.openText}>{openLabel}</span>
+                        <span className={styles.openArrow} aria-hidden="true">
+                            <ArrowRightIcon size={15} />
+                        </span>
+                    </Link>
+                )}
+            </div>
         </article>
     );
 };

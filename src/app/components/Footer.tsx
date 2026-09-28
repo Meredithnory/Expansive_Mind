@@ -47,7 +47,11 @@ const Footer = () => {
             </div>
             <div className={styles.legal}>
                 <p>© {currentYear} Expansive Mind. All rights reserved.</p>
-                <a href={`mailto:${DEVELOPER_EMAIL}`}>{DEVELOPER_EMAIL}</a>
+                <nav className={styles.legalLinks} aria-label="Legal">
+                    <Link href="/privacy">Privacy</Link>
+                    <Link href="/terms">Terms</Link>
+                    <a href={`mailto:${DEVELOPER_EMAIL}`}>{DEVELOPER_EMAIL}</a>
+                </nav>
             </div>
         </footer>
     );

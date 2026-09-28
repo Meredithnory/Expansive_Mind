@@ -126,6 +126,15 @@ export const POST = withAuth(async (request: NextRequest) => {
             );
         }
 
+        // Screenshots of an unlicensed paper would carry its content to the
+        // model, so figure analysis needs a licensed paper either way.
+        if (!paper.access.canSendToAI) {
+            return NextResponse.json(
+                { error: paper.access.policyReason },
+                { status: 403 },
+            );
+        }
+
         const isUpload = upload instanceof File && upload.size > 0;
         let image;
         let figure = null;

@@ -22,6 +22,7 @@ import {
     type Plan,
 } from "../../lib/entitlements";
 import { isAdminUser } from "../../lib/admin";
+import { paperChatMode } from "../../lib/chat-access";
 
 export const POST = withAuth(async (request: NextRequest) => {
     let reservation: { plan: Plan; identity: string } | null = null;
@@ -111,10 +112,8 @@ export const POST = withAuth(async (request: NextRequest) => {
                 { status: 404 },
             );
         }
-        if (
-            !serverPaper.access.canSendToAI ||
-            !serverPaper.access.canPersistContent
-        ) {
+        // Unlicensed papers chat from the abstract only (see paperChatMode).
+        if (!paperChatMode(serverPaper)) {
             return NextResponse.json(
                 { error: serverPaper.access.policyReason },
                 { status: 403 },

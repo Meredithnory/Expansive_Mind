@@ -23,6 +23,8 @@ function user() {
         _id: { toString: () => "user-1" },
         password: hash,
         tokenVersion: 2,
+        passwordResetTokenHash: "pending-reset",
+        passwordResetExpiresAt: new Date("2026-09-25T00:00:00.000Z"),
         save: vi.fn().mockResolvedValue(undefined),
     };
 }
@@ -123,6 +125,8 @@ describe("POST /api/account/password", () => {
         });
         expect(next.user.password).toBe("new-secret");
         expect(next.user.tokenVersion).toBe(3);
+        expect(next.user.passwordResetTokenHash).toBeNull();
+        expect(next.user.passwordResetExpiresAt).toBeNull();
         expect(next.user.save).toHaveBeenCalled();
         expect(setCookie).toContain("auth_token=");
         expect(setCookie).toMatch(/Max-Age=0/i);

@@ -90,6 +90,38 @@ describe("assessDiscoveryQuestion", () => {
         });
     });
 
+    it("trusts the model's ok over an NIH suggestion that mangles terms", async () => {
+        createPrivateChatCompletion.mockResolvedValue({
+            choices: [{ message: { content: JSON.stringify({ status: "ok" }) } }],
+        });
+        suggestSearchQueryNihOnly.mockResolvedValue(
+            "how does cgrp receptor agonism affect cardiovascular outcomes in type diabetes",
+        );
+
+        await expect(
+            assessDiscoveryQuestion(
+                "How does GLP-1 receptor agonism affect cardiovascular outcomes in type 2 diabetes?",
+            ),
+        ).resolves.toEqual({ status: "ok", suggestion: null });
+    });
+
+    it("falls back to NIH only when the model has no answer, and keeps numbered terms", async () => {
+        delete process.env.AI_API_KEY;
+        suggestSearchQueryNihOnly.mockResolvedValue(
+            "how does cgrp receptor agonism affect cardiovascular outcomes in type diabetes",
+        );
+        await expect(
+            assessDiscoveryQuestion(
+                "How does GLP-1 receptor agonism affect cardiovascular outcomes in type 2 diabetes?",
+            ),
+        ).resolves.toEqual({ status: "ok", suggestion: null });
+
+        suggestSearchQueryNihOnly.mockResolvedValue("stem cells in type 2 diabetes");
+        await expect(
+            assessDiscoveryQuestion("stemm cells in type 2 diabetes"),
+        ).resolves.toMatchObject({ status: "corrected" });
+    });
+
     it("returns unclear when the model cannot read the query", async () => {
         createPrivateChatCompletion.mockResolvedValue({
             choices: [

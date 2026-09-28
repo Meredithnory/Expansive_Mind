@@ -83,6 +83,8 @@ export interface PaperExcerptForSynthesis {
     authors: string[];
     publicationDate?: string;
     excerpt: string;
+    /** "abstract" when the paper's license keeps its body out of the model. */
+    excerptKind?: "body" | "abstract";
     /** Body-only licensed excerpt for the claim ledger. Never a Scholar snippet or abstract. */
     quoteExcerpt?: string;
 }

@@ -114,8 +114,10 @@ const citationFromMatch = (
     let startLine = lines[0].number;
     let endLine = lines[0].number;
     let sectionTitle = lines[0].sectionTitle;
+    const offsets = new Map<number, number>();
     for (const line of lines) {
         const next = cursor + line.text.length + 1;
+        offsets.set(line.number, cursor);
         if (index >= cursor && index < next) {
             startLine = line.number;
             sectionTitle = line.sectionTitle;
@@ -127,13 +129,39 @@ const citationFromMatch = (
         (line) => line.number >= startLine && line.number <= endLine,
     );
     if (cited.length === 0) return null;
+    // Trim the first and last lines to the match so the citation holds the
+    // exact passage, not the surrounding words on those wrapped lines.
+    const text = cited.map((line) => {
+        const lineStart = offsets.get(line.number) ?? 0;
+        const from = Math.max(0, index - lineStart);
+        const to = Math.min(line.text.length, endIndex - lineStart);
+        return line.text.slice(from, to).trim();
+    });
     return {
         sectionTitle,
         startLine,
         endLine,
-        lines: cited.map((line) => line.text),
+        lines: text.some(Boolean) ? text : cited.map((line) => line.text),
     };
 };
+
+/** Citation for a line range, as stored on highlights and group posts. */
+export function citationFromLineRange(
+    paper: FormattedPaper,
+    start: number,
+    end: number,
+): PaperCitation | null {
+    const lines = buildPaperLines(paper).filter(
+        (line) => line.number >= start && line.number <= end,
+    );
+    if (lines.length === 0) return null;
+    return {
+        sectionTitle: lines[0].sectionTitle,
+        startLine: lines[0].number,
+        endLine: lines[lines.length - 1].number,
+        lines: lines.map((line) => line.text),
+    };
+}
 
 export function locateExcerptInPaper(
     paper: FormattedPaper,
@@ -193,6 +221,65 @@ export function locateExcerptInPaper(
         startLine: 1,
         endLine: Math.max(1, wrapped.length),
         lines: wrapped.length > 0 ? wrapped : [needle],
+    };
+}
+
+/**
+ * Assistant quotes often stitch fragments with "..." — a string that is not
+ * in the paper. Locate the longest fragment that is, so the highlight lands
+ * on real text instead of falling back to the section top.
+ */
+export function locateQuoteInPaper(
+    paper: FormattedPaper,
+    quote: string,
+    fallbackSection = "Paper",
+): PaperCitation {
+    return (
+        findQuoteInPaper(paper, quote, fallbackSection) ||
+        locateExcerptInPaper(paper, quote, fallbackSection)
+    );
+}
+
+/** Like locateQuoteInPaper, but null when no part of the quote is in the paper. */
+export function findQuoteInPaper(
+    paper: FormattedPaper,
+    quote: string,
+    fallbackSection = "Paper",
+): PaperCitation | null {
+    const fragments = quote
+        .split(/\.{3,}|\u2026/)
+        .map((part) => part.replace(/\s+/g, " ").trim())
+        .filter((part) => part.length >= 12)
+        .sort((left, right) => right.length - left.length);
+    const haystack = buildPaperLines(paper)
+        .map((line) => line.text)
+        .join(" ");
+    const candidates = fragments.length > 1 ? fragments : [quote];
+    const found = candidates.find((part) =>
+        bestMatchingExcerpt(haystack, part),
+    );
+    return found ? locateExcerptInPaper(paper, found, fallbackSection) : null;
+}
+
+/**
+ * The assistant guesses line numbers (usually "1"). Replace them with where
+ * the quote really is, keeping the quoted text as written.
+ */
+export function withPaperLineNumbers(
+    paper: FormattedPaper,
+    citation: PaperCitation,
+): PaperCitation {
+    const found = findQuoteInPaper(
+        paper,
+        citation.lines.join(" "),
+        citation.sectionTitle,
+    );
+    if (!found) return citation;
+    return {
+        ...citation,
+        sectionTitle: found.sectionTitle,
+        startLine: found.startLine,
+        endLine: found.endLine,
     };
 }
 

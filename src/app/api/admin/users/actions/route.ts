@@ -5,7 +5,17 @@ import { recordAdminAction } from "../../../../lib/admin-audit";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { getStripe } from "../../../../lib/stripe";
 import type { QuotaFeature } from "../../../../lib/plan-config";
+import Block from "../../../../models/Block";
+import Follow from "../../../../models/Follow";
+import ForumComment from "../../../../models/ForumComment";
+import ForumPost from "../../../../models/ForumPost";
+import ForumReport from "../../../../models/ForumReport";
+import Group from "../../../../models/Group";
+import GroupComment from "../../../../models/GroupComment";
+import GroupMember from "../../../../models/GroupMember";
+import GroupPost from "../../../../models/GroupPost";
 import Message from "../../../../models/Message";
+import PageEngagement from "../../../../models/PageEngagement";
 import PaperBrief from "../../../../models/PaperBrief";
 import PaperHighlight from "../../../../models/PaperHighlight";
 import PaperShare from "../../../../models/PaperShare";
@@ -14,6 +24,7 @@ import SavedDiscovery from "../../../../models/SavedDiscovery";
 import SavedPaper from "../../../../models/SavedPaper";
 import User from "../../../../models/User";
 import UsageCounter from "../../../../models/UsageCounter";
+import UsageEvent from "../../../../models/UsageEvent";
 
 const actions = new Set([
     "grant_pro",
@@ -201,6 +212,33 @@ export const POST = withAdmin(async (request: NextRequest) => {
             );
         }
 
+        // Groups they own go away entirely; elsewhere, their posts,
+        // comments, and memberships are removed.
+        const ownedGroups = (await Group.find({ ownerID: user._id })
+            .select("_id")
+            .lean()) as unknown as Array<{ _id: unknown }>;
+        const ownedGroupIds = ownedGroups.map((group) => group._id);
+        const [groupComments, groupPosts, groupMemberships] = await Promise.all([
+            GroupComment.deleteMany({
+                $or: [{ authorID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+            GroupPost.deleteMany({
+                $or: [{ authorID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+            GroupMember.deleteMany({
+                $or: [{ userID: user._id }, { groupID: { $in: ownedGroupIds } }],
+            }),
+        ]);
+        const groups = await Group.deleteMany({ _id: { $in: ownedGroupIds } });
+
+        const [forumPosts, forumComments] = await Promise.all([
+            ForumPost.deleteMany({ authorID: user._id }),
+            ForumComment.deleteMany({ authorID: user._id }),
+            Follow.deleteMany({ $or: [{ followerID: user._id }, { followeeID: user._id }] }),
+            Block.deleteMany({ $or: [{ blockerID: user._id }, { blockedID: user._id }] }),
+            ForumReport.deleteMany({ reporterID: user._id }),
+        ]);
+
         const savedPapers = await SavedPaper.find({ userID: user._id })
             .select("_id")
             .lean();
@@ -220,6 +258,8 @@ export const POST = withAdmin(async (request: NextRequest) => {
             discoveries,
             briefs,
             shares,
+            usageEvents,
+            visits,
         ] = await Promise.all([
             UsageCounter.deleteMany({ userID: user._id }),
             SavedPaper.deleteMany({ userID: user._id }),
@@ -228,6 +268,15 @@ export const POST = withAdmin(async (request: NextRequest) => {
             SavedDiscovery.deleteMany({ userID: user._id }),
             PaperBrief.deleteMany({ userID: user._id }),
             PaperShare.deleteMany({ ownerID: user._id }),
+            // Keep cost and traffic totals, but cut the link to the person.
+            UsageEvent.updateMany(
+                { userID: user._id },
+                { $unset: { userID: "" } },
+            ),
+            PageEngagement.updateMany(
+                { userID: user._id },
+                { $unset: { userID: "" } },
+            ),
         ]);
 
         await User.deleteOne({ _id: user._id });
@@ -244,6 +293,14 @@ export const POST = withAdmin(async (request: NextRequest) => {
                 discoveries: discoveries.deletedCount,
                 briefs: briefs.deletedCount,
                 shares: shares.deletedCount,
+                usageEventsAnonymized: usageEvents.modifiedCount,
+                visitsAnonymized: visits.modifiedCount,
+                groupsOwned: groups.deletedCount,
+                groupPosts: groupPosts.deletedCount,
+                groupComments: groupComments.deletedCount,
+                groupMemberships: groupMemberships.deletedCount,
+                forumPosts: forumPosts.deletedCount,
+                forumComments: forumComments.deletedCount,
                 user: 1,
             },
         };

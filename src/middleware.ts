@@ -14,6 +14,8 @@ export async function middleware(request: NextRequest) {
     const protectedRoutes = [
         "/savedpapers",
         "/projects",
+        "/profile",
+        "/groups",
     ];
 
     // Define public routes that logged-in users shouldn't access
@@ -105,6 +107,8 @@ export const config = {
     matcher: [
         "/savedpapers/:path*",
         "/projects/:path*",
+        "/profile/:path*",
+        "/groups/:path*",
         "/admin/:path*",
         "/login",
         "/signup",

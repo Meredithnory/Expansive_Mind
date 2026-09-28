@@ -59,3 +59,53 @@ export function paperChatPrompts(
 
 export const buildChatMessages = (savedMessages: ChatMessage[] = []) =>
     savedMessages.filter((message) => message.id !== "welcome");
+
+const MAX_FOLLOW_UPS = 3;
+const FOLLOW_UP_MAX_CHARS = 120;
+const NEXT_OPEN_RE = /(^|\n):::next[ \t]*(?=\n|$)/;
+const BLOCK_CLOSE_RE = /(^|\n):::[ \t]*(?=\n|$)/;
+
+/**
+ * Splits the assistant's `:::next` block (questions the reader could ask
+ * next) out of a reply. The block may be left unclosed at the end.
+ */
+export function splitFollowUps(message: string): {
+    text: string;
+    followUps: string[];
+} {
+    const open = message.match(NEXT_OPEN_RE);
+    if (!open || open.index === undefined) {
+        return { text: message, followUps: [] };
+    }
+    const bodyStart = open.index + open[0].length + 1;
+    const rest = message.slice(bodyStart);
+    const close = rest.match(BLOCK_CLOSE_RE);
+    const body =
+        close && close.index !== undefined ? rest.slice(0, close.index) : rest;
+    const after =
+        close && close.index !== undefined
+            ? rest.slice(close.index + close[0].length)
+            : "";
+    const seen = new Set<string>();
+    const followUps = body
+        .split("\n")
+        .map((line) =>
+            line
+                .replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "")
+                .replace(/^["“]|["”]$/g, "")
+                .trim(),
+        )
+        .filter((line) => {
+            const key = line.toLowerCase();
+            if (!line || line.length > FOLLOW_UP_MAX_CHARS || seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        })
+        .slice(0, MAX_FOLLOW_UPS);
+    const text = `${message.slice(0, open.index)}${after}`
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    return { text, followUps };
+}

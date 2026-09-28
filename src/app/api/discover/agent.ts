@@ -1,6 +1,7 @@
 import { rankSearchResults } from "../search/semantic-rank";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import {
+    selectAbstractContext,
     selectPaperContext,
     selectQuotableExcerpt,
 } from "../../lib/paper-context";
@@ -201,9 +202,9 @@ async function readPaperExcerpts(
             ) {
                 throw new Error("Scholar snippets are discovery-only");
             }
-            if (!paper.access.canSendToAI) {
-                throw new Error("Paper not approved for AI processing");
-            }
+            // A license that keeps the body out of the model still lets
+            // Discover read the abstract, as abstract-first research tools do.
+            const abstractOnly = !paper.access.canSendToAI;
 
             const oaDoi =
                 paper.access?.attribution?.doi || candidate.doi;
@@ -212,7 +213,12 @@ async function readPaperExcerpts(
                 throw new Error("Conflicting license records");
             }
 
-            const excerpt = selectPaperContext(paper, question);
+            const excerpt = abstractOnly
+                ? selectAbstractContext(paper.abstract || candidate.abstract)
+                : selectPaperContext(paper, question);
+            if (!excerpt) {
+                throw new Error("No usable text for this paper");
+            }
             const quoteLicenses = quoteLicenseFromHome(paper.access, oa);
             const quote = evaluateQuoteEligibility({
                 source: paper.source || loaded.locator.database,
@@ -222,9 +228,10 @@ async function readPaperExcerpts(
                 rawLicense: quoteLicenses.rawLicense,
                 licenseUrl: quoteLicenses.licenseUrl,
             });
-            const quoteExcerpt = quote.allowed
-                ? selectQuotableExcerpt(paper, question)
-                : "";
+            const quoteExcerpt =
+                quote.allowed && !abstractOnly
+                    ? selectQuotableExcerpt(paper, question)
+                    : "";
             const doi = loaded.citation.doi || candidate.doi;
             const scholarCitesId = resolveScholarCitesId({
                 scholarCitesId: candidate.scholarCitesId,
@@ -263,7 +270,7 @@ async function readPaperExcerpts(
                       }
                     : {}),
                 ...(scholarCitesId ? { scholarCitesId } : {}),
-                ...(quote.allowed && quote.licenseUrl
+                ...(quote.allowed && !abstractOnly && quote.licenseUrl
                     ? { licenseUrl: quote.licenseUrl }
                     : {}),
             };
@@ -275,6 +282,7 @@ async function readPaperExcerpts(
                 authors: card.authors,
                 publicationDate: card.date || undefined,
                 excerpt,
+                excerptKind: abstractOnly ? "abstract" : "body",
                 ...(quoteExcerpt ? { quoteExcerpt } : {}),
             };
 

@@ -162,3 +162,24 @@ export function evaluateQuoteEligibility(input: {
         licenseUrl: access.licenseUrl,
     };
 }
+
+/** Strict quote gate for showing a paper's text to other people. */
+export function isPaperQuotable(
+    paper: {
+        source?: string | null;
+        contentLabel?: string | null;
+        paper?: Array<{ title?: string; content?: string }> | null;
+        access: { rawLicense?: string | null; licenseUrl?: string | null };
+    },
+    database: string,
+): boolean {
+    const licenses = quoteLicenseFromHome(paper.access);
+    return evaluateQuoteEligibility({
+        source: paper.source || database,
+        database,
+        contentLabel: paper.contentLabel,
+        hasFullTextBody: paperHasFullTextBody(paper),
+        rawLicense: licenses.rawLicense,
+        licenseUrl: licenses.licenseUrl,
+    }).allowed;
+}

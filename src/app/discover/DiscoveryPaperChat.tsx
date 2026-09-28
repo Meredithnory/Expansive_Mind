@@ -5,6 +5,7 @@ import Paperbox from "../components/paperchatbot/Paperbox";
 import type { FormattedPaper } from "../api/general-interfaces";
 import { buildChatMessages, type ChatMessage } from "../lib/chat-messages";
 import type { PaperCitation } from "../lib/paper-citation";
+import { withReportOrigin } from "../lib/paper-sources";
 import styles from "./discovery-paper-chat.module.scss";
 
 type Paper = {
@@ -93,7 +94,7 @@ function PaperConversation({
             <div className={styles.chatPane}>
                 <a
                     className={styles.openFullPaper}
-                    href={paper.href}
+                    href={withReportOrigin(paper.href, paper.index)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Open full paper and conversation in a new tab"

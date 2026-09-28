@@ -26,8 +26,9 @@
     -webkit-touch-callout: default;
 
     /* On desktop the paper scrolls inside its own column while the chat
-       panel stays fixed beside it. Mobile keeps normal page flow. */
-    @media (min-width: 721px) {
+       panel stays fixed beside it. Tablets and phones stack the page and
+       scroll it as a whole (so the sticky Contents bar can stick). */
+    @media (min-width: 961px) {
         height: 100%;
         min-height: 0;
         overflow-y: auto;
@@ -58,24 +59,74 @@
         line-height: 1.7;
     }
 
+    // Contents rail beside the paper on wide screens; stacked below that.
+    .readerLayout {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+
+        @media (min-width: 1200px) {
+            display: grid;
+            grid-template-columns: 196px minmax(0, 1fr);
+            align-items: start;
+            gap: 26px;
+        }
+    }
+
+    .article {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-width: 0;
+    }
+
     .paper {
         display: flex;
         flex-direction: column;
-        gap: 40px;
+        gap: 28px;
     }
 
     .title {
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.25;
-        color: #d7ebff;
+        font-size: 27px;
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        line-height: 1.22;
+        color: #f2f7ff;
         margin: 0px;
     }
     .authors {
-        font-size: 14px;
-        font-style: italic;
-        color: rgba(215, 235, 255, 0.65);
+        font-size: 13px;
+        line-height: 1.5;
+        color: #9aa3b2;
+    }
+    .authorsToggle {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        margin-left: 8px;
+        padding: 0 9px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(215, 235, 255, 0.82);
+        font: inherit;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 700;
+        vertical-align: baseline;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            border-color: rgba(255, 0, 132, 0.45);
+            color: #fff;
+        }
+
+        &:focus-visible {
+            outline: 2px solid $highlight-blue;
+            outline-offset: 2px;
+        }
     }
     .bluetext {
         color: $highlight-blue;
@@ -100,23 +151,59 @@
         line-height: 1.5;
     }
 
-    .attribution {
+    // One row of small tags instead of the old info box.
+    .metaRow {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 16px;
-        padding: 12px 14px;
-        border-radius: 6px;
-        border: 1px solid rgba(10, 177, 255, 0.24);
-        background: rgba(10, 177, 255, 0.06);
-        color: rgba(215, 235, 255, 0.72);
-        font-size: 13px;
-        line-height: 1.5;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .metaTag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #15151c;
+        color: #c9d1dc;
+        font-size: 12px;
+        font-weight: 700;
 
         a {
-            color: $highlight-blue;
+            color: inherit;
             text-decoration: underline;
             text-underline-offset: 3px;
         }
+    }
+
+    .metaTagGood {
+        background: rgba(34, 160, 107, 0.14);
+        color: #6ee7a8;
+    }
+
+    .metaTagType {
+        background: rgba(139, 92, 246, 0.16);
+        color: #c4b5fd;
+    }
+
+    .metaLink {
+        margin-left: 4px;
+        color: #ff8ec4;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    .metaFine {
+        color: rgba(215, 235, 255, 0.42);
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
     }
 
     .statusWarning {
@@ -131,26 +218,32 @@
         margin: 2px 0 8px;
     }
 
-    .pmcid {
-        font-size: 13px;
-        color: rgba(215, 235, 255, 0.4);
-        letter-spacing: 0.02em;
-    }
     .section {
         display: flex;
         flex-direction: column;
         gap: 10px;
+        // Jumps from Contents stop below the sticky toolbar and Contents bar.
+        scroll-margin-top: calc(var(--paper-toolbar-bottom, 0px) + 68px);
+
         p {
+            max-width: 640px;
+            color: #d5dde8;
+            font-size: 16px;
+            line-height: 1.75;
             white-space: pre-line;
         }
         h4 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #d7ebff;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(10, 177, 255, 0.35);
-            margin: 0;
+            max-width: 640px;
+            font-size: 19px;
+            font-weight: 800;
+            color: #fff;
+            margin: 4px 0 0;
         }
+    }
+
+    .sectionNumber {
+        color: #6b7280;
+        font-weight: 700;
     }
 
     &.highlighting {
@@ -459,9 +552,10 @@
         gap: 10px;
 
         h6 {
-            font-size: 17px;
-            font-weight: 600;
-            color: #d7ebff;
+            max-width: 640px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
             margin: 0;
         }
 
@@ -472,15 +566,17 @@
     .graphicSection {
         position: relative;
         width: 100%;
-        background-color: rgba(10, 177, 255, 0.04);
-        color: #d7ebff;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 20px;
+        max-width: 640px;
+        box-sizing: border-box;
+        background-color: #0a0a0f;
+        color: #c9d1dc;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 12px;
         display: flex;
         flex-direction: column;
-        gap: 20px;
-        margin: 8px 0 0;
+        gap: 10px;
+        margin: 4px 0 0;
 
         img {
             height: 100%;
@@ -500,40 +596,50 @@
         width: 100%;
         min-height: 320px;
         aspect-ratio: 16/9;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #f5f6f8;
     }
 
-    .graphicTitle {
-        font-weight: 600;
-        color: rgba(215, 235, 255, 0.75);
-    }
-
-    .figureActions {
+    .figureCaption {
         display: flex;
-        align-items: center;
-        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
         gap: 12px;
+        color: #c9d1dc;
+        font-size: 13px;
+        line-height: 1.5;
 
-        button {
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 16px;
-            border: 1px solid rgba(255, 0, 132, 0.55);
-            border-radius: 8px;
-            background: rgba(255, 0, 132, 0.12);
+        strong {
             color: #fff;
-            font: inherit;
-            font-weight: 600;
-            cursor: pointer;
+        }
+    }
+
+    .figureAsk {
+        flex-shrink: 0;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 90, 169, 0.5);
+        border-radius: 999px;
+        background: transparent;
+        color: #ff8ec4;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+
+        &:hover:not(:disabled),
+        &:focus-visible {
+            border-color: rgba(255, 90, 169, 0.85);
+            color: #fff;
         }
 
-        button:focus-visible {
-            outline: 3px solid $highlight-blue;
-            outline-offset: 3px;
+        &:focus-visible {
+            outline: 2px solid $highlight-blue;
+            outline-offset: 2px;
         }
 
-        button:disabled {
+        &:disabled {
             cursor: not-allowed;
             opacity: 0.5;
         }
@@ -556,13 +662,24 @@
         }
 
         .title {
-            font-size: clamp(1.35rem, 6.5vw, 1.65rem);
-            line-height: 1.3;
+            font-size: 22px;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
         }
 
         .authors {
-            font-size: 13px;
+            font-size: 12px;
+            font-style: italic;
             line-height: 1.5;
+        }
+
+        .metaTag {
+            font-size: 11px;
+            padding: 0 9px;
+        }
+
+        .figureCaption {
+            flex-direction: column;
         }
 
         .impactBadge {
@@ -571,14 +688,13 @@
         }
 
         .contentNotice,
-        .attribution,
         .statusWarning {
             padding: 11px 12px;
         }
 
         .section {
             h4 {
-                font-size: 18px;
+                font-size: 17px;
             }
         }
 
@@ -603,4 +719,57 @@
             min-height: 220px;
         }
     }
+}
+
+/* Phone highlighting: floats just above the "Ask this paper" peek
+   (76px nav clearance + 52px peek on phones). */
+.touchHighlightBar {
+    position: fixed;
+    right: 16px;
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    z-index: 85;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+
+    @media (min-width: 721px) {
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.touchHighlightButton,
+.touchHighlightHint {
+    pointer-events: auto;
+    border-radius: 999px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.touchHighlightButton {
+    min-height: 48px;
+    padding: 12px 22px;
+    border: 0;
+    background: #ff0084;
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.touchHighlightHint {
+    max-width: 34ch;
+    margin: 0;
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(8, 8, 10, 0.92);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }

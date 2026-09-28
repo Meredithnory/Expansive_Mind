@@ -11,12 +11,15 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
 | `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
+| `browser-paper.ts` | client | Load an unlicensed PMC body in the reader's browser from NIH / Europe PMC. Read-only figures |
 | `canvas-image.ts` | client | Canvas → file, size cap |
+| `chat-access.ts` | both | `paperChatMode`: body excerpts, abstract only, or no chat |
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
 | `claim-evidence.ts` | both | Study-design labels in Discover. Not the claim ledger |
 | `contact.ts` | both | Contact form parse / mailto |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
 | `quote-eligibility.ts` | both | Strict quote gate. Does not decide whether a share slug can be created |
+| `quote-citation.ts` | both | "Copy with citation": quote + byline, DOI link, license |
 | `entitlements.ts` | server | Quota consume / refund / snapshot |
 | `evidence-type.ts` | both | Evidence labels on extractions |
 | `figure-capture.ts` | both | Crop + rights attestation |
@@ -29,12 +32,14 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `guest-discovery.ts` | client | localStorage last guest result |
 | `guest-usage.ts` | both | Summarize guest counters |
 | `highlight-search.tsx` | client | Highlight search UI helper |
+| `lab-badge.ts` | both | Lab badge roles, extras slots, validation, tag line |
 | `license-extract.ts` | both | JATS license / DOI extract |
 | `openrouter-policy.ts` | both | ZDR + deny data collection |
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
 | `paper-highlights.ts` | server | Highlight CRUD |
 | `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
+| `profile-colors.ts` | both | Coat colors (profileColor) with shade and ink |
 | `research-citation.ts` | both | DOI/PMCID normalize + citation merge keys for the source registry |
 | `plan-config.ts` | server | Default + DB plan/price config |
 | `pmc-media.ts` | both | PMC figure URL resolve |

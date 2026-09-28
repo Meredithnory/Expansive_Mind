@@ -1,0 +1,124 @@
+// Accessory motion only runs inside an `.animated` character (the profile and
+// badge editor). Small avatars in feeds stay still.
+.animated {
+    .fizz {
+        animation: lab-fizz 1.8s ease-in infinite;
+    }
+
+    .drip {
+        animation: lab-drip 2.4s ease-in infinite;
+    }
+
+    .glow {
+        animation: lab-glow 2.2s ease-in-out infinite;
+    }
+
+    .dna {
+        animation: lab-dna 4s ease-in-out infinite;
+    }
+
+    .twinkle {
+        animation: lab-twinkle 2.4s ease-in-out infinite;
+    }
+
+    .peek {
+        animation: lab-peek 5s ease-in-out infinite;
+    }
+
+    .delay1 {
+        animation-delay: 0.7s;
+    }
+
+    .delay2 {
+        animation-delay: 1.4s;
+    }
+}
+
+.fizz,
+.drip,
+.dna,
+.twinkle {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+@keyframes lab-fizz {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-16px);
+        opacity: 0;
+    }
+}
+
+@keyframes lab-drip {
+    0%,
+    60% {
+        transform: translateY(-6px);
+        opacity: 0;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+}
+
+@keyframes lab-glow {
+    0%,
+    100% {
+        opacity: 0.75;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes lab-dna {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-8px) rotate(4deg);
+    }
+}
+
+@keyframes lab-twinkle {
+    0%,
+    100% {
+        transform: scale(0.4);
+        opacity: 0.2;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes lab-peek {
+    0%,
+    82%,
+    100% {
+        transform: translateY(0);
+    }
+    88% {
+        transform: translateY(-6px);
+    }
+    94% {
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animated * {
+        animation: none !important;
+    }
+}

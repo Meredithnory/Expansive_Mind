@@ -130,11 +130,39 @@ export function buildPaperPath(
         : `/paperchatbot/${database}/${encodedId}`;
 }
 
+/** Marks a reader link as opened from a Discover report, so the reader can
+ * offer the way back ("Your report · Gap 1 › Paper 3"). */
+export function withReportOrigin(
+    href: string,
+    paperIndex?: number | null,
+    gapNumber?: number | null,
+) {
+    if (!href.startsWith("/paperchatbot/")) return href;
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    params.set("from", "report");
+    if (paperIndex && Number.isInteger(paperIndex) && paperIndex > 0) {
+        params.set("paper", String(paperIndex));
+    }
+    if (gapNumber && Number.isInteger(gapNumber) && gapNumber > 0) {
+        params.set("gap", String(gapNumber));
+    }
+    return `${path}?${params}`;
+}
+
+/** A report paper or gap number from a reader URL param, if valid. */
+export function parseReportPaperNumber(value: string | null | undefined) {
+    if (!value || !/^\d{1,3}$/.test(value)) return null;
+    const number = Number(value);
+    return number > 0 ? number : null;
+}
+
 export const PAPER_FOCUS_MAX_CHARS = 240;
 
 export function buildPaperFocusHref(
     href: string,
     excerpt?: string | null,
+    { method = true }: { method?: boolean } = {},
 ) {
     if (!href.startsWith("/paperchatbot/")) return href;
     const [path, query = ""] = href.split("?");
@@ -144,7 +172,7 @@ export function buildPaperFocusHref(
         .trim()
         .slice(0, PAPER_FOCUS_MAX_CHARS);
     if (snippet) params.set("focus", snippet);
-    params.set("intent", "method");
+    if (method) params.set("intent", "method");
     const search = params.toString();
     return search ? `${path}?${search}` : path;
 }

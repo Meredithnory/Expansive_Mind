@@ -315,6 +315,16 @@ export const getPaperDetails = async (
                 relatedUpdates: [],
             },
             contentNotice: access.policyReason,
+            // Conflicting records stay metadata-only everywhere.
+            ...(rightsMetadata.hasConflictingLicenseData
+                ? {}
+                : {
+                      browserFullText: {
+                          provider: "pmc" as const,
+                          pmcid: normalizedId,
+                          mediaUrls: rightsMetadata.mediaUrls,
+                      },
+                  }),
         };
     }
 

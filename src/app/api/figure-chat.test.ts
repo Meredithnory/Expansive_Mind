@@ -28,7 +28,7 @@ describe("respondToFigure", () => {
         expect(result).toContain("What the figure shows");
         const [request, usageContext] =
             createPrivateChatCompletion.mock.calls[0];
-        expect(request.model).toBe("openai/gpt-4.1-mini");
+        expect(request.model).toBe("anthropic/claude-sonnet-5");
         expect(request.max_tokens).toBe(900);
         expect(request.messages[0].content).toContain(
             "untrusted evidence",

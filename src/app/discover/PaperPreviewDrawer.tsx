@@ -14,7 +14,7 @@ import {
     paperDesignLabel,
     supportRelationLabel,
 } from "../lib/claim-evidence";
-import { buildPaperFocusHref } from "../lib/paper-sources";
+import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
 import { resolveScholarCitesId } from "../lib/citing-works";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import type { CitationSource } from "../lib/paper-impact";
@@ -137,7 +137,18 @@ export default function PaperPreviewDrawer({
         Boolean(extraction && extraction.limitations.length > 0);
     const methodExcerpt =
         extraction?.methods || extraction?.supportingExcerpt || "";
-    const methodHref = buildPaperFocusHref(paper.href, methodExcerpt);
+    const methodHref = withReportOrigin(
+        buildPaperFocusHref(paper.href, methodExcerpt),
+        paper.index,
+    );
+    // The passage the report cites; the reader scrolls to it and marks it.
+    const citedExcerpt = extraction?.supportingExcerpt || "";
+    const citedHref = citedExcerpt
+        ? withReportOrigin(
+              buildPaperFocusHref(paper.href, citedExcerpt, { method: false }),
+              paper.index,
+          )
+        : withReportOrigin(paper.href, paper.index);
 
     return createPortal(
         <div className={styles.overlay}>
@@ -332,10 +343,10 @@ export default function PaperPreviewDrawer({
                             <span aria-hidden="true">→</span>
                         </Link>
                         <Link
-                            href={paper.href}
+                            href={citedHref}
                             className={styles.secondaryAction}
                         >
-                            Open paper
+                            {citedExcerpt ? "Open at cited passage" : "Open paper"}
                         </Link>
                         {paper.sourceUrl && (
                             <a

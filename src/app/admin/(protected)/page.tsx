@@ -5,8 +5,9 @@ import Link from "next/link";
 import { AdminUserUsage } from "../AdminUserUsage";
 import { useSession } from "../../lib/use-session";
 import styles from "../admin.module.scss";
+import AdminForumReports from "./AdminForumReports";
 
-type Tab = "overview" | "pricing" | "users" | "audit";
+type Tab = "overview" | "pricing" | "users" | "reports" | "audit";
 type Feature = "search" | "discover" | "chat" | "scholar_search" | "projects";
 type Plan = "guest" | "free" | "pro";
 type Pricing = {
@@ -154,7 +155,14 @@ export default function AdminPage() {
         feature?: Feature,
     ) => {
         const label = action.replaceAll("_", " ");
-        if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) return;
+        if (action === "remove_user") {
+            const typed = window.prompt(
+                `This permanently deletes ${selectedUser.email}, cancels any Stripe subscription, and erases their papers, chats, projects, discoveries, briefs, and share links. Type their email to confirm.`,
+            );
+            if (typed?.trim().toLowerCase() !== selectedUser.email.toLowerCase()) return;
+        } else if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) {
+            return;
+        }
         setBusy(`${selectedUser._id}:${action}`);
         setError("");
         try {
@@ -201,7 +209,7 @@ export default function AdminPage() {
                 <Link href="/admin/usage">Usage</Link>
             </nav>
             <nav className={styles.tabs} aria-label="Admin sections" role="tablist">
-                {(["overview", "pricing", "users", "audit"] as Tab[]).map((item) => (
+                {(["overview", "pricing", "users", "reports", "audit"] as Tab[]).map((item) => (
                     <button
                         key={item}
                         type="button"
@@ -353,6 +361,7 @@ export default function AdminPage() {
                                                 <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "cancel_subscription")}>Cancel renewal</button>
                                             )}
                                             <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "refund_latest")}>Refund latest</button>
+                                            <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "remove_user")}>Delete user</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -361,6 +370,8 @@ export default function AdminPage() {
                     </table>
                 </section>
             )}
+
+            {tab === "reports" && <AdminForumReports />}
 
             {tab === "audit" && (
                 <section className={styles.panel}>

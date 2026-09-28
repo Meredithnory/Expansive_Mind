@@ -28,23 +28,23 @@ import type {
     OpportunityReport,
     PaperExtraction,
 } from "../api/discover/report-types";
-import DatabaseMind, {
-    type SearchableMindSource,
-} from "../components/DatabaseMind";
+import { questionChecks } from "../lib/discover-question-checks";
+import ClaimLedgerView from "./ClaimLedgerView";
+import {
+    buildClaimLedger,
+    toLedgerExtractions,
+    toLedgerPapers,
+} from "../api/discover/claim-ledger";
+import ShareBriefDialog from "./ShareBriefDialog";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import {
     extractionForPaper,
     yearRangeLabel,
 } from "../lib/evidence-type";
 import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
-import { buildPaperFocusHref } from "../lib/paper-sources";
+import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
 import { resolveScholarCitesId } from "../lib/citing-works";
-import {
-    CONFIDENCE_GUIDE,
-    GROUNDING_NOTE,
-    reportOutline,
-    reportSectionAnchor,
-} from "./report-sections";
+import { CONFIDENCE_GUIDE, GROUNDING_NOTE } from "./report-sections";
 import {
     discoveryDisplayTitle,
     spellingGateDecision,
@@ -52,7 +52,6 @@ import {
 import { fetchDiscoveryQueryAssessment } from "../lib/discover-suggest";
 import { searchQueriesMatch } from "../lib/search-suggest";
 import { useDiscoveryQuerySuggestion } from "../lib/use-discovery-query-suggestion";
-import { useSpeechToText } from "../lib/use-speech-to-text";
 
 const Markdown = dynamic(() => import("react-markdown"), {
     loading: () => <div className="loading-skeleton" aria-hidden="true" />,
@@ -68,7 +67,6 @@ const OpportunityReportView = dynamic(
         ),
     },
 );
-const ReportRoadmap = dynamic(() => import("./ReportRoadmap"));
 const PaperPreviewDrawer = dynamic(() => import("./PaperPreviewDrawer"));
 const FounderReportView = dynamic(() => import("./FounderReportView"));
 
@@ -139,23 +137,27 @@ type AgentStep =
 
 const STEP_COPY: Record<Exclude<AgentStep, "idle" | "done">, string> = {
     expanding: "Expanding your question into targeted searches…",
-    searching: "Searching Springer Nature, NIH PMC, Google Scholar, Europe PMC, and Crossref…",
+    searching: "Searching Springer Nature, NIH PMC, Europe PMC, OpenAlex, and Google Scholar…",
     reading: "Reading licensed paper excerpts…",
     extracting: "Extracting findings, methods, and limitations…",
     analyzing: "Analyzing gaps and contradictions…",
     composing: "Composing the opportunity report…",
 };
 
-const AGENT_STEPS: Array<{
-    id: Exclude<AgentStep, "idle" | "done">;
+/** What the reader sees while Discovery runs: five plain steps over the
+ * agent's six stages. */
+const WORKING_STEPS: Array<{
     label: string;
+    stages: Array<Exclude<AgentStep, "idle" | "done">>;
 }> = [
-    { id: "expanding", label: "Expanding your question" },
-    { id: "searching", label: "Searching literature" },
-    { id: "reading", label: "Reading papers" },
-    { id: "extracting", label: "Extracting findings" },
-    { id: "analyzing", label: "Analyzing gaps" },
-    { id: "composing", label: "Composing report" },
+    { label: "Turning your question into searches", stages: ["expanding"] },
+    {
+        label: "Searching NIH PMC, Springer Nature, Europe PMC, Crossref",
+        stages: ["searching"],
+    },
+    { label: "Picking the most relevant open-access papers", stages: ["reading"] },
+    { label: "Reading and extracting findings, methods, limits", stages: ["extracting"] },
+    { label: "Writing your cited report", stages: ["analyzing", "composing"] },
 ];
 
 const STEP_ORDER: Record<AgentStep, number> = {
@@ -175,6 +177,24 @@ const EXAMPLE_QUESTIONS = [
     "What barriers remain for in vivo base editing delivery beyond the liver?",
     "Do senolytic therapies improve outcomes in age-related pulmonary fibrosis?",
 ];
+
+type ReportView = "state" | "gaps" | "papers" | "ledger" | "opportunity";
+
+const READS_FROM = [
+    { label: "NIH PMC", color: "#0ab1ff" },
+    { label: "Springer Nature", color: "#ff5aa9" },
+    { label: "Europe PMC", color: "#22a06b" },
+    { label: "Crossref", color: "#f5a524" },
+    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+];
+
+/** "2026-09-26T…" → "Sep 26". */
+function formatShortDate(value: string) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? ""
+        : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
+}
 
 type BriefSection = {
     title: string;
@@ -294,7 +314,9 @@ function DiscoverClient({
 
     const [question, setQuestion] = useState(qParam);
     const [founderScope, setFounderScope] = useState("");
-    const [reportTab, setReportTab] = useState<{ id: string; tab: "science" | "opportunity" } | null>(null);
+    const [reportView, setReportView] = useState<{ id: string; view: ReportView } | null>(null);
+    const [shareOpen, setShareOpen] = useState(false);
+    const shareTriggerRef = useRef<HTMLButtonElement>(null);
     const [step, setStep] = useState<AgentStep>("idle");
     const [error, setError] = useState<string | null>(null);
     const [showPlanLink, setShowPlanLink] = useState(false);
@@ -303,9 +325,6 @@ function DiscoverClient({
         DiscoverResponse[]
     >([]);
     const [historyLoading, setHistoryLoading] = useState(true);
-    const [shareStatus, setShareStatus] = useState<
-        "idle" | "loading" | "copied" | "error"
-    >("idle");
     const [discoveryQuota, setDiscoveryQuota] =
         useState<DiscoveryQuota | null>(null);
     const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -328,7 +347,6 @@ function DiscoverClient({
     const [spellingCheck, setSpellingCheck] = useState<"idle" | "checking">(
         "idle",
     );
-    const [exampleIndex, setExampleIndex] = useState(0);
     const [spellingPrompt, setSpellingPrompt] = useState<{
         question: string;
         suggestion: string;
@@ -344,9 +362,6 @@ function DiscoverClient({
     const [pendingPaperQuestion, setPendingPaperQuestion] = useState<
         string | null
     >(null);
-    const [mindSource, setMindSource] = useState<"all" | SearchableMindSource>(
-        "all",
-    );
     const [handoffPrompt, setHandoffPrompt] = useState<string | null>(null);
     const composerLauncherRef = useRef<HTMLButtonElement>(null);
 
@@ -356,16 +371,6 @@ function DiscoverClient({
         useDiscoveryQuerySuggestion(question, {
             enabled: !isRunning && composerMode === "discover",
         });
-    const speech = useSpeechToText({
-        enabled: !isRunning,
-        onFinal: (transcript) => {
-            setQuestion((current) =>
-                [current.trim(), transcript].filter(Boolean).join(" "),
-            );
-            if (error) setError(null);
-            if (spellingPrompt) setSpellingPrompt(null);
-        },
-    });
 
     useEffect(() => {
         setComposerMode("discover");
@@ -402,7 +407,17 @@ function DiscoverClient({
         if (!footer) return;
 
         const syncClearance = () => {
-            const top = footer.getBoundingClientRect().top;
+            const rect = footer.getBoundingClientRect();
+            // Phones hide the footer on research screens. A hidden footer
+            // reports top 0, which pushed the composer off the top of the
+            // screen; fall back to the stylesheet's nav clearance instead.
+            if (rect.height === 0) {
+                document.documentElement.style.removeProperty(
+                    "--discover-composer-bottom",
+                );
+                return;
+            }
+            const top = rect.top;
             const clearance = Math.max(
                 12,
                 Math.round(window.innerHeight - top + 10),
@@ -458,12 +473,6 @@ function DiscoverClient({
             field.focus();
             field.setSelectionRange(field.value.length, field.value.length);
         });
-    }, []);
-
-    const scrollToSection = useCallback((anchor: string) => {
-        const target = document.getElementById(anchor);
-        if (!target) return;
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
     }, []);
 
     const loadSavedDiscoveries = useCallback(async () => {
@@ -569,17 +578,7 @@ function DiscoverClient({
     }, []);
 
     useEffect(() => {
-        if (question.trim() || result || isRunning || guestExhausted) return;
-
-        const interval = window.setInterval(() => {
-            setExampleIndex((current) => (current + 1) % EXAMPLE_QUESTIONS.length);
-        }, 3600);
-
-        return () => window.clearInterval(interval);
-    }, [guestExhausted, isRunning, question, result]);
-
-    useEffect(() => {
-        setShareStatus("idle");
+        setShareOpen(false);
         setPreviewPaperIndex(null);
     }, [result?.id]);
 
@@ -594,40 +593,61 @@ function DiscoverClient({
         );
     }, [result]);
 
-    const canShareResult = hasSavedDiscoveryId;
-
-    const handleShareResult = useCallback(async () => {
-        if (!result || shareStatus === "loading" || !canShareResult) return;
-        setShareStatus("loading");
-        try {
-            const res = await fetch("/api/discover/share", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: result.id }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.slug) {
-                throw new Error(data.error || "Unable to share this brief.");
-            }
-            await navigator.clipboard.writeText(
-                `${window.location.origin}/brief/${data.slug}`,
-            );
-            setShareStatus("copied");
-            window.setTimeout(() => setShareStatus("idle"), 2_500);
-        } catch {
-            setShareStatus("error");
-            window.setTimeout(() => setShareStatus("idle"), 2_500);
-        }
-    }, [canShareResult, result, shareStatus]);
 
     const statusLabel = useMemo(() => {
         if (step === "idle" || step === "done") return null;
         return STEP_COPY[step];
     }, [step]);
 
-    const activeReportTab = reportTab?.id === result?.id && structuredReport?.founder
-        ? reportTab?.tab ?? "science"
-        : "science";
+    // Built like the shared brief's ledger, with the same strict quote gate.
+    const claimLedger = useMemo(
+        () =>
+            structuredReport && result
+                ? buildClaimLedger(
+                      structuredReport,
+                      toLedgerPapers(result.papers),
+                      toLedgerExtractions(result.extractions),
+                  )
+                : undefined,
+        [result, structuredReport],
+    );
+
+    // The report reads as tabs: summary, gaps, papers, ledger, opportunity.
+    const reportViews = useMemo(() => {
+        if (!result) return [] as Array<{ id: ReportView; label: string; short?: string }>;
+        const views: Array<{ id: ReportView; label: string; short?: string }> = [
+            { id: "state", label: "State of the science", short: "Summary" },
+        ];
+        const gapCount = structuredReport?.sections.gaps.length ?? 0;
+        if (gapCount > 0) views.push({ id: "gaps", label: `Gaps · ${gapCount}` });
+        views.push({ id: "papers", label: `Papers · ${result.papers.length}` });
+        if (claimLedger?.rows.length) {
+            views.push({ id: "ledger", label: "Claim ledger", short: "Ledger" });
+        }
+        if (structuredReport?.founder) {
+            views.push({ id: "opportunity", label: "Opportunity report", short: "Opportunity" });
+        }
+        return views;
+    }, [claimLedger, result, structuredReport]);
+    const defaultReportView: ReportView = structuredReport?.sections.gaps.length
+        ? "gaps"
+        : "state";
+    const activeView: ReportView =
+        reportView &&
+        reportView.id === result?.id &&
+        reportViews.some((view) => view.id === reportView.view)
+            ? reportView.view
+            : defaultReportView;
+    const selectReportView = useCallback(
+        (view: ReportView) => {
+            if (result) setReportView({ id: result.id, view });
+        },
+        [result],
+    );
+    const closeShare = useCallback(() => {
+        setShareOpen(false);
+        window.requestAnimationFrame(() => shareTriggerRef.current?.focus());
+    }, []);
 
     const briefSections = useMemo(
         () =>
@@ -635,11 +655,6 @@ function DiscoverClient({
                 ? parseBriefSections(result.brief)
                 : [],
         [result, structuredReport],
-    );
-
-    const outline = useMemo(
-        () => (structuredReport ? reportOutline(structuredReport) : []),
-        [structuredReport],
     );
 
     const captureScroll = useCallback(() => {
@@ -714,9 +729,13 @@ function DiscoverClient({
             citeTriggerRef.current = null;
             scrollLockRef.current = null;
             setPreviewPaperIndex(null);
-            window.requestAnimationFrame(() => scrollToPaper(paperIndex));
+            if (result) setReportView({ id: result.id, view: "papers" });
+            // Two frames: the Papers tab renders, then the paper scrolls in.
+            window.requestAnimationFrame(() =>
+                window.requestAnimationFrame(() => scrollToPaper(paperIndex)),
+            );
         },
-        [scrollToPaper],
+        [result, scrollToPaper],
     );
 
     const previewPaper = useMemo(
@@ -854,6 +873,33 @@ function DiscoverClient({
         qParam,
         refresh,
         result,
+        router,
+        savedParam,
+    ]);
+
+    // Signed in: back to the landing. Guests keep their one saved brief, so
+    // they ask again from the docked composer.
+    const startNewQuestion = useCallback(() => {
+        if (!isLoggedIn) {
+            openDockedComposer();
+            return;
+        }
+        setResult(null);
+        setError(null);
+        setPreviewPaperIndex(null);
+        setHighlightedPaper(null);
+        setStep("idle");
+        setQuestion("");
+        clearAssessment();
+        if (qParam || savedParam) {
+            router.replace("/discover");
+        }
+        window.requestAnimationFrame(() => textareaRef.current?.focus());
+    }, [
+        clearAssessment,
+        isLoggedIn,
+        openDockedComposer,
+        qParam,
         router,
         savedParam,
     ]);
@@ -1139,6 +1185,7 @@ function DiscoverClient({
             })}
             data-discover-page
             data-discover-landing={result ? undefined : "true"}
+            data-discover-running={isRunning ? "true" : undefined}
             data-page-scroll
         >
             {modeChrome ? (
@@ -1158,8 +1205,16 @@ function DiscoverClient({
                 >
                     {hero}
                 </section>
-            ) : !result ? (
-                <h1 className={styles.srOnly}>Discovery</h1>
+            ) : !result && !isRunning ? (
+                <section className={styles.landingHero}>
+                    <h1 className={styles.landingTitle}>
+                        What do you want to find out?
+                    </h1>
+                    <p className={styles.landingLead}>
+                        Ask one research question. Get a cited brief:
+                        what&apos;s known and where the gaps are.
+                    </p>
+                </section>
             ) : null}
 
             {!sessionLoading && !isLoggedIn && (
@@ -1257,14 +1312,12 @@ function DiscoverClient({
                         event.preventDefault();
                         const trimmed = question.trim();
                         if (!trimmed || selectedPaperIndex === undefined) return;
-                        speech.stop();
                         setPaperChatOpen(true);
                         setPendingPaperQuestion(trimmed);
                         setQuestion("");
                         clearAssessment();
                         return;
                     }
-                    speech.stop();
                     const trimmedQuestion = question.trim();
                     if (trimmedQuestion) {
                         handoffHandledQueries.add(trimmedQuestion);
@@ -1306,9 +1359,11 @@ function DiscoverClient({
                                 : "Ask another research question"
                             : "Ask a research question"}
                     </label>
-                    <span className={styles.characterCount}>
-                        {question.length.toLocaleString()} / 2,000
-                    </span>
+                    {result ? (
+                        <span className={styles.characterCount}>
+                            {question.length.toLocaleString()} / 2,000
+                        </span>
+                    ) : null}
                 </div>
                     <div
                         className={clsx(styles.promptShell, {
@@ -1316,20 +1371,6 @@ function DiscoverClient({
                                 queryUnclear || Boolean(spellingPrompt),
                         })}
                     >
-                        {!result && !question.trim() && (
-                            <button
-                                key={exampleIndex}
-                                type="button"
-                                className={styles.rotatingExample}
-                                onClick={() =>
-                                    applyExample(EXAMPLE_QUESTIONS[exampleIndex])
-                                }
-                                aria-label={`Use example question: ${EXAMPLE_QUESTIONS[exampleIndex]}`}
-                            >
-                                <span>Try asking</span>
-                                {EXAMPLE_QUESTIONS[exampleIndex]}
-                            </button>
-                        )}
                         <textarea
                             id="discover-question"
                             ref={textareaRef}
@@ -1361,7 +1402,7 @@ function DiscoverClient({
                                 }
                                 event.currentTarget.form?.requestSubmit();
                             }}
-                            aria-describedby="discover-question-feedback discover-voice-status"
+                            aria-describedby="discover-question-feedback"
                             aria-invalid={
                                 composerMode === "discover" &&
                                 (queryUnclear || Boolean(spellingPrompt))
@@ -1371,11 +1412,9 @@ function DiscoverClient({
                                     ? composerMode === "paper"
                                         ? "Ask this paper…"
                                         : "Ask another question…"
-                                    : question.trim()
-                                      ? "Ask a research question…"
-                                      : ""
+                                    : "Ask a research question…"
                             }
-                            rows={result ? 1 : 2}
+                            rows={result ? 1 : 3}
                             maxLength={2000}
                             disabled={
                                 isRunning ||
@@ -1385,6 +1424,31 @@ function DiscoverClient({
                             spellCheck
                         />
                         <div className={styles.composerBar}>
+                            {!result ? (
+                                <div className={styles.landingHints}>
+                                    {question.trim() ? (
+                                        questionChecks(question).map((check) => (
+                                            <span
+                                                key={check.id}
+                                                className={clsx(
+                                                    styles.questionCheck,
+                                                    check.ok && styles.questionCheckOk,
+                                                )}
+                                            >
+                                                <span aria-hidden="true">
+                                                    {check.ok ? "✓" : "+"}
+                                                </span>
+                                                {check.label}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className={styles.landingTip}>
+                                            Tip: name a population, an
+                                            intervention, or an outcome.
+                                        </span>
+                                    )}
+                                </div>
+                            ) : null}
                             {result && isLoggedIn ? (
                                 <div
                                     className={styles.modeSwitch}
@@ -1456,38 +1520,10 @@ function DiscoverClient({
                                 </label>
                             ) : null}
                             <div className={styles.composerActions}>
-                                {speech.supported ? (
-                                    <button
-                                        type="button"
-                                        className={clsx(
-                                            styles.voiceButton,
-                                            speech.listening &&
-                                                styles.voiceListening,
-                                        )}
-                                        aria-pressed={speech.listening}
-                                        aria-busy={speech.transcribing}
-                                        aria-label={
-                                            speech.transcribing
-                                                ? "Transcribing voice input"
-                                                : speech.listening
-                                                  ? "Stop voice input"
-                                                  : "Start voice input"
-                                        }
-                                        onClick={speech.toggle}
-                                        disabled={
-                                            isRunning || speech.transcribing
-                                        }
-                                    >
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                fill="currentColor"
-                                                d="M12 14.5a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5.5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.58A7 7 0 0 0 19 11.5h-2Z"
-                                            />
-                                        </svg>
-                                    </button>
+                                {!result ? (
+                                    <span className={styles.landingCount}>
+                                        {question.length.toLocaleString()} / 2,000
+                                    </span>
                                 ) : null}
                                 <button
                                     type="submit"
@@ -1508,7 +1544,9 @@ function DiscoverClient({
                                               ? "Ask paper"
                                               : isCheckingSpelling
                                                 ? "Checking spelling…"
-                                                : "Run"}
+                                                : result
+                                                  ? "Run"
+                                                  : "Run discovery"}
                                     </span>
                                     <span
                                         className={styles.submitIcon}
@@ -1617,95 +1655,191 @@ function DiscoverClient({
                             <p className={styles.spellingChecking} role="status">
                                 Checking spelling…
                             </p>
-                        ) : speech.error ? (
-                            <p
-                                id="discover-voice-status"
-                                className={styles.voiceStatus}
-                                role="status"
-                            >
-                                {speech.error}
-                            </p>
-                        ) : speech.transcribing ? (
-                            <p
-                                id="discover-voice-status"
-                                className={styles.voiceStatus}
-                                role="status"
-                            >
-                                Transcribing…
-                            </p>
-                        ) : speech.listening ? (
-                            <p
-                                id="discover-voice-status"
-                                className={styles.voiceStatus}
-                                role="status"
-                            >
-                                {speech.mode === "recorder"
-                                    ? "Listening… tap the mic when you’re done"
-                                    : "Listening… speak your question"}
-                            </p>
-                        ) : (
-                            <span id="discover-voice-status" hidden />
-                        )}
+                        ) : null}
                     </div>
             </form>
             )}
 
             {!result && !isRunning ? (
-                <div className={styles.databaseCatalog}>
-                    <DatabaseMind
-                        activeSource={mindSource}
-                        onSelect={setMindSource}
-                    />
+                <div className={styles.landingExtras}>
+                    {!question.trim() ? (
+                        <>
+                            <section
+                                className={styles.tryAsking}
+                                aria-labelledby="discover-try-asking"
+                            >
+                                <p
+                                    id="discover-try-asking"
+                                    className={styles.landingLabel}
+                                >
+                                    Try asking
+                                </p>
+                                <div className={styles.exampleList}>
+                                    {EXAMPLE_QUESTIONS.map((example) => (
+                                        <button
+                                            key={example}
+                                            type="button"
+                                            className={styles.exampleChip}
+                                            onClick={() => applyExample(example)}
+                                        >
+                                            {example}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                            <section
+                                className={styles.whatYouGet}
+                                aria-labelledby="discover-what-you-get"
+                            >
+                                <p
+                                    id="discover-what-you-get"
+                                    className={clsx(
+                                        styles.landingLabel,
+                                        styles.landingLabelPhone,
+                                    )}
+                                >
+                                    What you&apos;ll get
+                                </p>
+                                <div className={styles.getCards}>
+                                    <div className={styles.getCard}>
+                                        <span
+                                            className={styles.getCardTitle}
+                                            data-tone="pink"
+                                        >
+                                            1 · State of the science
+                                        </span>
+                                        <span>
+                                            A cited answer to your question,
+                                            from open-access papers.
+                                        </span>
+                                    </div>
+                                    <div className={styles.getCard}>
+                                        <span
+                                            className={styles.getCardTitle}
+                                            data-tone="amber"
+                                        >
+                                            2 · Gaps and problems
+                                        </span>
+                                        <span>
+                                            What&apos;s still open, with how
+                                            confident the evidence is.
+                                        </span>
+                                    </div>
+                                </div>
+                            </section>
+                            {isLoggedIn && savedDiscoveries.length > 0 ? (
+                                <section
+                                    className={styles.recentList}
+                                    aria-labelledby="discover-recent"
+                                >
+                                    <p
+                                        id="discover-recent"
+                                        className={clsx(
+                                            styles.landingLabel,
+                                            styles.landingLabelStart,
+                                        )}
+                                    >
+                                        Pick up where you left off
+                                    </p>
+                                    {savedDiscoveries.slice(0, 3).map((saved) => (
+                                        <Link
+                                            key={saved.id}
+                                            href={`/discover?saved=${encodeURIComponent(saved.id)}`}
+                                            className={styles.recentRow}
+                                        >
+                                            <span className={styles.recentQuestion}>
+                                                {saved.question}
+                                            </span>
+                                            <span className={styles.recentDate}>
+                                                {formatShortDate(saved.createdAt)}
+                                            </span>
+                                        </Link>
+                                    ))}
+                                </section>
+                            ) : null}
+                        </>
+                    ) : null}
+                    <p className={styles.readsFrom}>
+                        <span className={styles.readsFromLabel}>Reads from</span>
+                        {READS_FROM.map((source) => (
+                            <span key={source.label} className={styles.readsFromSource}>
+                                <span
+                                    className={styles.readsFromDot}
+                                    style={{ background: source.color }}
+                                    aria-hidden="true"
+                                />
+                                {source.label}
+                            </span>
+                        ))}
+                    </p>
                 </div>
             ) : null}
 
             {isRunning && (
                 <section
-                    className={clsx(styles.answerPreview, {
+                    className={clsx(styles.working, {
                         [styles.answerPreviewOverReport]: Boolean(result),
                     })}
                     aria-live="polite"
                     aria-busy="true"
                 >
-                    <div className={styles.progressTop}>
-                        <span className={styles.progressPulse} />
-                        <div>
-                            <p className={styles.previewKicker}>
-                                Building your opportunity report
+                    <div className={styles.workingHead}>
+                        <span className={styles.workingEyebrow}>
+                            Discovery in progress
+                        </span>
+                        {result ? (
+                            <p className={styles.workingTitle}>
+                                {question.trim()}
                             </p>
-                            <p className={styles.status}>{statusLabel}</p>
-                            {question.trim() ? (
-                                <p className={styles.runningQuestion}>{question.trim()}</p>
-                            ) : null}
-                            <p className={styles.progressHint}>
-                                Reading literature and primary commercial sources, then preparing research findings and venture comparisons. This can take several minutes; missing evidence will be identified.
-                            </p>
-                        </div>
+                        ) : (
+                            <h1 className={styles.workingTitle}>
+                                {question.trim() || "Discovery"}
+                            </h1>
+                        )}
+                        <p className={styles.srOnly}>{statusLabel}</p>
                     </div>
-                    <ol className={styles.progressSteps}>
-                        {AGENT_STEPS.map((agentStep, index) => {
-                            const isComplete = STEP_ORDER[step] > index;
-                            const isActive = step === agentStep.id;
+                    <ol className={styles.workingSteps} aria-label="Progress">
+                        {WORKING_STEPS.map((workingStep) => {
+                            const lastStage = Math.max(
+                                ...workingStep.stages.map((stage) => STEP_ORDER[stage]),
+                            );
+                            const isComplete = STEP_ORDER[step] > lastStage;
+                            const isActive = workingStep.stages.some(
+                                (stage) => stage === step,
+                            );
                             return (
                                 <li
-                                    key={agentStep.id}
-                                    className={clsx(styles.progressStep, {
-                                        [styles.progressStepComplete]: isComplete,
-                                        [styles.progressStepActive]: isActive,
-                                    })}
+                                    key={workingStep.label}
+                                    className={styles.workingStep}
+                                    data-state={
+                                        isComplete ? "done" : isActive ? "active" : "todo"
+                                    }
+                                    aria-current={isActive ? "step" : undefined}
                                 >
-                                    <span className={styles.progressNumber}>
-                                        {isComplete ? "✓" : index + 1}
+                                    <span className={styles.workingDot} aria-hidden="true">
+                                        {isComplete ? (
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : isActive ? (
+                                            <span className={styles.workingSpinner} />
+                                        ) : null}
                                     </span>
-                                    <span>{agentStep.label}</span>
+                                    <span className={styles.workingLabel}>
+                                        {workingStep.label}
+                                    </span>
                                 </li>
                             );
                         })}
                     </ol>
-                    <div className={styles.runningActions}>
+                    <div className={styles.workingFoot}>
+                        <span>
+                            Reading open-access papers. Every claim will link
+                            back to its source.
+                        </span>
                         <button
                             type="button"
-                            className={styles.cancelButton}
+                            className={styles.workingCancel}
                             onClick={cancelDiscovery}
                         >
                             Cancel
@@ -1730,17 +1864,23 @@ function DiscoverClient({
                             previewPaperIndex !== null,
                     })}
                 >
-                    <header className={styles.reportHeader}>
-                        <div className={styles.reportHeaderMain}>
-                            <p className={styles.reportEyebrow}>
-                                {activeReportTab === "opportunity" ? "Opportunity report" : "Science report"}
+                    <header className={styles.reportTop}>
+                        <div className={styles.reportTopMain}>
+                            <p className={styles.reportTopEyebrow}>
+                                {[
+                                    "Your discovery",
+                                    formatShortDate(result.createdAt),
+                                    `${result.meta.papersUsed} ${result.meta.papersUsed === 1 ? "paper" : "papers"}`,
+                                ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                             </p>
-                            <h2 className={styles.reportTitle}>
+                            <h1 className={styles.reportTopTitle}>
                                 {discoveryDisplayTitle(
                                     result.question,
                                     result.meta.correctedQuery,
                                 )}
-                            </h2>
+                            </h1>
                             {result.meta.correctedQuery ? (
                                 <p
                                     className={styles.spellingNote}
@@ -1749,326 +1889,206 @@ function DiscoverClient({
                                     Spelling corrected from “{result.question}”
                                 </p>
                             ) : null}
-                            <p className={styles.reportSummary}>
-                                <span>
-                                    {`${result.meta.papersUsed} ${
-                                        result.meta.papersUsed === 1
-                                            ? "paper"
-                                            : "papers"
-                                    } read`}
-                                </span>
-                                {evidenceMix ? <span>{evidenceMix}</span> : null}
-                                <span>{sourceMixLabel(result)}</span>
-                            </p>
                         </div>
-                        <div className={styles.reportHeaderActions}>
-                            {hasSavedDiscoveryId && (
-                                <div className={styles.shareControl}>
-                                    <button
-                                        type="button"
-                                        className={styles.shareButton}
-                                        onClick={handleShareResult}
-                                        disabled={shareStatus === "loading"}
-                                    >
-                                        {shareStatus === "copied"
-                                            ? "Link copied!"
-                                            : shareStatus === "error"
-                                              ? "Share failed"
-                                              : shareStatus === "loading"
-                                                ? "Sharing…"
-                                                : "Share synthesis"}
-                                    </button>
-                                </div>
-                            )}
+                        <div className={styles.reportTopActions}>
                             <button
                                 type="button"
-                                className={styles.discardButton}
-                                onClick={() => void discardDiscovery()}
-                                disabled={discarding || isRunning}
+                                className={styles.reportNewQuestion}
+                                onClick={startNewQuestion}
+                                disabled={isRunning}
                             >
-                                {discarding
-                                    ? "Discarding…"
-                                    : "Discard discovery"}
+                                New question
                             </button>
-                            <span className={styles.completeBadge}>
-                                <span aria-hidden="true">✓</span>{" "}
-                                {isLoggedIn ? "Saved" : "Preview complete"}
-                            </span>
+                            {hasSavedDiscoveryId && (
+                                <button
+                                    ref={shareTriggerRef}
+                                    type="button"
+                                    className={styles.reportShare}
+                                    onClick={() => setShareOpen(true)}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle cx="18" cy="5" r="2.5" stroke="currentColor" strokeWidth="2" />
+                                        <circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="2" />
+                                        <circle cx="18" cy="19" r="2.5" stroke="currentColor" strokeWidth="2" />
+                                        <path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                    Share brief
+                                </button>
+                            )}
                         </div>
                     </header>
 
-                    {structuredReport?.founder && (
-                        <div className={styles.reportTabs} role="tablist" aria-label="Discovery reports">
-                            {(["science", "opportunity"] as const).map((tab, index) => (
-                                <button key={tab} type="button" role="tab" id={`report-tab-${tab}`}
-                                    aria-controls={`report-panel-${tab}`} aria-selected={activeReportTab === tab}
-                                    tabIndex={activeReportTab === tab ? 0 : -1}
-                                    onClick={() => setReportTab({ id: result.id, tab })}
+                    {reportViews.length > 1 && (
+                        <div
+                            className={styles.reportViewTabs}
+                            role="tablist"
+                            aria-label="Report sections"
+                        >
+                            {reportViews.map((view, index) => (
+                                <button
+                                    key={view.id}
+                                    type="button"
+                                    role="tab"
+                                    id={`report-tab-${view.id}`}
+                                    aria-controls={`report-panel-${view.id}`}
+                                    aria-selected={activeView === view.id}
+                                    tabIndex={activeView === view.id ? 0 : -1}
+                                    aria-label={view.label}
+                                    className={styles.reportViewTab}
+                                    onClick={() => selectReportView(view.id)}
                                     onKeyDown={(event) => {
                                         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
                                         event.preventDefault();
-                                        const next = event.key === "Home" ? "science" : event.key === "End" ? "opportunity" : index === 0 ? "opportunity" : "science";
-                                        setReportTab({ id: result.id, tab: next });
+                                        const last = reportViews.length - 1;
+                                        const nextIndex =
+                                            event.key === "Home"
+                                                ? 0
+                                                : event.key === "End"
+                                                  ? last
+                                                  : event.key === "ArrowLeft"
+                                                    ? (index - 1 + reportViews.length) % reportViews.length
+                                                    : (index + 1) % reportViews.length;
+                                        const next = reportViews[nextIndex].id;
+                                        selectReportView(next);
                                         document.getElementById(`report-tab-${next}`)?.focus();
-                                    }}>
-                                    {tab === "science" ? "Science report" : "Opportunity report"}
+                                    }}
+                                >
+                                    <span
+                                        className={styles.reportViewLong}
+                                        aria-hidden="true"
+                                    >
+                                        {view.label}
+                                    </span>
+                                    <span
+                                        className={styles.reportViewShort}
+                                        aria-hidden="true"
+                                    >
+                                        {view.short ?? view.label}
+                                    </span>
                                 </button>
                             ))}
                         </div>
                     )}
-                    <div id="report-panel-science" role={structuredReport?.founder ? "tabpanel" : undefined}
-                        aria-labelledby={structuredReport?.founder ? "report-tab-science" : undefined}
-                        hidden={activeReportTab !== "science"}>
-                    {result.meta.additionalIndexes && <details className={styles.groundingNote}>
-                        <summary>Additional research index coverage</summary>
-                        <ul>{result.meta.additionalIndexes.map(index => <li key={index.name}>
-                            <strong>{index.name}: {index.status === "ok" ? "search completed" : index.status === "partial" ? "partial coverage" : "unavailable"}</strong>
-                            {` · ${index.metadataCount} records returned · ${index.candidateCount} unique PMC matches · ${index.eligibleCount} eligible before full-text checks. ${index.note}`}
-                        </li>)}</ul>
-                    </details>}
-                    <aside className={styles.groundingNote}>
-                        <div className={styles.groundingHead}>
-                            <p className={styles.sectionKicker}>
-                                {GROUNDING_NOTE.title}
-                            </p>
-                            <p className={styles.groundingLead}>
-                                {GROUNDING_NOTE.lead}
-                            </p>
-                        </div>
-                        <ul className={styles.groundingList}>
-                            {GROUNDING_NOTE.points.map((point) => (
-                                <li key={point}>{point}</li>
-                            ))}
-                        </ul>
-                        <p className={styles.groundingFooter}>
-                            {GROUNDING_NOTE.footer}
-                        </p>
-                    </aside>
 
-                    <div className={styles.reportLayout}>
+                    <div
+                        id="report-panel-state"
+                        role={reportViews.length > 1 ? "tabpanel" : undefined}
+                        aria-labelledby={reportViews.length > 1 ? "report-tab-state" : undefined}
+                        hidden={activeView !== "state"}
+                        className={styles.reportPanel}
+                    >
                         {structuredReport ? (
-                            <ReportRoadmap report={structuredReport} />
-                        ) : null}
-                        <main className={styles.briefSection}>
-                            {!structuredReport && (
-                                <div className={styles.sectionHeading}>
-                                    <div>
-                                        <p className={styles.sectionKicker}>
-                                            Analysis
-                                        </p>
-                                        <h2 className={styles.sectionTitle}>
-                                            What the evidence says
-                                        </h2>
-                                    </div>
-                                    <span className={styles.sectionCount}>
-                                        {`${briefSections.length} sections`}
-                                    </span>
-                                </div>
-                            )}
-                            {structuredReport ? (
-                                <OpportunityReportView
-                                    report={structuredReport}
-                                    paperCount={result.papers.length}
-                                    isLoggedIn={isLoggedIn}
-                                    sourceDiscoveryId={
-                                        hasSavedDiscoveryId
-                                            ? result.id
-                                            : undefined
-                                    }
-                                    activePaperIndex={activePaperIndex}
-                                    onCitePaper={openPaperPreview}
-                                    onGuestUpgrade={() => {
-                                        openGuestUpgrade(guestExhausted);
-                                    }}
-                                />
-                            ) : (
-                                <div className={styles.briefGrid}>
-                                    {briefSections.map(
-                                        (briefSection, index) => (
-                                            <article
-                                                className={clsx(
-                                                    styles.briefCard,
-                                                    {
-                                                        [styles.primaryBriefCard]:
-                                                            index === 0,
-                                                    },
-                                                )}
-                                                key={`${briefSection.title}-${index}`}
-                                            >
-                                                <div
-                                                    className={
-                                                        styles.briefCardHeader
-                                                    }
+                            <OpportunityReportView
+                                report={structuredReport}
+                                paperCount={result.papers.length}
+                                papers={result.papers}
+                                only={["state", "limits"]}
+                                isLoggedIn={isLoggedIn}
+                                sourceDiscoveryId={
+                                    hasSavedDiscoveryId ? result.id : undefined
+                                }
+                                activePaperIndex={activePaperIndex}
+                                onCitePaper={openPaperPreview}
+                                onGuestUpgrade={() => {
+                                    openGuestUpgrade(guestExhausted);
+                                }}
+                            />
+                        ) : (
+                                    <div className={styles.briefGrid}>
+                                        {briefSections.map(
+                                            (briefSection, index) => (
+                                                <article
+                                                    className={clsx(
+                                                        styles.briefCard,
+                                                        {
+                                                            [styles.primaryBriefCard]:
+                                                                index === 0,
+                                                        },
+                                                    )}
+                                                    key={`${briefSection.title}-${index}`}
                                                 >
-                                                    <span>
-                                                        {String(
-                                                            index + 1,
-                                                        ).padStart(2, "0")}
-                                                    </span>
-                                                    <h3>
-                                                        {briefSection.title}
-                                                    </h3>
-                                                </div>
-                                                <div className={styles.brief}>
-                                                    <Markdown
-                                                        components={
-                                                            markdownComponents
-                                                        }
-                                                    >
-                                                        {linkPaperReferences(
-                                                            briefSection.content,
-                                                            result.papers
-                                                                .length,
-                                                        )}
-                                                    </Markdown>
-                                                </div>
-                                            </article>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </main>
-
-                        <aside className={styles.evidenceRail}>
-                            {outline.length > 0 && (
-                                <nav
-                                    className={styles.outlineCard}
-                                    aria-label="Report sections"
-                                >
-                                    <p className={styles.sectionKicker}>
-                                        In this report
-                                    </p>
-                                    <ol className={styles.outlineList}>
-                                        {outline.map((entry) => {
-                                            const anchor = reportSectionAnchor(
-                                                entry.id,
-                                            );
-                                            return (
-                                                <li key={entry.id}>
-                                                    <button
-                                                        type="button"
+                                                    <div
                                                         className={
-                                                            styles.outlineLink
-                                                        }
-                                                        onClick={() =>
-                                                            scrollToSection(
-                                                                anchor,
-                                                            )
+                                                            styles.briefCardHeader
                                                         }
                                                     >
-                                                        <span
-                                                            className={
-                                                                styles.outlineNumber
+                                                        <span>
+                                                            {String(
+                                                                index + 1,
+                                                            ).padStart(2, "0")}
+                                                        </span>
+                                                        <h3>
+                                                            {briefSection.title}
+                                                        </h3>
+                                                    </div>
+                                                    <div className={styles.brief}>
+                                                        <Markdown
+                                                            components={
+                                                                markdownComponents
                                                             }
                                                         >
-                                                            {entry.number}
-                                                        </span>
-                                                        <span
-                                                            className={
-                                                                styles.outlineTitle
-                                                            }
-                                                        >
-                                                            {entry.title}
-                                                        </span>
-                                                        {entry.count ? (
-                                                            <span
-                                                                className={
-                                                                    styles.outlineCount
-                                                                }
-                                                            >
-                                                                {entry.count}
-                                                            </span>
-                                                        ) : null}
-                                                    </button>
-                                                </li>
-                                            );
-                                        })}
-                                        <li>
-                                            <button
-                                                type="button"
-                                                className={styles.outlineLink}
-                                                onClick={() =>
-                                                    scrollToSection(
-                                                        "discover-sources",
-                                                    )
-                                                }
-                                            >
-                                                <span
-                                                    className={
-                                                        styles.outlineNumber
-                                                    }
-                                                >
-                                                    {String(
-                                                        outline.length + 1,
-                                                    ).padStart(2, "0")}
-                                                </span>
-                                                <span
-                                                    className={
-                                                        styles.outlineTitle
-                                                    }
-                                                >
-                                                    Papers cited
-                                                </span>
-                                                <span
-                                                    className={
-                                                        styles.outlineCount
-                                                    }
-                                                >
-                                                    {result.papers.length}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    </ol>
-                                </nav>
-                            )}
-                            <div className={styles.evidenceCard}>
+                                                            {linkPaperReferences(
+                                                                briefSection.content,
+                                                                result.papers
+                                                                    .length,
+                                                            )}
+                                                        </Markdown>
+                                                    </div>
+                                                </article>
+                                            ),
+                                        )}
+                                    </div>
+                        )}
+                        {result.meta.additionalIndexes && <details className={styles.groundingNote}>
+                            <summary>Additional research index coverage</summary>
+                            <ul>{result.meta.additionalIndexes.map(index => <li key={index.name}>
+                                <strong>{index.name}: {index.status === "ok" ? "search completed" : index.status === "partial" ? "partial coverage" : "unavailable"}</strong>
+                                {` · ${index.metadataCount} records returned · ${index.candidateCount} unique PMC matches · ${index.eligibleCount} eligible before full-text checks. ${index.note}`}
+                            </li>)}</ul>
+                        </details>}
+                        <aside className={styles.groundingNote}>
+                            <div className={styles.groundingHead}>
                                 <p className={styles.sectionKicker}>
-                                    Evidence snapshot
+                                    {GROUNDING_NOTE.title}
                                 </p>
-                                <div className={styles.metric}>
-                                    <strong>{result.meta.papersUsed}</strong>
-                                    <span>Papers synthesized</span>
-                                    {evidenceMix ? (
-                                        <p className={styles.evidenceMix}>
-                                            {evidenceMix}
-                                        </p>
-                                    ) : null}
-                                </div>
-                                <div className={styles.metricDivider} />
-                                <div className={styles.metric}>
-                                    <strong>
-                                        {result.meta.springerEligibleCount}
-                                    </strong>
-                                    <span>Eligible Springer results</span>
-                                </div>
-                                {(result.meta.nihEligibleCount ??
-                                    result.meta.nihFillCount) > 0 && (
-                                    <>
-                                        <div className={styles.metricDivider} />
-                                        <div className={styles.metric}>
-                                            <strong>
-                                                {result.meta.nihEligibleCount ??
-                                                    result.meta.nihFillCount}
-                                            </strong>
-                                            <span>Eligible NIH PMC results</span>
-                                        </div>
-                                    </>
-                                )}
-                                {(result.meta.scholarEligibleCount ?? 0) >
-                                    0 && (
-                                    <>
-                                        <div className={styles.metricDivider} />
-                                        <div className={styles.metric}>
-                                            <strong>
-                                                {result.meta.scholarEligibleCount}
-                                            </strong>
-                                            <span>
-                                                Eligible Google Scholar results
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
+                                <p className={styles.groundingLead}>
+                                    {GROUNDING_NOTE.lead}
+                                </p>
                             </div>
+                            <ul className={styles.groundingList}>
+                                {GROUNDING_NOTE.points.map((point) => (
+                                    <li key={point}>{point}</li>
+                                ))}
+                            </ul>
+                            <p className={styles.groundingFooter}>
+                                {GROUNDING_NOTE.footer}
+                            </p>
+                        </aside>
+                    </div>
+
+                    {structuredReport && structuredReport.sections.gaps.length > 0 && (
+                        <div
+                            id="report-panel-gaps"
+                            role="tabpanel"
+                            aria-labelledby="report-tab-gaps"
+                            hidden={activeView !== "gaps"}
+                            className={styles.reportPanel}
+                        >
+                            <OpportunityReportView
+                                report={structuredReport}
+                                paperCount={result.papers.length}
+                                papers={result.papers}
+                                only={["gaps", "problems", "experiments", "translation"]}
+                                isLoggedIn={isLoggedIn}
+                                sourceDiscoveryId={
+                                    hasSavedDiscoveryId ? result.id : undefined
+                                }
+                                activePaperIndex={activePaperIndex}
+                                onCitePaper={openPaperPreview}
+                                onGuestUpgrade={() => {
+                                    openGuestUpgrade(guestExhausted);
+                                }}
+                            />
                             {structuredReport && (
                                 <div className={styles.legendCard}>
                                     <p className={styles.sectionKicker}>
@@ -2118,18 +2138,16 @@ function DiscoverClient({
                                     </ul>
                                 </div>
                             )}
-                            <div className={styles.methodNote}>
-                                <span aria-hidden="true">i</span>
-                                <p>
-                                    Confidence is agreement among selected
-                                    papers, not a field-wide finding. Click
-                                    Paper N to read the checked passage.
-                                    This is not medical or investment advice.
-                                </p>
-                            </div>
-                        </aside>
-                    </div>
+                        </div>
+                    )}
 
+                    <div
+                        id="report-panel-papers"
+                        role={reportViews.length > 1 ? "tabpanel" : undefined}
+                        aria-labelledby={reportViews.length > 1 ? "report-tab-papers" : undefined}
+                        hidden={activeView !== "papers"}
+                        className={styles.reportPanel}
+                    >
                     <section
                         id="discover-sources"
                         className={styles.papersSection}
@@ -2149,7 +2167,13 @@ function DiscoverClient({
                                 </p>
                             </div>
                             <p className={styles.metaLine}>
-                                {sourceMixLabel(result)}
+                                {[
+                                    `${result.meta.papersUsed} ${result.meta.papersUsed === 1 ? "paper" : "papers"} read`,
+                                    evidenceMix,
+                                    sourceMixLabel(result),
+                                ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                             </p>
                         </div>
                         <ul className={styles.paperList}>
@@ -2256,10 +2280,13 @@ function DiscoverClient({
                                     </p>
                                     <div className={styles.paperActions}>
                                         <Link
-                                            href={buildPaperFocusHref(
-                                                paper.href,
-                                                extraction?.methods ||
-                                                    extraction?.supportingExcerpt,
+                                            href={withReportOrigin(
+                                                buildPaperFocusHref(
+                                                    paper.href,
+                                                    extraction?.methods ||
+                                                        extraction?.supportingExcerpt,
+                                                ),
+                                                paper.index,
                                             )}
                                             className={styles.openPaper}
                                         >
@@ -2283,9 +2310,31 @@ function DiscoverClient({
                         </ul>
                     </section>
                     </div>
+
+                    {claimLedger?.rows.length ? (
+                        <div
+                            id="report-panel-ledger"
+                            role="tabpanel"
+                            aria-labelledby="report-tab-ledger"
+                            hidden={activeView !== "ledger"}
+                            className={styles.reportPanel}
+                        >
+                            <ClaimLedgerView
+                                ledger={claimLedger}
+                                activePaperIndex={activePaperIndex}
+                                onCitePaper={openPaperPreview}
+                            />
+                        </div>
+                    ) : null}
+
                     {structuredReport?.founder && (
-                        <div id="report-panel-opportunity" role="tabpanel" aria-labelledby="report-tab-opportunity"
-                            hidden={activeReportTab !== "opportunity"}>
+                        <div
+                            id="report-panel-opportunity"
+                            role="tabpanel"
+                            aria-labelledby="report-tab-opportunity"
+                            hidden={activeView !== "opportunity"}
+                            className={styles.reportPanel}
+                        >
                             <FounderReportView key={result.id} report={structuredReport.founder} />
                             {!guestExhausted && <details className={styles.founderControls}>
                                 <summary>Add context and regenerate</summary>
@@ -2302,8 +2351,41 @@ function DiscoverClient({
                             </details>}
                         </div>
                     )}
+
+                    <div className={styles.reportFootNote}>
+                        <span>
+                            Every claim in this report links to the passage it
+                            came from. Open a paper to check it.
+                        </span>
+                        <button
+                            type="button"
+                            className={styles.reportFootLink}
+                            onClick={() => {
+                                selectReportView("papers");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                        >
+                            {`See all ${result.papers.length} ${result.papers.length === 1 ? "paper" : "papers"}`}
+                        </button>
+                    </div>
+                    <p className={styles.reportFine}>
+                        Confidence is agreement among selected papers, not a
+                        field-wide finding. This is not medical or investment
+                        advice. {isLoggedIn ? "Saved to your library." : "Preview only."}{" "}
+                        <button
+                            type="button"
+                            className={styles.reportDiscard}
+                            onClick={() => void discardDiscovery()}
+                            disabled={discarding || isRunning}
+                        >
+                            {discarding ? "Discarding…" : "Discard discovery"}
+                        </button>
+                    </p>
                 </div>
             )}
+            {shareOpen && result && hasSavedDiscoveryId ? (
+                <ShareBriefDialog discoveryId={result.id} onClose={closeShare} />
+            ) : null}
             {result && isLoggedIn && (
                 <DiscoveryPaperChat
                     key={result.id}

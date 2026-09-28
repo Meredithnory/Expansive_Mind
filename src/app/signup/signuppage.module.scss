@@ -326,6 +326,20 @@
     }
 }
 
+.agreement {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-align: center;
+
+    a,
+    a:visited {
+        color: inherit;
+        text-decoration: underline;
+    }
+}
+
 .signIn {
     margin: 4px 0 0;
     color: rgba(255, 255, 255, 0.55);

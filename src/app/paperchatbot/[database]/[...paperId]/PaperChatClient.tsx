@@ -1,9 +1,8 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./paperchatbot.module.scss";
 import Paperbox from "../../../components/paperchatbot/Paperbox";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
     FormattedPaper,
@@ -22,8 +21,15 @@ import {
     buildPaperPath,
     getSourceByDatabase,
 } from "../../../lib/paper-sources";
-import type { PaperCitation } from "../../../lib/paper-citation";
+import {
+    citationFromLineRange,
+    type PaperCitation,
+} from "../../../lib/paper-citation";
+import { parseLineRange } from "../../../lib/paper-lines";
+import { loadBrowserFullText } from "../../../lib/browser-paper";
+import { paperChatMode } from "../../../lib/chat-access";
 import type { PaperTool } from "../../../lib/region-capture";
+import type { PaperHighlightRecord } from "../../../lib/paper-highlights";
 import {
     consumeCiteFocusSource,
     findCitedSourceInPaper,
@@ -82,6 +88,15 @@ const BackArrowIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+const PencilIcon = () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+        <path d="M4 20h6M14.5 5.5l4 4L9 19H5v-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+);
+
+const SUMMARY_QUESTION =
+    "Summarize this paper in plain language: the question, what was done, the main findings, and the key limitations.";
+
 const ShareIcon = () => (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
         <circle cx="6.5" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -105,6 +120,13 @@ type PaperChatClientProps = {
     locateMethod: boolean;
     requestedIdName: string | null;
     citeFocus: boolean;
+    focusLines?: string | null;
+    /** Opened from a Discover report (`?from=report`). */
+    fromReport?: boolean;
+    /** The paper's number in that report (`?paper=3`). */
+    reportPaper?: number | null;
+    /** The report gap the paper was opened from (`?gap=1`). */
+    reportGap?: number | null;
 };
 
 const PaperChatClient = ({
@@ -115,11 +137,16 @@ const PaperChatClient = ({
     locateMethod,
     requestedIdName,
     citeFocus,
+    focusLines = null,
+    fromReport = false,
+    reportPaper = null,
+    reportGap = null,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
     const idName = requestedIdName || sourceConfig?.defaultIdName || "pmcid";
 
+    const [browserBodyLoading, setBrowserBodyLoading] = useState(false);
     const [researchPaper, setResearchPaper] = useState<FormattedPaper | null>(
         null,
     );
@@ -146,8 +173,59 @@ const PaperChatClient = ({
     const [pendingInsert, setPendingInsert] = useState<PaperCitation | null>(
         null,
     );
+    const [highlights, setHighlights] = useState<PaperHighlightRecord[]>([]);
+    const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+    const [showHighlightsRequest, setShowHighlightsRequest] = useState(0);
     const [briefOpen, setBriefOpen] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
+    const [shareMenuOpen, setShareMenuOpen] = useState(false);
+    const shareMenuRef = useRef<HTMLDivElement>(null);
+    const pageRef = useRef<HTMLDivElement>(null);
+    const toolsRef = useRef<HTMLDivElement>(null);
+
+    // Where the reader toolbar ends on screen when it sticks (phones and
+    // tablets), so the paper's Contents bar and section jumps sit below it.
+    useEffect(() => {
+        const tools = toolsRef.current;
+        const page = pageRef.current;
+        if (!tools || !page) return;
+        const update = () => {
+            const sticky = getComputedStyle(tools).position === "sticky";
+            const top = sticky ? parseFloat(getComputedStyle(tools).top) || 0 : 0;
+            const offset = sticky ? Math.ceil(top + tools.getBoundingClientRect().height) : 0;
+            page.style.setProperty("--paper-toolbar-bottom", `${offset}px`);
+        };
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(tools);
+        window.addEventListener("resize", update);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", update);
+        };
+    }, []);
+    const [canNativeShare, setCanNativeShare] = useState(false);
+
+    useEffect(() => {
+        setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+    }, []);
+
+    // The Share menu closes like the nav's More menu: outside tap or Escape.
+    useEffect(() => {
+        if (!shareMenuOpen) return;
+        const onPointerDown = (event: PointerEvent) => {
+            if (!shareMenuRef.current?.contains(event.target as Node)) setShareMenuOpen(false);
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setShareMenuOpen(false);
+        };
+        document.addEventListener("pointerdown", onPointerDown);
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("pointerdown", onPointerDown);
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [shareMenuOpen]);
 
     const fetchPaperInfo = useCallback(async () => {
         setLoading(true);
@@ -205,6 +283,50 @@ const PaperChatClient = ({
             fetchPaperInfo();
         }
     }, [database, paperId, fetchPaperInfo]);
+
+    // Papers whose license keeps the body off our servers load it in the
+    // reader's browser, straight from NIH, for reading only.
+    const browserSource =
+        researchPaper && !researchPaper.access.canDisplayFullText
+            ? researchPaper.browserFullText
+            : undefined;
+    const browserPmcid = browserSource?.pmcid;
+    useEffect(() => {
+        if (!browserSource) return;
+        const controller = new AbortController();
+        setBrowserBodyLoading(true);
+        loadBrowserFullText(browserSource, controller.signal)
+            .then((sections) => {
+                if (!sections || controller.signal.aborted) return;
+                setResearchPaper((current) =>
+                    current && current.browserFullText?.pmcid === browserPmcid
+                        ? { ...current, paper: sections, bodyLoadedInBrowser: true }
+                        : current,
+                );
+            })
+            .catch(() => {
+                // The abstract view stays in place.
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setBrowserBodyLoading(false);
+            });
+        return () => controller.abort();
+        // Load once per paper; later state updates reuse the same source.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [browserPmcid]);
+
+    // ?lines=12-15 (group posts): open at a line range without putting the
+    // passage text in the link.
+    useEffect(() => {
+        if (!focusLines || !researchPaper || loading) return;
+        const range = parseLineRange(focusLines);
+        if (!range) return;
+        const citation = citationFromLineRange(researchPaper, range.start, range.end);
+        if (citation) {
+            setFocusCitation(citation);
+            setFocusRequestId((current) => current + 1);
+        }
+    }, [focusLines, researchPaper, loading]);
 
     useEffect(() => {
         if (!citeFocus || !researchPaper || loading) return;
@@ -276,12 +398,10 @@ const PaperChatClient = ({
         });
     };
 
+    const chatMode = researchPaper ? paperChatMode(researchPaper) : null;
     const canUseChatTools =
         authenticated &&
-        Boolean(
-            researchPaper &&
-                (researchPaper.access.canSendToAI || canAnalyzeFigures),
-        );
+        Boolean(researchPaper && (chatMode || canAnalyzeFigures));
     const canSharePaper =
         authenticated && Boolean(researchPaper?.access.canPersistContent);
     const persistHighlights =
@@ -297,30 +417,29 @@ const PaperChatClient = ({
         setActiveTool((current) => (current === tool ? null : tool));
     };
 
-    const handleShare = async () => {
-        if (!researchPaper) return;
-        const title = researchPaper.title || "Research paper";
-        const url =
-            typeof window !== "undefined" ? window.location.href : "";
-        if (
-            typeof navigator !== "undefined" &&
-            typeof navigator.share === "function" &&
-            url
-        ) {
-            try {
-                await navigator.share({ title, text: title, url });
-                return;
-            } catch (error) {
-                if (error instanceof DOMException && error.name === "AbortError") {
-                    return;
-                }
-            }
+    const shareNatively = async () => {
+        if (!researchPaper || typeof navigator.share !== "function") return;
+        try {
+            await navigator.share({
+                title: researchPaper.title || "Research paper",
+                url: window.location.href,
+            });
+        } catch {
+            // Dismissed or unsupported: nothing to do.
         }
-        setBriefOpen(true);
     };
 
     const handleHighlight = (citation: PaperCitation) => {
         setPendingInsert(citation);
+    };
+
+    // A report link opened in a new tab has no page to go back to.
+    const handleBack = () => {
+        if (fromReport && window.history.length <= 1) {
+            router.push("/discover");
+            return;
+        }
+        router.back();
     };
 
     const handleLocateCitation = useCallback((citation: PaperCitation) => {
@@ -340,8 +459,35 @@ const PaperChatClient = ({
     const showNoticePrompt = redirectNotice && !noticeDismissed;
     const initialLoading = loading && !researchPaper;
 
+    const shareOptions = [
+        ...(canSharePaper
+            ? [{
+                  id: "snapshot",
+                  label: "Paper + your highlights",
+                  detail: "A read-only copy for another researcher",
+                  run: () => setShareOpen(true),
+              }]
+            : []),
+        ...(researchPaper?.access.canSendToAI
+            ? [{
+                  id: "summary",
+                  label: "Summary link",
+                  detail: "A short summary anyone can open",
+                  run: () => setBriefOpen(true),
+              }]
+            : []),
+        ...(canNativeShare && researchPaper
+            ? [{
+                  id: "native",
+                  label: "Share page…",
+                  detail: "Send this page with your phone or computer",
+                  run: () => void shareNatively(),
+              }]
+            : []),
+    ];
+
     return (
-        <div className={styles.page}>
+        <div className={styles.page} ref={pageRef} data-paper-reader="">
             <LoadingOverlay visible={loading} label="Preparing this paper…" />
             {researchPaper && briefOpen && (
                 <BriefModal
@@ -393,19 +539,34 @@ const PaperChatClient = ({
                     </div>
                 </div>
             )}
-            <div className={styles.toolsbox}>
+            <div className={styles.toolsbox} ref={toolsRef}>
                 <div className={styles.searcharea}>
                     <button
                         type="button"
                         className={styles.searchbutton}
-                        onClick={() => router.back()}
-                        aria-label="Back"
+                        onClick={handleBack}
+                        aria-label={fromReport ? "Back to your report" : "Back"}
                     >
                         <BackArrowIcon />
-                        <span className={styles.text}>Back</span>
+                        <span className={styles.text}>
+                            {fromReport ? "Your report" : "Back"}
+                        </span>
                     </button>
+                    {fromReport && reportPaper && (
+                        <span className={styles.backCrumbs}>
+                            {reportGap && (
+                                <>
+                                    <span>Gap {reportGap}</span>
+                                    <span aria-hidden="true">›</span>
+                                </>
+                            )}
+                            <span className={styles.backCrumbCurrent}>
+                                Paper {reportPaper}
+                            </span>
+                        </span>
+                    )}
                 </div>
-                {(canUseChatTools || canSharePaper) && (
+                {(canUseChatTools || shareOptions.length > 0) && (
                     <div className={styles.paperTools} role="toolbar" aria-label="Paper tools">
                         {canUseChatTools && (
                             <button
@@ -416,37 +577,59 @@ const PaperChatClient = ({
                                 onClick={() => toggleTool("highlight")}
                                 aria-pressed={activeTool === "highlight"}
                             >
-                                <Image
-                                    src="/highlighticon.svg"
-                                    alt=""
-                                    width={16}
-                                    height={16}
-                                />
-                                Highlight
+                                <PencilIcon />
+                                <span className={styles.toolLabel}>
+                                    {activeTool === "highlight" ? "Highlighting…" : "Highlight"}
+                                </span>
                             </button>
                         )}
-                        {canSharePaper && (
+                        {shareOptions.length === 1 && (
                             <button
                                 type="button"
                                 className={styles.toolButtonPrimary}
-                                onClick={() => setShareOpen(true)}
-                            >
-                                <ShareIcon />
-                                Share paper
-                            </button>
-                        )}
-                        {researchPaper?.access.canSendToAI && (
-                            <button
-                                type="button"
-                                className={styles.toolButtonX}
-                                onClick={() => {
-                                    void handleShare();
-                                }}
-                                aria-label="Share this paper"
+                                onClick={shareOptions[0].run}
                             >
                                 <ShareIcon />
                                 Share
                             </button>
+                        )}
+                        {shareOptions.length > 1 && (
+                            <div ref={shareMenuRef} className={styles.shareMenuWrap}>
+                                <button
+                                    type="button"
+                                    className={styles.toolButtonPrimary}
+                                    aria-expanded={shareMenuOpen}
+                                    aria-controls="paper-share-menu"
+                                    onClick={() => setShareMenuOpen((open) => !open)}
+                                >
+                                    <ShareIcon />
+                                    Share
+                                    <span
+                                        className={shareMenuOpen ? styles.shareChevronOpen : styles.shareChevron}
+                                        aria-hidden="true"
+                                    />
+                                </button>
+                                <div
+                                    id="paper-share-menu"
+                                    className={shareMenuOpen ? styles.shareMenuOpen : styles.shareMenu}
+                                    inert={!shareMenuOpen}
+                                >
+                                    {shareOptions.map((option) => (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            className={styles.shareOption}
+                                            onClick={() => {
+                                                setShareMenuOpen(false);
+                                                option.run();
+                                            }}
+                                        >
+                                            <strong>{option.label}</strong>
+                                            <span>{option.detail}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
@@ -466,18 +649,23 @@ const PaperChatClient = ({
             )}
             <div
                 className={`${styles.paperchatcontainer} ${
-                    researchPaper &&
-                    !researchPaper.access.canSendToAI
+                    researchPaper && !chatMode
                         ? styles.restrictedContainer
                         : ""
                 }`}
             >
                 {initialLoading ? (
                     <>
-                        <div
-                            className={`${styles.paperSkeleton} loading-skeleton`}
-                            aria-hidden="true"
-                        />
+                        <div className={styles.paperSkeleton} aria-hidden="true">
+                            <span className={`${styles.skelBar} ${styles.skelContents} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelTitle} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelTitleShort} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelMeta} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelCard} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelLine} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelLine} loading-skeleton`} />
+                            <span className={`${styles.skelBar} ${styles.skelLineShort} loading-skeleton`} />
+                        </div>
                         <div
                             className={`${styles.chatSkeleton} loading-skeleton`}
                             aria-hidden="true"
@@ -488,15 +676,25 @@ const PaperChatClient = ({
                         {loadError ? (
                             <div className={styles.loadError}>{loadError}</div>
                         ) : (
-                            <div className={styles.paperColumn}>
+                            <div className={`${styles.paperColumn} ${styles.fadeIn}`}>
                                 <Paperbox
                                     paper={researchPaper}
+                                    browserBodyLoading={browserBodyLoading}
                                     searchTerm={qParam}
                                     isPro={canAnalyzeFigures}
                                     activeTool={activeTool}
                                     persistHighlights={persistHighlights}
                                     onAnalyzeFigure={handleAnalyzeFigure}
                                     onHighlight={handleHighlight}
+                                    onMarksChange={setHighlights}
+                                    onSummarize={
+                                        authenticated && chatMode
+                                            ? () => setPendingQuestion(SUMMARY_QUESTION)
+                                            : undefined
+                                    }
+                                    onShowHighlights={() =>
+                                        setShowHighlightsRequest((count) => count + 1)
+                                    }
                                     focusExcerpt={focusExcerpt}
                                     locateMethod={locateMethod}
                                     focusCitation={focusCitation}
@@ -504,10 +702,8 @@ const PaperChatClient = ({
                                 />
                             </div>
                         )}
-                        {authenticated &&
-                        (researchPaper?.access.canSendToAI ||
-                            canAnalyzeFigures) ? (
-                            <div className={styles.chatColumn}>
+                        {authenticated && (chatMode || canAnalyzeFigures) ? (
+                            <div className={`${styles.chatColumn} ${styles.fadeInLate}`}>
                                 <ResponsiveChatPanel
                                     wholePaper={researchPaper}
                                     allMessages={allMessages}
@@ -526,10 +722,16 @@ const PaperChatClient = ({
                                         setPendingInsert(null)
                                     }
                                     onLocateCitation={handleLocateCitation}
+                                    highlights={highlights}
+                                    showHighlightsRequest={showHighlightsRequest}
+                                    pendingQuestion={pendingQuestion}
+                                    onPendingQuestionHandled={() =>
+                                        setPendingQuestion(null)
+                                    }
                                     activeTool={activeTool}
                                 />
                             </div>
-                        ) : researchPaper?.access.canSendToAI ? (
+                        ) : chatMode ? (
                             <div className={styles.restrictedChat}>
                                 <ResearchBot className={styles.restrictedBot} />
                                 <p className={styles.restrictedEyebrow}>

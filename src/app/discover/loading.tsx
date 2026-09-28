@@ -1,5 +1,11 @@
 import RouteLoading from "../components/RouteLoading";
+import ResearchOrbit from "../components/ResearchOrbit";
 
 export default function Loading() {
-    return <RouteLoading label="Opening discovery workspace…" />;
+    return (
+        <>
+            <ResearchOrbit />
+            <RouteLoading label="Opening discovery workspace…" />
+        </>
+    );
 }

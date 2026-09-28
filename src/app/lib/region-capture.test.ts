@@ -48,6 +48,23 @@ describe("excerpt location in paper text", () => {
         });
     });
 
+    it("reads a paragraph boundary as a word break", () => {
+        expect(
+            locateNormalizedExcerpt(
+                [
+                    { text: "Methods", blockStart: true },
+                    { text: "We enrolled 40 mice.", blockStart: true },
+                ],
+                "Methods We enrolled 40 mice.",
+            ),
+        ).toEqual({
+            startPieceIndex: 0,
+            startOffset: 0,
+            endPieceIndex: 1,
+            endOffset: 20,
+        });
+    });
+
     it("returns null when the excerpt is not in the paper", () => {
         expect(
             locateNormalizedExcerpt(

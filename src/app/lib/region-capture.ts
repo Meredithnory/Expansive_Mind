@@ -33,6 +33,8 @@ export function selectionRectsRelativeTo(
 
 export interface ExcerptTextPiece {
     text: string;
+    /** Starts a new paragraph or heading, so it reads as a word break. */
+    blockStart?: boolean;
 }
 
 export interface LocatedExcerpt {
@@ -91,7 +93,9 @@ export function locateNormalizedExcerpt(
     excerpt: string,
 ): LocatedExcerpt | null {
     const needle = bestMatchingExcerpt(
-        pieces.map((piece) => piece.text).join(""),
+        pieces
+            .map((piece) => (piece.blockStart ? ` ${piece.text}` : piece.text))
+            .join(""),
         excerpt,
     );
     if (!needle) return null;
@@ -101,6 +105,11 @@ export function locateNormalizedExcerpt(
     let lastWasSpace = true;
 
     pieces.forEach((piece, pieceIndex) => {
+        if (piece.blockStart && !lastWasSpace) {
+            haystack += " ";
+            map.push({ pieceIndex, offset: 0 });
+            lastWasSpace = true;
+        }
         for (let offset = 0; offset < piece.text.length; offset += 1) {
             const folded = normalizeExcerptChar(piece.text[offset]);
             const isSpace = folded === " " || /\s/.test(folded);
@@ -156,13 +165,22 @@ function collectPaperTextNodes(root: HTMLElement) {
     return nodes;
 }
 
+const TEXT_BLOCKS =
+    "p, h1, h2, h3, h4, h5, h6, li, figcaption, blockquote, td, th, pre";
+
 export function findExcerptRange(root: HTMLElement, excerpt: string) {
     const scope =
         (root.querySelector("[data-paper-body]") as HTMLElement | null) ||
         root;
     const nodes = collectPaperTextNodes(scope);
+    let lastBlock: Element | null = null;
     const located = locateNormalizedExcerpt(
-        nodes.map((node) => ({ text: node.textContent || "" })),
+        nodes.map((node) => {
+            const block = node.parentElement?.closest(TEXT_BLOCKS) ?? null;
+            const blockStart = block !== lastBlock;
+            lastBlock = block;
+            return { text: node.textContent || "", blockStart };
+        }),
         excerpt,
     );
     if (!located) return null;

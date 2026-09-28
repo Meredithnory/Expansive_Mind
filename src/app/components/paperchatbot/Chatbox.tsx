@@ -5,6 +5,7 @@ import React, {
     useEffect,
     SetStateAction,
     useCallback,
+    useId,
     useMemo,
 } from "react";
 import styles from "../styles/chatbox.module.scss";
@@ -19,19 +20,21 @@ import type {
 import {
     WELCOME_COPY,
     paperChatPrompts,
+    splitFollowUps,
 } from "../../lib/chat-messages";
+import type { PaperHighlightRecord } from "../../lib/paper-highlights";
 import { FIGURE_RIGHTS_ATTESTATION_VERSION } from "../../lib/figure-capture";
 import { MAX_CAPTURE_BYTES } from "../../lib/canvas-image";
 import { formatExcerptQuestion } from "../../lib/region-capture";
 import {
     citationLabel,
-    citationPreviewRows,
     encodeCitedMessage,
     parseCitedMessage,
+    withPaperLineNumbers,
     type PaperCitation,
 } from "../../lib/paper-citation";
 import { useSession } from "../../lib/use-session";
-import ResearchBot from "../ResearchBot";
+import { paperChatMode } from "../../lib/chat-access";
 
 const SendIcon = () => (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -46,11 +49,36 @@ const SendIcon = () => (
     </svg>
 );
 
+const SparkleIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path
+            d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8Z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
 const MARKDOWN_TICK_MS = 40;
+
+const HIGHLIGHT_DOT_CLASS: Record<PaperHighlightRecord["color"], string> = {
+    pink: styles.highlightDot_pink,
+    blue: styles.highlightDot_blue,
+    yellow: styles.highlightDot_yellow,
+};
+
+const citationKey = (citation: PaperCitation) =>
+    `${citation.sectionTitle}|${citation.startLine}|${citation.endLine}`;
 
 const Message = React.memo(function Message({
     message,
     onContentUpdate,
+    onRevealed,
     animate,
     isLastMessage,
 }: {
@@ -58,6 +86,8 @@ const Message = React.memo(function Message({
     animate: boolean;
     isLastMessage: boolean;
     onContentUpdate: () => void;
+    /** Called once the typed-out reveal has finished. */
+    onRevealed?: () => void;
 }) {
     const shouldAnimate = animate && isLastMessage;
     const [content, setContent] = useState(() =>
@@ -81,6 +111,8 @@ const Message = React.memo(function Message({
             onContentUpdate();
             if (offset < message.length) {
                 timer = setTimeout(revealChunk, MARKDOWN_TICK_MS);
+            } else {
+                onRevealed?.();
             }
         };
         timer = setTimeout(revealChunk, MARKDOWN_TICK_MS);
@@ -88,7 +120,7 @@ const Message = React.memo(function Message({
         return () => {
             if (timer) clearTimeout(timer);
         };
-    }, [message, onContentUpdate, shouldAnimate]);
+    }, [message, onContentUpdate, onRevealed, shouldAnimate]);
 
     return (
         <div className={styles.prose}>
@@ -100,22 +132,26 @@ const Message = React.memo(function Message({
 const CitationCard = ({
     citation,
     compact = false,
+    active = false,
     onRemove,
     onLocate,
 }: {
     citation: PaperCitation;
     compact?: boolean;
+    /** This passage is the one currently marked in the paper. */
+    active?: boolean;
     onRemove?: () => void;
     onLocate?: (citation: PaperCitation) => void;
 }) => {
-    const rows = citationPreviewRows(citation);
     const locate = onLocate ? () => onLocate(citation) : undefined;
+    const quote = citation.lines.join(" ").replace(/\s+/g, " ").trim();
     return (
         <div
             className={clsx(
                 styles.citation,
                 compact && styles.citationCompact,
                 locate && styles.citationButton,
+                active && styles.citationActive,
             )}
             onClick={locate}
         >
@@ -128,8 +164,8 @@ const CitationCard = ({
                 </span>
                 <span className={styles.citationRange}>
                     {citation.startLine === citation.endLine
-                        ? `line ${citation.startLine}`
-                        : `lines ${citation.startLine}–${citation.endLine}`}
+                        ? `· line ${citation.startLine}`
+                        : `· lines ${citation.startLine}–${citation.endLine}`}
                 </span>
                 {onLocate && (
                     <button
@@ -140,8 +176,9 @@ const CitationCard = ({
                             onLocate(citation);
                         }}
                         aria-label={`Show ${citationLabel(citation)} in the paper`}
+                        aria-pressed={active}
                     >
-                        Show in paper
+                        {active ? "Showing in paper" : "Show in paper"}
                     </button>
                 )}
                 {onRemove && (
@@ -158,31 +195,8 @@ const CitationCard = ({
                     </button>
                 )}
             </div>
-            {!compact && (
-                <pre className={styles.citationBody}>
-                    {rows.map((row) =>
-                        row.ellipsis ? (
-                            <span
-                                key="ellipsis"
-                                className={styles.citationEllipsis}
-                            >
-                                ···
-                            </span>
-                        ) : (
-                            <span
-                                key={row.number}
-                                className={styles.citationLine}
-                            >
-                                <span className={styles.citationGutter}>
-                                    {row.number}
-                                </span>
-                                <span className={styles.citationText}>
-                                    {row.text}
-                                </span>
-                            </span>
-                        ),
-                    )}
-                </pre>
+            {!compact && quote && (
+                <p className={styles.citationQuote}>“{quote}”</p>
             )}
         </div>
     );
@@ -190,9 +204,11 @@ const CitationCard = ({
 
 const UserTurn = ({
     message,
+    activeKey,
     onLocate,
 }: {
     message: ChatMessage;
+    activeKey?: string | null;
     onLocate?: (citation: PaperCitation) => void;
 }) => {
     const parsed = parseCitedMessage(message.message);
@@ -205,6 +221,7 @@ const UserTurn = ({
                 <CitationCard
                     key={`${citation.sectionTitle}-${citation.startLine}-${index}`}
                     citation={citation}
+                    active={activeKey === citationKey(citation)}
                     onLocate={onLocate}
                 />
             ))}
@@ -219,13 +236,29 @@ const Messages = ({
     messages,
     loading,
     onLocate,
+    paper,
+    activeKey,
+    onAsk,
+    fallbackFollowUps = [],
+    hidden = false,
+    panelProps,
 }: {
     messages: ChatMessage[];
     loading: boolean;
     onLocate?: (citation: PaperCitation) => void;
+    paper?: FormattedPaper | null;
+    activeKey?: string | null;
+    onAsk?: (question: string) => void;
+    /** Asked-next questions when the latest answer suggested none. */
+    fallbackFollowUps?: string[];
+    hidden?: boolean;
+    panelProps?: React.HTMLAttributes<HTMLDivElement>;
 }) => {
     const messagesRef = useRef<HTMLDivElement>(null);
     const scrollFrameRef = useRef<number | null>(null);
+    const [revealedId, setRevealedId] = useState<ChatMessage["id"] | null>(
+        null,
+    );
 
     const scrollToBottom = useCallback(() => {
         if (scrollFrameRef.current !== null) return;
@@ -236,10 +269,16 @@ const Messages = ({
         });
     }, []);
 
+    const lastMessage = messages[messages.length - 1];
+    const lastId = lastMessage?.id;
+    const handleRevealed = useCallback(() => {
+        if (lastId !== undefined) setRevealedId(lastId);
+    }, [lastId]);
+
     useEffect(() => {
         const timer = window.setTimeout(scrollToBottom, 120);
         return () => window.clearTimeout(timer);
-    }, [loading, messages, scrollToBottom]);
+    }, [loading, messages, revealedId, scrollToBottom]);
 
     useEffect(
         () => () => {
@@ -250,20 +289,64 @@ const Messages = ({
         [],
     );
 
+    const parsedAssistant = useMemo(() => {
+        const byId = new Map<
+            ChatMessage["id"],
+            ReturnType<typeof parseCitedMessage> & { followUps: string[] }
+        >();
+        for (const msg of messages) {
+            if (msg.sender !== "ai") continue;
+            const { text, followUps } = splitFollowUps(msg.message);
+            const parsed = parseCitedMessage(text);
+            byId.set(msg.id, {
+                ...parsed,
+                followUps,
+                citations: paper
+                    ? parsed.citations.map((citation) =>
+                          withPaperLineNumbers(paper, citation),
+                      )
+                    : parsed.citations,
+            });
+        }
+        return byId;
+    }, [messages, paper]);
+
+    // "Ask next" follows the latest answer once it has finished typing out.
+    const lastAnswer =
+        lastMessage?.sender === "ai"
+            ? parsedAssistant.get(lastMessage.id)
+            : undefined;
+    const answerFailed = String(lastId ?? "").startsWith("local-");
+    const nextQuestions =
+        lastAnswer && lastAnswer.followUps.length > 0
+            ? lastAnswer.followUps
+            : lastAnswer && !answerFailed
+              ? fallbackFollowUps
+              : [];
+    const stillTyping =
+        Boolean(lastMessage?.animate && lastAnswer?.question) &&
+        revealedId !== lastId;
+    const showNext =
+        Boolean(onAsk) && !loading && !stillTyping && nextQuestions.length > 0;
+
     return (
-        <div className={styles.messages} ref={messagesRef}>
+        <div
+            className={styles.messages}
+            ref={messagesRef}
+            hidden={hidden}
+            {...panelProps}
+        >
             {messages.map((msg: ChatMessage, index) => {
                 if (msg.sender === "ai") {
-                    const parsed = parseCitedMessage(msg.message);
+                    const parsed = parsedAssistant.get(msg.id) || {
+                        ...parseCitedMessage(msg.message),
+                        followUps: [],
+                    };
                     return (
                         <article
                             key={msg.id}
                             className={clsx(styles.turn, styles.turnAssistant)}
                         >
-                            <div className={styles.turnMeta}>
-                                <ResearchBot className={styles.turnBot} />
-                                Assistant
-                            </div>
                             <div className={clsx(styles.message, styles.aiMessage)}>
                                 {parsed.citations.length > 0 ? (
                                     <div className={styles.citationStack}>
@@ -272,6 +355,10 @@ const Messages = ({
                                                 <CitationCard
                                                     key={`${citation.sectionTitle}-${citation.startLine}-${citeIndex}`}
                                                     citation={citation}
+                                                    active={
+                                                        activeKey ===
+                                                        citationKey(citation)
+                                                    }
                                                     onLocate={onLocate}
                                                 />
                                             ),
@@ -286,6 +373,11 @@ const Messages = ({
                                             index === messages.length - 1
                                         }
                                         onContentUpdate={scrollToBottom}
+                                        onRevealed={
+                                            index === messages.length - 1
+                                                ? handleRevealed
+                                                : undefined
+                                        }
                                     />
                                 ) : null}
                             </div>
@@ -299,7 +391,6 @@ const Messages = ({
                             key={msg.id}
                             className={clsx(styles.turn, styles.turnUser)}
                         >
-                            <div className={styles.turnMeta}>You</div>
                             <div className={styles.userTurnWrap}>
                                 {msg.imagePreview && (
                                     <img
@@ -308,7 +399,11 @@ const Messages = ({
                                         alt="Attached screenshot"
                                     />
                                 )}
-                                <UserTurn message={msg} onLocate={onLocate} />
+                                <UserTurn
+                                    message={msg}
+                                    activeKey={activeKey}
+                                    onLocate={onLocate}
+                                />
                             </div>
                         </article>
                     );
@@ -318,7 +413,6 @@ const Messages = ({
                         key={msg.id}
                         className={clsx(styles.turn, styles.turnUser)}
                     >
-                        <div className={styles.turnMeta}>You</div>
                         <div className={clsx(styles.message, styles.userMessage)}>
                             {msg.imagePreview && (
                                 <img
@@ -332,24 +426,33 @@ const Messages = ({
                     </article>
                 );
             })}
+            {showNext && onAsk && (
+                <div className={styles.nextQuestions}>
+                    <p className={styles.nextLabel}>Ask next</p>
+                    {nextQuestions.map((question) => (
+                        <button
+                            key={question}
+                            type="button"
+                            className={styles.nextChip}
+                            onClick={() => onAsk(question)}
+                        >
+                            {question}
+                        </button>
+                    ))}
+                </div>
+            )}
             {loading && (
-                <article className={clsx(styles.turn, styles.turnAssistant)}>
-                    <div className={styles.turnMeta}>
-                        <ResearchBot className={styles.turnBot} />
-                        Assistant
-                    </div>
-                    <div
-                        className={clsx(styles.message, styles.aiMessage)}
-                        aria-live="polite"
-                        aria-label="Assistant is thinking"
-                    >
-                        <div className={styles.typing}>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                </article>
+                <div
+                    className={styles.typing}
+                    role="status"
+                    aria-live="polite"
+                    aria-label="Assistant is thinking"
+                >
+                    <span className={styles.typingDot}></span>
+                    <span className={styles.typingDot}></span>
+                    <span className={styles.typingDot}></span>
+                    Reading the paper…
+                </div>
             )}
         </div>
     );
@@ -408,11 +511,8 @@ const Input = ({
             handleSubmit();
         }
     };
-    const hint = attachment?.image
-        ? "Ask about this screenshot · Enter to send"
-        : citations.length > 0
-          ? "Ask about the attached excerpt · Enter to send"
-          : "Highlight a passage to cite it · Enter to send";
+    const hint =
+        "Answers can be wrong. Check the cited passages. Not medical advice.";
 
     return (
         <div className={styles.composer}>
@@ -478,7 +578,7 @@ const Input = ({
                                 ? "Ask a question about this screenshot…"
                                 : citations.length > 0
                                   ? "Ask a question about this excerpt…"
-                                  : "Ask this paper…"
+                                  : "Ask about this paper…"
                         }
                         value={input}
                         onChange={(event) => setInput(event.target.value)}
@@ -518,7 +618,15 @@ interface ChatboxProps {
     onPendingQuestionHandled?: () => void;
     hideComposer?: boolean;
     onLocateCitation?: (citation: PaperCitation) => void;
+    /** The reader's highlights; when given, the panel gets a Highlights tab. */
+    highlights?: PaperHighlightRecord[];
+    /** Bump to open the Highlights tab (from the paper's Contents rail). */
+    showHighlightsRequest?: number;
+    /** Shows a close button in the header (the phone sheet). */
+    onClose?: () => void;
 }
+
+type AssistantTab = "chat" | "highlights";
 
 const Chatbox = ({
     researchContext,
@@ -537,6 +645,9 @@ const Chatbox = ({
     onPendingQuestionHandled,
     hideComposer = false,
     onLocateCitation,
+    highlights,
+    showHighlightsRequest = 0,
+    onClose,
 }: ChatboxProps) => {
     const { refresh } = useSession();
     const [inputMessage, setInputMessage] = useState("");
@@ -544,6 +655,9 @@ const Chatbox = ({
     const [composerError, setComposerError] = useState("");
     const [attachmentPreview, setAttachmentPreview] = useState("");
     const [citations, setCitations] = useState<PaperCitation[]>([]);
+    const [tab, setTab] = useState<AssistantTab>("chat");
+    const [locatedKey, setLocatedKey] = useState<string | null>(null);
+    const tabsId = useId();
     const handledFigureRequest = useRef<string | null>(null);
     const handledPendingQuestion = useRef<string | null>(null);
     const sentScreenshotUrls = useRef<string[]>([]);
@@ -552,6 +666,8 @@ const Chatbox = ({
         [wholePaper],
     );
     const isFreshChat = allMessages.length === 0 && !loading;
+    // "abstract": the license keeps this paper's text out of the assistant.
+    const chatMode = wholePaper ? paperChatMode(wholePaper) : null;
 
     useEffect(() => {
         setComposerError("");
@@ -565,25 +681,48 @@ const Chatbox = ({
     }, []);
 
     useEffect(() => {
-        if (!pendingInsert) return;
-        setCitations((current) => {
-            if (
-                current.some(
-                    (citation) =>
-                        citation.sectionTitle === pendingInsert.sectionTitle &&
-                        citation.startLine === pendingInsert.startLine &&
-                        citation.endLine === pendingInsert.endLine,
-                )
-            ) {
-                return current;
+        if (showHighlightsRequest > 0) setTab("highlights");
+    }, [showHighlightsRequest]);
+
+    const attachCitation = useCallback(
+        (insert: PaperCitation) => {
+            setTab("chat");
+            if (chatMode !== "full") {
+                setComposerError(
+                    "This paper's license keeps its text out of the assistant, so passages can't be attached. Ask your question and it will answer from the abstract.",
+                );
+                return;
             }
-            return [...current, pendingInsert];
-        });
+            setCitations((current) =>
+                current.some(
+                    (citation) => citationKey(citation) === citationKey(insert),
+                )
+                    ? current
+                    : [...current, insert],
+            );
+            window.requestAnimationFrame(() => {
+                document.getElementById("messageInput")?.focus();
+            });
+        },
+        [chatMode],
+    );
+
+    useEffect(() => {
+        if (!pendingInsert) return;
+        attachCitation(pendingInsert);
         onPendingInsertHandled?.();
-        window.requestAnimationFrame(() => {
-            document.getElementById("messageInput")?.focus();
-        });
-    }, [onPendingInsertHandled, pendingInsert]);
+    }, [attachCitation, onPendingInsertHandled, pendingInsert]);
+
+    const locateCitation = useMemo(
+        () =>
+            onLocateCitation
+                ? (citation: PaperCitation) => {
+                      setLocatedKey(citationKey(citation));
+                      onLocateCitation(citation);
+                  }
+                : undefined,
+        [onLocateCitation],
+    );
 
     useEffect(() => {
         if (!pendingAttachment?.image) {
@@ -605,13 +744,14 @@ const Chatbox = ({
         if (
             !messageText.trim() ||
             !wholePaper ||
-            !wholePaper.access.canSendToAI ||
+            !chatMode ||
             !wholePaper.source
         ) {
             return;
         }
 
         onSubmitStart?.();
+        setTab("chat");
         const senderMessage = {
             id: `local-user-${Date.now()}`,
             sender: "user",
@@ -669,6 +809,7 @@ const Chatbox = ({
         async (request: FigureAnalysisRequest) => {
             if (!wholePaper || loading) return;
             onSubmitStart?.();
+            setTab("chat");
             const figureLabel = request.figure?.label || "uploaded figure";
             const question =
                 request.question?.trim() ||
@@ -782,7 +923,7 @@ const Chatbox = ({
         if (loading || !wholePaper) return;
 
         if (pendingAttachment?.image) {
-            if (!canAnalyzeFigures) return;
+            if (!canAnalyzeFigures || chatMode !== "full") return;
             const question =
                 inputMessage.trim() ||
                 "Please explain this screenshot.";
@@ -800,7 +941,7 @@ const Chatbox = ({
             return;
         }
 
-        if (citations.length > 0) {
+        if (citations.length > 0 && chatMode === "full") {
             const question =
                 inputMessage.trim() || "What does this excerpt mean?";
             const excerpt = citations
@@ -820,14 +961,16 @@ const Chatbox = ({
     };
 
     useEffect(() => {
+        // Cleared once handled, so the same question can be asked again.
+        if (!pendingQuestion) handledPendingQuestion.current = null;
         const nextQuestion = pendingQuestion?.trim();
         if (!nextQuestion || loading || !wholePaper) return;
         if (handledPendingQuestion.current === pendingQuestion) return;
         handledPendingQuestion.current = pendingQuestion;
         onPendingQuestionHandled?.();
-        if (!wholePaper.access.canSendToAI) return;
+        if (!chatMode) return;
         void sendTextMessage(nextQuestion);
-    }, [loading, onPendingQuestionHandled, pendingQuestion, wholePaper]);
+    }, [chatMode, loading, onPendingQuestionHandled, pendingQuestion, wholePaper]);
 
     useEffect(() => {
         if (
@@ -842,53 +985,137 @@ const Chatbox = ({
     }, [figureRequest, loading, submitFigureAnalysis]);
 
     const canSendAttachmentImage = Boolean(
-        pendingAttachment?.image && canAnalyzeFigures,
+        pendingAttachment?.image && canAnalyzeFigures && chatMode === "full",
     );
     const canSendCitation = Boolean(
-        citations.length > 0 && wholePaper?.access.canSendToAI,
+        citations.length > 0 && chatMode === "full",
     );
-    const canSendText = Boolean(
-        inputMessage.trim() && wholePaper?.access.canSendToAI,
-    );
+    const canSendText = Boolean(inputMessage.trim() && chatMode);
     const paperTitle = wholePaper?.title?.trim() || "This paper";
+
+    const showTabs = highlights !== undefined;
+    const onChatTab = !showTabs || tab === "chat";
+    const tabIds = {
+        chat: `${tabsId}-chat`,
+        highlights: `${tabsId}-highlights`,
+    };
+    const panelIds = {
+        chat: `${tabsId}-chat-panel`,
+        highlights: `${tabsId}-highlights-panel`,
+    };
+    const chatPanelProps = showTabs
+        ? {
+              role: "tabpanel",
+              id: panelIds.chat,
+              "aria-labelledby": tabIds.chat,
+          }
+        : undefined;
+    const sortedHighlights = useMemo(
+        () =>
+            [...(highlights || [])].sort(
+                (left, right) =>
+                    left.citation.startLine - right.citation.startLine,
+            ),
+        [highlights],
+    );
+    const askedQuestions = new Set(
+        allMessages
+            .filter((message) => message.sender === "user")
+            .map((message) => message.message.trim().toLowerCase()),
+    );
+    const fallbackFollowUps = prompts.filter(
+        (prompt) => !askedQuestions.has(prompt.toLowerCase()),
+    );
+    const handleTabKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const next: AssistantTab = tab === "chat" ? "highlights" : "chat";
+        setTab(next);
+        document.getElementById(tabIds[next])?.focus();
+    };
+    const tabList: Array<{ id: AssistantTab; label: string }> = [
+        { id: "chat", label: "Chat" },
+        {
+            id: "highlights",
+            label:
+                sortedHighlights.length > 0
+                    ? `Highlights · ${sortedHighlights.length}`
+                    : "Highlights",
+        },
+    ];
 
     return (
         <div
             className={clsx(
                 styles.chatpaperbox,
                 hideComposer && styles.chatEmbedded,
+                showTabs && styles.withTabs,
             )}
         >
             <header className={styles.chatHeader}>
-                <div className={styles.chatIdentity}>
-                    <ResearchBot className={styles.chatBot} />
-                    <div className={styles.chatHeading}>
-                        <p className={styles.chatEyebrow}>Paper assistant</p>
-                        <h2 className={styles.chatTitle} title={paperTitle}>
-                            {paperTitle}
-                        </h2>
-                    </div>
+                <span className={styles.chatMark} aria-hidden="true">
+                    <SparkleIcon />
+                </span>
+                <div className={styles.chatHeading}>
+                    <h2 className={styles.chatName}>Paper assistant</h2>
+                    <p className={styles.chatRole} title={paperTitle}>
+                        Uses Claude by Anthropic
+                    </p>
                 </div>
-                <p className={styles.chatMeta}>
-                    Answers stay grounded in this article.
-                </p>
+                {onClose && (
+                    <button
+                        type="button"
+                        className={styles.chatClose}
+                        aria-label="Close chat"
+                        onClick={onClose}
+                    >
+                        ×
+                    </button>
+                )}
             </header>
+            {showTabs && (
+                <div
+                    className={styles.tabs}
+                    role="tablist"
+                    aria-label="Paper assistant"
+                >
+                    {tabList.map((item) => (
+                        <button
+                            key={item.id}
+                            type="button"
+                            role="tab"
+                            id={tabIds[item.id]}
+                            aria-selected={tab === item.id}
+                            aria-controls={panelIds[item.id]}
+                            tabIndex={tab === item.id ? 0 : -1}
+                            className={clsx(
+                                styles.tab,
+                                tab === item.id && styles.tabActive,
+                            )}
+                            onClick={() => setTab(item.id)}
+                            onKeyDown={handleTabKey}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+            )}
             {isFreshChat ? (
-                <div className={styles.intro}>
-                    <div className={styles.introHello}>
-                        <ResearchBot className={styles.introBot} />
-                        <p className={styles.introCopy}>{WELCOME_COPY}</p>
-                    </div>
-                    <div className={styles.promptRail}>
+                <div
+                    className={styles.intro}
+                    hidden={!onChatTab}
+                    {...chatPanelProps}
+                >
+                    <p className={styles.introCopy}>{WELCOME_COPY}</p>
+                    <div className={styles.nextQuestions}>
+                        <p className={styles.nextLabel}>Try asking</p>
                         {prompts.map((prompt) => (
                             <button
                                 key={prompt}
                                 type="button"
-                                className={styles.promptChip}
+                                className={styles.nextChip}
                                 onClick={() => void sendTextMessage(prompt)}
-                                disabled={
-                                    loading || !wholePaper?.access.canSendToAI
-                                }
+                                disabled={loading || !chatMode}
                             >
                                 {prompt}
                             </button>
@@ -899,8 +1126,74 @@ const Chatbox = ({
                 <Messages
                     messages={allMessages}
                     loading={loading}
-                    onLocate={onLocateCitation}
+                    onLocate={locateCitation}
+                    paper={wholePaper}
+                    activeKey={locatedKey}
+                    onAsk={chatMode ? (question) => void sendTextMessage(question) : undefined}
+                    fallbackFollowUps={fallbackFollowUps}
+                    hidden={!onChatTab}
+                    panelProps={chatPanelProps}
                 />
+            )}
+            {showTabs && tab === "highlights" && (
+                <div
+                    className={styles.highlightList}
+                    role="tabpanel"
+                    id={panelIds.highlights}
+                    aria-labelledby={tabIds.highlights}
+                >
+                    {sortedHighlights.length === 0 ? (
+                        <p className={styles.highlightEmpty}>
+                            Turn on Highlight above the paper, then select a
+                            passage. It will be saved here.
+                        </p>
+                    ) : (
+                        sortedHighlights.map((highlight) => (
+                            <article
+                                key={highlight.id}
+                                className={styles.highlightItem}
+                            >
+                                <span
+                                    className={clsx(
+                                        styles.highlightSection,
+                                        HIGHLIGHT_DOT_CLASS[highlight.color],
+                                    )}
+                                >
+                                    {highlight.citation.sectionTitle}
+                                </span>
+                                <p className={styles.highlightExcerpt}>
+                                    {highlight.excerpt}
+                                </p>
+                                <div className={styles.highlightActions}>
+                                    {chatMode === "full" && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                attachCitation(
+                                                    highlight.citation,
+                                                )
+                                            }
+                                        >
+                                            Add to chat
+                                        </button>
+                                    )}
+                                    {locateCitation && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                locateCitation(
+                                                    highlight.citation,
+                                                )
+                                            }
+                                        >
+                                            Show in paper
+                                        </button>
+                                    )}
+                                </div>
+                            </article>
+                        ))
+                    )}
+                </div>
             )}
             {hideComposer ? null : (
             <Input

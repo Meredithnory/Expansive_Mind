@@ -3,6 +3,7 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ResearchModeToggle from "../components/ResearchModeToggle";
+import ResearchOrbit from "../components/ResearchOrbit";
 import DiscoverClient from "./DiscoverClient";
 import SearchPaperClient from "../searchpaper/SearchPaperClient";
 import workspaceStyles from "./research-workspace.module.scss";
@@ -88,6 +89,7 @@ export default function ResearchWorkspace({
             className={workspaceStyles.shell}
             data-research-workspace
         >
+            <ResearchOrbit mode={mode} />
             <div className={workspaceStyles.chromeSlot}>
                 <ResearchModeToggle mode={mode} onChange={setMode} />
             </div>

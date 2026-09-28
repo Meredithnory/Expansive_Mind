@@ -11,10 +11,15 @@ import {
 } from "../../api/general-interfaces";
 import Image from "next/image";
 import { HighlightSearchTitle } from "../../lib/highlight-search";
+import { formatQuoteWithCitation } from "../../lib/quote-citation";
+import PaperContents from "./PaperContents";
+import PaperSignificance from "./PaperSignificance";
+import PaperAuthors from "./PaperAuthors";
 import type { PaperCitation } from "../../lib/paper-citation";
 import {
     citationLabel,
     locateExcerptInPaper,
+    locateQuoteInPaper,
     locateMethodInPaper,
 } from "../../lib/paper-citation";
 import {
@@ -24,8 +29,6 @@ import {
     type PaperTool,
 } from "../../lib/region-capture";
 import {
-    SYNTHETIC_MOUSE_WINDOW_MS,
-    TOUCH_HIGHLIGHT_SETTLE_MS,
     isSyntheticMouseAfterTouch,
 } from "../../lib/highlight-gesture";
 import {
@@ -35,6 +38,7 @@ import {
     type HighlightColor,
     HIGHLIGHT_COLORS,
     parseHighlightColor,
+    type PaperHighlightRecord,
     savePaperHighlight,
     updatePaperHighlightColor,
 } from "../../lib/paper-highlights";
@@ -59,6 +63,35 @@ const INK_SWATCH_CLASS: Record<HighlightColor, string> = {
     pink: styles.inkSwatch_pink,
     blue: styles.inkSwatch_blue,
     yellow: styles.inkSwatch_yellow,
+};
+
+/** "2026-09-07" → "Sep 7, 2026"; anything else is shown as given. */
+const formatPaperDate = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}/.test(value)) return value;
+    const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              timeZone: "UTC",
+          }).format(date);
+};
+
+/** JATS article-type values worth a chip; anything else shows none. */
+const ARTICLE_TYPE_LABELS: Record<string, string> = {
+    "review-article": "Review",
+    "systematic-review": "Systematic review",
+    "meta-analysis": "Meta-analysis",
+    "research-article": "Research article",
+    "brief-report": "Brief report",
+    "case-report": "Case report",
+    "rapid-communication": "Rapid communication",
+    editorial: "Editorial",
+    letter: "Letter",
+    commentary: "Commentary",
+    protocol: "Protocol",
 };
 
 const ensureAgentHighlightStyle = () => {
@@ -96,6 +129,8 @@ const getTitleHighlightClass = (source?: string) => {
 
 interface PaperBoxProps {
     paper: FormattedPaper | null;
+    /** Body is loading in the reader's browser from PubMed Central. */
+    browserBodyLoading?: boolean;
     searchTerm: string | null;
     isPro: boolean;
     activeTool?: PaperTool | null;
@@ -106,6 +141,12 @@ interface PaperBoxProps {
     } | null;
     onAnalyzeFigure: (figure: PaperFigure) => void;
     onHighlight?: (citation: PaperCitation) => void;
+    /** Receives the reader's highlights whenever they change. */
+    onMarksChange?: (marks: PaperHighlightRecord[]) => void;
+    /** Asks the assistant to summarize the paper. */
+    onSummarize?: () => void;
+    /** Opens the assistant's Highlights tab. */
+    onShowHighlights?: () => void;
     focusExcerpt?: string | null;
     locateMethod?: boolean;
     focusCitation?: PaperCitation | null;
@@ -144,6 +185,15 @@ const measureExcerptRects = (root: HTMLElement, excerpt: string) => {
     return selectionRectsRelativeTo(range, root);
 };
 
+/** A figure the reader shows: it has an image, a caption, or a label. */
+const isShownFigure = (figure: PaperFigure) =>
+    Boolean(
+        (figure.imageUrl && (figure.canAnalyzeSourceImage || figure.displayOnly)) ||
+            figure.caption ||
+            figure.label ||
+            figure.captionTitle,
+    );
+
 const FigureList = ({
     figures,
     isPro,
@@ -157,12 +207,13 @@ const FigureList = ({
         const title = [figure.label, figure.captionTitle]
             .filter(Boolean)
             .join(". ");
-        const hasImage = Boolean(
+        const canAnalyze = Boolean(
             figure.imageUrl && figure.canAnalyzeSourceImage,
         );
+        const hasImage = canAnalyze || Boolean(figure.imageUrl && figure.displayOnly);
         // Caption-only figures: short label/caption, no empty image hole.
         // Skip entirely when the source has neither caption nor analyzable image.
-        if (!hasImage && !figure.caption && !title) {
+        if (!isShownFigure(figure)) {
             return null;
         }
         return (
@@ -173,11 +224,6 @@ const FigureList = ({
                 )}
                 key={figure.id}
             >
-                {title && (
-                    <figcaption className={styles.graphicTitle}>
-                        {title}
-                    </figcaption>
-                )}
                 {hasImage && (
                     <div className={styles.figureImage}>
                         <Image
@@ -190,21 +236,26 @@ const FigureList = ({
                         />
                     </div>
                 )}
-                {figure.caption && <p>{figure.caption}</p>}
-                {hasImage && (
-                    <div className={styles.figureActions}>
+                <figcaption className={styles.figureCaption}>
+                    <span>
+                        {title && <strong>{title}</strong>}
+                        {title && figure.caption ? " " : null}
+                        {figure.caption}
+                    </span>
+                    {canAnalyze && (
                         <button
                             type="button"
+                            className={styles.figureAsk}
                             disabled={!isPro}
                             onClick={() => onAnalyzeFigure(figure)}
-                            aria-label={`Explain ${figure.label}`}
+                            aria-label={`Ask about ${figure.label || "this figure"}`}
                         >
                             {isPro
-                                ? "Explain this figure"
-                                : "Pro: Explain this figure"}
+                                ? "Ask about this figure"
+                                : "Pro: Ask about this figure"}
                         </button>
-                    </div>
-                )}
+                    )}
+                </figcaption>
             </figure>
         );
     }) || null;
@@ -237,16 +288,26 @@ const SubSection = ({
 
 const Section = ({
     section,
+    number,
     isPro,
     onAnalyzeFigure,
 }: {
     section: SectionInterface;
+    /** Its place in Contents, shown before the heading. */
+    number?: number;
     isPro: boolean;
     onAnalyzeFigure: (figure: PaperFigure) => void;
 }) => {
     return (
         <div className={styles.section} data-section-title={section.title || "Paper"}>
-            {section.title && <h4>{section.title}</h4>}
+            {section.title && (
+                <h4>
+                    {number ? (
+                        <span className={styles.sectionNumber}>{number} </span>
+                    ) : null}
+                    {section.title}
+                </h4>
+            )}
             {section.content && <p>{section.content}</p>}
             <FigureList
                 figures={section.figures}
@@ -269,12 +330,16 @@ const Section = ({
 
 const Paperbox = ({
     paper,
+    browserBodyLoading = false,
     searchTerm,
     isPro,
     activeTool = null,
     persistHighlights = null,
     onAnalyzeFigure,
     onHighlight,
+    onMarksChange,
+    onSummarize,
+    onShowHighlights,
     focusExcerpt = null,
     locateMethod = false,
     focusCitation = null,
@@ -283,6 +348,7 @@ const Paperbox = ({
     const [inkMarks, setInkMarks] = useState<InkMark[]>([]);
     const [focusMark, setFocusMark] = useState<InkMark | null>(null);
     const [openMarkId, setOpenMarkId] = useState<string | null>(null);
+    const [copiedMarkId, setCopiedMarkId] = useState<string | null>(null);
     const deletedMarkIds = useRef(new Set<string>());
     const paperRef = useRef<HTMLDivElement>(null);
     const fingerDown = useRef(false);
@@ -290,6 +356,11 @@ const Paperbox = ({
     const settleTimer = useRef<number | null>(null);
     const commitHighlightRef = useRef<() => void>(() => {});
     const scheduleTouchCommitRef = useRef<() => void>(() => {});
+    // Phones: a long-press selects one word, so saving on finger-up saved a
+    // single word. Instead, let the reader adjust the selection handles and
+    // tap an explicit "Highlight selection" button.
+    const [touchSelection, setTouchSelection] = useState(false);
+    const [coarsePointer, setCoarsePointer] = useState(false);
     const paperId = paper?.paperId;
     const persistDatabase = persistHighlights?.database || "";
     const persistPaperId = persistHighlights?.paperId || "";
@@ -303,15 +374,42 @@ const Paperbox = ({
         setAgentTextHighlight(null);
     }, [paperId]);
 
-    scheduleTouchCommitRef.current = () => {
-        if (settleTimer.current != null) {
-            window.clearTimeout(settleTimer.current);
-        }
-        settleTimer.current = window.setTimeout(() => {
-            settleTimer.current = null;
-            commitHighlightRef.current();
-        }, TOUCH_HIGHLIGHT_SETTLE_MS);
+    useEffect(() => {
+        setCoarsePointer(window.matchMedia("(pointer: coarse)").matches);
+    }, []);
+
+    // Remeasuring changes only rects, so report on id/color changes alone.
+    const reportedMarksKey = useRef<string | null>(null);
+    useEffect(() => {
+        const key = inkMarks.map((mark) => `${mark.id}:${mark.color}`).join("|");
+        if (key === reportedMarksKey.current) return;
+        reportedMarksKey.current = key;
+        onMarksChange?.(
+            inkMarks.map(({ id, excerpt, citation, color }) => ({
+                id,
+                excerpt,
+                citation,
+                color,
+            })),
+        );
+    }, [inkMarks, onMarksChange]);
+
+    const syncTouchSelection = () => {
+        const selection = window.getSelection();
+        const root = paperRef.current;
+        setTouchSelection(
+            Boolean(
+                root &&
+                    selection &&
+                    selection.rangeCount > 0 &&
+                    !selection.isCollapsed &&
+                    root.contains(selection.getRangeAt(0).commonAncestorContainer) &&
+                    selection.toString().trim(),
+            ),
+        );
     };
+
+    scheduleTouchCommitRef.current = syncTouchSelection;
 
     useEffect(() => {
         if (activeTool !== "highlight") {
@@ -319,13 +417,13 @@ const Paperbox = ({
                 window.clearTimeout(settleTimer.current);
                 settleTimer.current = null;
             }
+            setTouchSelection(false);
             return;
         }
         const onSelectionChange = () => {
-            if (fingerDown.current) return;
-            const ended = touchEndedAt.current;
-            if (ended == null) return;
-            if (Date.now() - ended > SYNTHETIC_MOUSE_WINDOW_MS) return;
+            // Handle drags fire no touchend on the paper; track the selection
+            // itself so the button follows whatever is selected.
+            if (touchEndedAt.current == null && !fingerDown.current) return;
             scheduleTouchCommitRef.current();
         };
         document.addEventListener("selectionchange", onSelectionChange);
@@ -360,7 +458,7 @@ const Paperbox = ({
             .replace(/\s+/g, " ")
             .trim();
         const citation = quote
-            ? locateExcerptInPaper(
+            ? locateQuoteInPaper(
                   paper,
                   quote,
                   focusCitation?.sectionTitle || "Paper",
@@ -377,7 +475,15 @@ const Paperbox = ({
         const paint = (scrollToMatch: boolean) => {
             const root = paperRef.current;
             if (!root) return false;
-            const range = excerpt ? findExcerptRange(root, excerpt) : null;
+            // Search the cited section first so a phrase repeated elsewhere
+            // (often the abstract) does not steal the highlight.
+            const citedSection = root.querySelector<HTMLElement>(
+                `[data-section-title="${CSS.escape(citation.sectionTitle)}"]`,
+            );
+            const range = excerpt
+                ? (citedSection && findExcerptRange(citedSection, excerpt)) ||
+                  findExcerptRange(root, excerpt)
+                : null;
             if (range) {
                 const paintedOnText = setAgentTextHighlight(range);
                 const rects = paintedOnText
@@ -528,6 +634,7 @@ const Paperbox = ({
                 ?.getAttribute("data-section-title") || "Paper";
         selection.removeAllRanges();
         touchEndedAt.current = null;
+        setTouchSelection(false);
         const id = crypto.randomUUID();
         const citation = locateExcerptInPaper(paper, text, fallbackSection);
         const mark: InkMark = {
@@ -568,6 +675,27 @@ const Paperbox = ({
     };
     commitHighlightRef.current = handleHighlightPointerUp;
 
+    const copyMarkWithCitation = (mark: InkMark) => {
+        if (!paper) return;
+        const excerpt = mark.excerpt || mark.citation.lines.join(" ").trim();
+        const text = formatQuoteWithCitation({
+            excerpt,
+            sectionTitle: mark.citation.sectionTitle,
+            attribution: paper.access.attribution,
+            licenseName: paper.access.licenseName,
+        });
+        void navigator.clipboard
+            ?.writeText(text)
+            .then(() => {
+                setCopiedMarkId(mark.id);
+                window.setTimeout(
+                    () => setCopiedMarkId((current) => (current === mark.id ? null : current)),
+                    1600,
+                );
+            })
+            .catch(() => undefined);
+    };
+
     const sendMarkToChat = (mark: InkMark) => {
         const excerpt = mark.excerpt || mark.citation.lines.join(" ").trim();
         void navigator.clipboard?.writeText(excerpt).catch(() => undefined);
@@ -600,6 +728,53 @@ const Paperbox = ({
         if (mark.serverId) {
             void deletePaperHighlight(mark.serverId).catch(() => undefined);
         }
+    };
+
+    const showsBody = Boolean(
+        paper.access.canDisplayFullText || paper.bodyLoadedInBrowser,
+    );
+    const contentsTitles = showsBody
+        ? paper.paper
+              .map((section) => section.title?.trim() || "")
+              .filter(Boolean)
+        : [];
+    const accessLabel =
+        paper.source === "scholar"
+            ? "Search snippet + AI"
+            : paper.access.canDisplayFullText
+              ? "Full text + AI"
+              : paper.bodyLoadedInBrowser
+                ? "Full text from PubMed Central · AI uses the abstract"
+                : paper.abstract
+                  ? "Abstract"
+                  : "Metadata only";
+    const articleType =
+        ARTICLE_TYPE_LABELS[paper.status?.articleType?.trim().toLowerCase() || ""] || "";
+    const figureCount = showsBody
+        ? paper.paper.reduce(
+              (count, section) =>
+                  count +
+                  (section.figures || []).filter(isShownFigure).length +
+                  section.subSections.reduce(
+                      (subCount, sub) =>
+                          subCount + (sub.figures || []).filter(isShownFigure).length,
+                      0,
+                  ),
+              0,
+          )
+        : 0;
+    let sectionNumber = 0;
+    const showFirstFigure = () => {
+        paperRef.current
+            ?.querySelector<HTMLElement>("[data-paper-body] figure")
+            ?.scrollIntoView({ block: "start", behavior: "smooth" });
+    };
+    const jumpToSection = (title: string) => {
+        paperRef.current
+            ?.querySelector<HTMLElement>(
+                `[data-section-title="${CSS.escape(title)}"]`,
+            )
+            ?.scrollIntoView({ block: "start", behavior: "smooth" });
     };
 
     return (
@@ -799,6 +974,38 @@ const Paperbox = ({
                                                     type="button"
                                                     className={styles.inkSend}
                                                     onClick={() =>
+                                                        copyMarkWithCitation(mark)
+                                                    }
+                                                    aria-label={
+                                                        copiedMarkId === mark.id
+                                                            ? "Copied with citation"
+                                                            : "Copy with citation"
+                                                    }
+                                                    title={
+                                                        copiedMarkId === mark.id
+                                                            ? "Copied"
+                                                            : "Copy with citation"
+                                                    }
+                                                >
+                                                    {copiedMarkId === mark.id ? (
+                                                        "✓"
+                                                    ) : (
+                                                        <svg
+                                                            width="14"
+                                                            height="14"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                                                            <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="2" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.inkSend}
+                                                    onClick={() =>
                                                         sendMarkToChat(mark)
                                                     }
                                                     aria-label="Add highlight to chat"
@@ -825,45 +1032,33 @@ const Paperbox = ({
                         })}
                     </div>
                 )}
-            <h1 className={clsx(styles.title, styles.text)}>
-                <HighlightSearchTitle
-                    title={paper.title}
-                    searchValue={searchTerm || ""}
-                    highlightClass={getTitleHighlightClass(paper.source)}
+            <div className={styles.readerLayout}>
+            {showsBody && (
+                <PaperContents
+                    sections={contentsTitles}
+                    paneRef={paperRef}
+                    figureCount={figureCount}
+                    highlightCount={inkMarks.length}
+                    onShowFigures={showFirstFigure}
+                    onShowHighlights={onShowHighlights}
                 />
-            </h1>
-            <div className={styles.authors}>{paper.authors.join(", ")}</div>
-            <PaperImpactBadge
-                citationCount={paper.citationCount}
-                citationSource={paper.citationSource}
-                doi={paper.access?.attribution?.doi}
-                sourcePaper={{
-                    title: paper.title,
-                    doi: paper.access?.attribution?.doi,
-                    authors: paper.authors,
-                    year: paper.publicationDate,
-                }}
-                className={styles.impactBadge}
-            />
-            <div className={styles.pmcid}>
-                Source: {paper.primarySource} | ID ({paper.idName}):{" "}
-                {paper.paperId}
-            </div>
-            <div className={styles.attribution}>
-                <div>
-                    Access:{" "}
-                    <strong>
-                        {paper.source === "scholar"
-                            ? "Search snippet + AI"
-                            : paper.access.canDisplayFullText
-                            ? "Full text + AI"
-                            : "Metadata only"}
-                    </strong>
-                </div>
-                {paper.access.licenseName && (
-                    <div>
-                        License:{" "}
-                        {paper.access.licenseUrl ? (
+            )}
+            <div className={styles.article}>
+            <div className={styles.metaRow}>
+                {articleType && (
+                    <span className={clsx(styles.metaTag, styles.metaTagType)}>
+                        {articleType}
+                    </span>
+                )}
+                <span className={styles.metaTag}>{paper.primarySource}</span>
+                <span
+                    className={clsx(
+                        styles.metaTag,
+                        paper.access.canDisplayFullText && styles.metaTagGood,
+                    )}
+                >
+                    {paper.access.licenseName &&
+                        (paper.access.licenseUrl ? (
                             <a
                                 href={paper.access.licenseUrl}
                                 target="_blank"
@@ -873,44 +1068,103 @@ const Paperbox = ({
                             </a>
                         ) : (
                             paper.access.licenseName
-                        )}
-                    </div>
-                )}
+                        ))}
+                    {paper.access.licenseName && " · "}
+                    {accessLabel}
+                </span>
                 {paper.access.attribution.publicationDate && (
-                    <div>
-                        Published:{" "}
-                        {paper.access.attribution.publicationDate}
-                    </div>
+                    <span className={styles.metaTag}>
+                        {formatPaperDate(paper.access.attribution.publicationDate)}
+                    </span>
                 )}
                 <a
+                    className={styles.metaLink}
                     href={paper.access.canonicalUrl}
                     target="_blank"
                     rel="noreferrer"
                 >
-                    Open the canonical source
+                    Open original <span aria-hidden="true">↗</span>
                 </a>
-                {paper.access.normalizedLicense === "CC-BY" && (
-                    <div>
-                        Article text has been parsed and reformatted for this
-                        interface. AI answers summarize selected excerpts.
-                    </div>
-                )}
             </div>
+            <h1 className={clsx(styles.title, styles.text)}>
+                <HighlightSearchTitle
+                    title={paper.title}
+                    searchValue={searchTerm || ""}
+                    highlightClass={getTitleHighlightClass(paper.source)}
+                />
+            </h1>
+            <PaperAuthors key={paper.paperId} authors={paper.authors} />
+            {paper.citationCount ? (
+                <PaperImpactBadge
+                    citationCount={paper.citationCount}
+                    citationSource={paper.citationSource}
+                    doi={paper.access?.attribution?.doi}
+                    sourcePaper={{
+                        title: paper.title,
+                        doi: paper.access?.attribution?.doi,
+                        authors: paper.authors,
+                        year: paper.publicationDate,
+                    }}
+                    className={styles.impactBadge}
+                />
+            ) : null}
+            {showsBody && (
+                <PaperSignificance
+                    paper={paper}
+                    onJump={jumpToSection}
+                    onSummarize={onSummarize}
+                />
+            )}
+            <p className={styles.metaFine}>
+                {paper.idName.toUpperCase()} {paper.paperId}
+                {paper.access.normalizedLicense === "CC-BY" &&
+                    " · Article text has been parsed and reformatted for this interface. AI answers summarize selected excerpts."}
+            </p>
             {paper.status?.isRetracted && (
                 <p className={styles.statusWarning}>
                     Retraction warning: the source marks this article as
                     retracted. Verify its status at the canonical source.
                 </p>
             )}
-            {paper.contentNotice && (
-                <p className={styles.contentNotice}>{paper.contentNotice}</p>
+            {paper.bodyLoadedInBrowser ? (
+                <p className={styles.contentNotice}>
+                    This paper&apos;s license doesn&apos;t allow reuse, so
+                    your browser loads it directly from PubMed Central.
+                    Expansive Mind doesn&apos;t store it, and the assistant
+                    answers from the abstract only.
+                </p>
+            ) : browserBodyLoading ? (
+                <p className={styles.contentNotice} role="status">
+                    Loading the full text from PubMed Central…
+                </p>
+            ) : (
+                paper.contentNotice && (
+                    <p className={styles.contentNotice}>
+                        {paper.contentNotice}
+                    </p>
+                )
             )}
-            {paper.access.canDisplayFullText && (
+            {!paper.access.canDisplayFullText &&
+                !paper.bodyLoadedInBrowser &&
+                paper.abstract && (
+                    <div className={styles.paper}>
+                        <div className={styles.section}>
+                            <h4>Abstract</h4>
+                            <p>{paper.abstract}</p>
+                        </div>
+                    </div>
+                )}
+            {(paper.access.canDisplayFullText || paper.bodyLoadedInBrowser) && (
                 <div className={styles.paper} data-paper-body="">
                     {paper.paper.map((section, index) => (
                         <Section
                             section={section}
                             key={`${section.title || "section"}-${index}`}
+                            number={
+                                section.title?.trim()
+                                    ? (sectionNumber += 1)
+                                    : undefined
+                            }
                             isPro={isPro}
                             onAnalyzeFigure={onAnalyzeFigure}
                         />
@@ -918,6 +1172,31 @@ const Paperbox = ({
                 </div>
             )}
             </div>
+            </div>
+            </div>
+            {activeTool === "highlight" && coarsePointer && (
+                <div className={styles.touchHighlightBar} role="status">
+                    {touchSelection ? (
+                        <button
+                            type="button"
+                            className={styles.touchHighlightButton}
+                            // Act on pointerdown and keep focus off the button,
+                            // or iOS clears the selection before the tap lands.
+                            onPointerDown={(event) => {
+                                event.preventDefault();
+                                commitHighlightRef.current();
+                            }}
+                        >
+                            Highlight selection
+                        </button>
+                    ) : (
+                        <p className={styles.touchHighlightHint}>
+                            Press and hold text, drag the handles, then tap
+                            Highlight selection.
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

@@ -1,7 +1,7 @@
 @use "../variables" as *;
 
 /* Shared Research reading column — chrome + composer share this width. */
-$research-column: 720px;
+$research-column: 800px;
 
 .shell {
     display: flex;
@@ -46,10 +46,15 @@ $research-column: 720px;
     max-width: 880px;
     margin-inline: auto;
     padding: 0;
-    /* Fixed chrome height so Discovery ↔ Search never shifts the composer. */
     position: relative;
     z-index: 2;
-    min-height: 124px;
+    margin-bottom: 22px;
+}
+
+/* A running Discovery and its report have their own headers. */
+.shell:has([data-discover-running]) .chromeSlot,
+.shell:has([data-discover-page]:not([data-discover-landing])) .chromeSlot {
+    display: none;
 }
 
 .modePane {
@@ -86,7 +91,7 @@ $research-column: 720px;
 
     .chromeSlot {
         padding: 0;
-        min-height: 176px;
+        margin-bottom: 16px;
     }
 
     .modePane {

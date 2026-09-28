@@ -15,6 +15,8 @@ const ResponsiveChatPanel = ({
     ...chatboxProps
 }: ResponsiveChatPanelProps) => {
     const [expanded, setExpanded] = useState(false);
+    // Phones: after "Show in paper" closes the sheet, offer the way back.
+    const [showingCite, setShowingCite] = useState(false);
     const panelRef = useRef<HTMLElement>(null);
     const dragStartY = useRef(0);
     const dragStartedExpanded = useRef(false);
@@ -60,6 +62,16 @@ const ResponsiveChatPanel = ({
     useEffect(() => {
         if (activeTool) setExpanded(false);
     }, [activeTool]);
+
+    useEffect(() => {
+        if (expanded) setShowingCite(false);
+    }, [expanded]);
+
+    useEffect(() => {
+        if (!showingCite) return;
+        const timer = window.setTimeout(() => setShowingCite(false), 8000);
+        return () => window.clearTimeout(timer);
+    }, [showingCite]);
 
     useEffect(
         () => () => {
@@ -134,10 +146,18 @@ const ResponsiveChatPanel = ({
             style={{ "--sheet-drag-offset": "0px" } as React.CSSProperties}
             aria-label="Paper chat"
         >
+            {showingCite && !expanded && (
+                <div className={styles.citeNote} role="status">
+                    Showing the cited passage
+                    <button type="button" onClick={() => setExpanded(true)}>
+                        Back to chat
+                    </button>
+                </div>
+            )}
             <button
                 type="button"
                 className={styles.handle}
-                aria-label={expanded ? "Collapse paper chat" : "Expand paper chat"}
+                aria-label={expanded ? "Collapse paper chat" : "Ask about this paper"}
                 aria-expanded={expanded}
                 onClick={handleToggle}
                 onPointerDown={handlePointerDown}
@@ -145,18 +165,23 @@ const ResponsiveChatPanel = ({
                 onPointerUp={handlePointerEnd}
                 onPointerCancel={handlePointerEnd}
             >
+                <span className={styles.grabber} aria-hidden="true" />
                 <span className={styles.handleLabel}>
-                    {expanded ? "Hide assistant" : "Ask this paper"}
+                    Ask about this paper…
                 </span>
                 <span className={styles.handleArrow} aria-hidden="true">
-                    {expanded ? "↓" : "↑"}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                 </span>
             </button>
             <div className={styles.content}>
                 <Chatbox
                     {...chatboxProps}
                     onSubmitStart={() => setExpanded(true)}
+                    onClose={expanded ? () => setExpanded(false) : undefined}
                     onLocateCitation={(citation) => {
+                        if (expanded) setShowingCite(true);
                         setExpanded(false);
                         chatboxProps.onLocateCitation?.(citation);
                     }}

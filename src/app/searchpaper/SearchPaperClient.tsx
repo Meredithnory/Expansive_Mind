@@ -20,7 +20,6 @@ import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import { useSession } from "../lib/use-session";
 import Link from "next/link";
 import posthog from "posthog-js";
-import DatabaseMind from "../components/DatabaseMind";
 
 export type SourceFilter =
     | "all"
@@ -83,6 +82,31 @@ const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
     "europe-pmc": styles.filterOptionEuropePmc,
     crossref: styles.filterOptionCrossref,
 };
+
+/** The landing's source chips; Scholar is marked Pro. */
+const LANDING_SOURCES: { value: SourceFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "nih", label: "NIH PMC" },
+    { value: "springer", label: "Springer Nature" },
+    { value: "europe-pmc", label: "Europe PMC" },
+    { value: "crossref", label: "Crossref" },
+    { value: "scholar", label: "Scholar · Pro" },
+];
+
+const SEARCH_EXAMPLES = [
+    "senolytics alzheimer",
+    "GLP-1 cardiovascular outcomes",
+    "base editing sickle cell",
+    "gut microbiome parkinson",
+];
+
+const SEARCHES_FROM = [
+    { label: "NIH PMC", color: "#0ab1ff" },
+    { label: "Springer Nature", color: "#ff5aa9" },
+    { label: "Europe PMC", color: "#22a06b" },
+    { label: "Crossref", color: "#f5a524" },
+    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+];
 
 const DATE_FILTERS: { value: DateFilter; label: string }[] = [
     { value: "any", label: "Any time" },
@@ -173,6 +197,13 @@ const SearchPaperClient = ({
     const [error, setError] = useState("");
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
+
+    useEffect(() => {
+        // On a phone the open filter grid fills the screen and hides results.
+        if (window.matchMedia("(max-width: 720px)").matches) {
+            setFiltersExpanded(false);
+        }
+    }, []);
     const [filterSidebarStuck, setFilterSidebarStuck] = useState(false);
     const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
@@ -309,23 +340,35 @@ const SearchPaperClient = ({
         clearInlineSuggestion();
     };
 
+    // Before a search, filters only change the URL (and stay on Search).
+    const pushLandingFilters = (source: SourceFilter, date: DateFilter) => {
+        const params = new URLSearchParams();
+        if (
+            skipInitialScroll ||
+            modeChrome ||
+            new URLSearchParams(window.location.search).get("mode") === "search"
+        ) {
+            params.set("mode", "search");
+        }
+        if (source !== "all") {
+            params.set("source", source);
+        }
+        if (date !== "any") {
+            params.set("date", date);
+        }
+        const next = params.toString();
+        router.push(
+            next
+                ? `${window.location.pathname}?${next}`
+                : window.location.pathname,
+            { scroll: false },
+        );
+    };
+
     const handleSourceChange = (source: SourceFilter) => {
         const query = (pastSearchValue || qParam || searchValue).trim();
         if (!query) {
-            const params = new URLSearchParams();
-            if (source !== "all") {
-                params.set("source", source);
-            }
-            if (activeDate !== "any") {
-                params.set("date", activeDate);
-            }
-            const next = params.toString();
-            router.push(
-                next
-                    ? `${window.location.pathname}?${next}`
-                    : window.location.pathname,
-                { scroll: false },
-            );
+            pushLandingFilters(source, activeDate);
             if (source !== "all") {
                 window.setTimeout(() => {
                     document.getElementById("paper-search-input")?.focus();
@@ -343,7 +386,10 @@ const SearchPaperClient = ({
 
     const handleDateChange = (date: DateFilter) => {
         const query = (pastSearchValue || qParam || searchValue).trim();
-        if (!query) return;
+        if (!query) {
+            pushLandingFilters(activeSource, date);
+            return;
+        }
         pushSearchParams(query, 0, activeSource, date);
         if (window.matchMedia("(max-width: 720px)").matches) {
             setFiltersExpanded(false);
@@ -540,9 +586,6 @@ const SearchPaperClient = ({
             data-page-scroll
             ref={pageRef}
         >
-            {!hasCommittedSearch ? (
-                <div className={styles.landingAura} aria-hidden="true" />
-            ) : null}
             <SearchLoadingOverlay
                 visible={loading || searchTransitionActive}
                 label="Scanning research databases…"
@@ -586,7 +629,13 @@ const SearchPaperClient = ({
                         {landingIntro}
                     </div>
                 ) : !hasCommittedSearch ? (
-                    <h1 className={styles.srOnly}>Search papers</h1>
+                    <div className={styles.findHead}>
+                        <h1 className={styles.findTitle}>Find a paper</h1>
+                        <p className={styles.findLead}>
+                            Search NIH PMC, Springer Nature, Europe PMC, and
+                            Crossref at once. Google Scholar comes with Pro.
+                        </p>
+                    </div>
                 ) : null}
                 <SearchBar
                     searchValue={searchValue}
@@ -598,17 +647,93 @@ const SearchPaperClient = ({
                     inputId="paper-search-input"
                     accentSource={activeSource}
                     searching={loading || searchTransitionActive}
+                    footer={
+                        hasCommittedSearch ? undefined : (
+                            <>
+                                <span className={styles.findFilterLabel}>
+                                    Sources
+                                </span>
+                                {LANDING_SOURCES.map((source) => (
+                                    <button
+                                        key={source.value}
+                                        type="button"
+                                        className={styles.findSource}
+                                        aria-pressed={activeSource === source.value}
+                                        onClick={() =>
+                                            handleSourceChange(source.value)
+                                        }
+                                    >
+                                        {source.label}
+                                    </button>
+                                ))}
+                                <label className={styles.findWhen}>
+                                    When
+                                    <select
+                                        value={activeDate}
+                                        onChange={(event) =>
+                                            handleDateChange(
+                                                event.target.value as DateFilter,
+                                            )
+                                        }
+                                    >
+                                        {DATE_FILTERS.map((filter) => (
+                                            <option
+                                                key={filter.value}
+                                                value={filter.value}
+                                            >
+                                                {filter.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </>
+                        )
+                    }
                 />
-                <div
-                    className={clsx(styles.databaseCatalog, {
-                        [styles.databaseCatalogHidden]: hasCommittedSearch,
-                    })}
-                >
-                    <DatabaseMind
-                        activeSource={activeSource}
-                        onSelect={handleSourceChange}
-                    />
-                </div>
+                {!hasCommittedSearch ? (
+                    <div className={styles.findExtras}>
+                        {!searchValue.trim() ? (
+                            <section
+                                className={styles.findTry}
+                                aria-labelledby="search-try"
+                            >
+                                <p id="search-try" className={styles.findLabel}>
+                                    Try searching
+                                </p>
+                                <div className={styles.findExamples}>
+                                    {SEARCH_EXAMPLES.map((example) => (
+                                        <button
+                                            key={example}
+                                            type="button"
+                                            className={styles.findExample}
+                                            onClick={() => {
+                                                handleSearchValueChange(example);
+                                                document
+                                                    .getElementById("paper-search-input")
+                                                    ?.focus();
+                                            }}
+                                        >
+                                            {example}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        ) : null}
+                        <p className={styles.findSources}>
+                            <span className={styles.findSourcesLabel}>Searches</span>
+                            {SEARCHES_FROM.map((source) => (
+                                <span key={source.label} className={styles.findSourceItem}>
+                                    <span
+                                        className={styles.findSourceDot}
+                                        style={{ background: source.color }}
+                                        aria-hidden="true"
+                                    />
+                                    {source.label}
+                                </span>
+                            ))}
+                        </p>
+                    </div>
+                ) : null}
                 <div
                     className={clsx(styles.searchLayout, {
                         [styles.searchLayoutHidden]: !hasCommittedSearch,
