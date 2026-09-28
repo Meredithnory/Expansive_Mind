@@ -42,6 +42,7 @@ import {
     yearRangeLabel,
 } from "../lib/evidence-type";
 import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
+import { citedEvidenceQuote, type CiteContext } from "../lib/paper-evidence";
 import {
     buildPaperFocusHref,
     parseReportPaperNumber,
@@ -347,6 +348,8 @@ function DiscoverClient({
     const [previewPaperIndex, setPreviewPaperIndex] = useState<number | null>(
         null,
     );
+    // The cited sentence the guest preview opens at, when the chip named one.
+    const [previewQuote, setPreviewQuote] = useState<string | null>(null);
     const pageRef = useRef<HTMLDivElement>(null);
     const citeTriggerRef = useRef<HTMLElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -695,19 +698,34 @@ function DiscoverClient({
         target.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
+    // The sentence a citation stands on: the evidence the report cited, else
+    // the paper's evidence closest to the claim, else the paper's excerpt.
+    const evidenceQuote = useCallback(
+        (paperIndex: number, cite: CiteContext) =>
+            citedEvidenceQuote(
+                extractionForPaper(result?.extractions, paperIndex)?.evidence,
+                paperIndex,
+                cite,
+            ),
+        [result?.extractions],
+    );
+
     const openPaperPreview = useCallback(
-        (paperIndex: number, trigger?: HTMLElement | null) => {
+        (paperIndex: number, trigger?: HTMLElement | null, cite?: CiteContext) => {
             const exists = result?.papers.some(
                 (paper) => paper.index === paperIndex,
             );
             if (!exists) return;
+            const citedQuote = cite ? evidenceQuote(paperIndex, cite) : null;
             if (isLoggedIn) {
                 const rect = trigger?.getBoundingClientRect();
                 setPaperChatFocus((current) => ({
                     paperIndex,
                     excerpt:
+                        citedQuote ||
                         extractionForPaper(result?.extractions, paperIndex)
-                            ?.supportingExcerpt || "",
+                            ?.supportingExcerpt ||
+                        "",
                     requestId: (current?.requestId ?? 0) + 1,
                     origin: rect
                         ? {
@@ -730,9 +748,10 @@ function DiscoverClient({
             }
             captureScroll();
             if (trigger) citeTriggerRef.current = trigger;
+            setPreviewQuote(citedQuote);
             setPreviewPaperIndex(paperIndex);
         },
-        [captureScroll, clearAssessment, isLoggedIn, result],
+        [captureScroll, clearAssessment, evidenceQuote, isLoggedIn, result],
     );
     const activePaperIndex =
         isLoggedIn && paperChatOpen
@@ -2041,6 +2060,7 @@ function DiscoverClient({
                                 papers={result.papers}
                                 only={["state", "limits"]}
                                 reportView="state"
+                                evidenceQuote={evidenceQuote}
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
                                     hasSavedDiscoveryId ? result.id : undefined
@@ -2138,6 +2158,7 @@ function DiscoverClient({
                                 papers={result.papers}
                                 only={["gaps", "problems", "experiments", "translation"]}
                                 reportView="gaps"
+                                evidenceQuote={evidenceQuote}
                                 initialGap={returnGapNumber}
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
@@ -2338,6 +2359,32 @@ function DiscoverClient({
                                         {paper.authors.length > 3 ? " et al." : ""}
                                         {paper.date ? ` · ${paper.date}` : ""}
                                     </p>
+                                    {extraction?.evidence?.length ? (
+                                        <div className={styles.paperEvidence}>
+                                            <span className={styles.paperEvidenceLabel}>
+                                                Evidence used
+                                            </span>
+                                            <ul>
+                                                {extraction.evidence.slice(0, 4).map((item) => (
+                                                    <li key={item.id}>
+                                                        <Link
+                                                            href={withReportOrigin(
+                                                                buildPaperFocusHref(paper.href, item.quote, {
+                                                                    method: false,
+                                                                }),
+                                                                paper.index,
+                                                                null,
+                                                                reportReturn,
+                                                            )}
+                                                        >
+                                                            {item.finding}
+                                                            <span aria-hidden="true"> →</span>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : null}
                                     <div className={styles.paperActions}>
                                         <Link
                                             href={withReportOrigin(
@@ -2476,6 +2523,7 @@ function DiscoverClient({
                     onSelectPaper={openPaperPreview}
                     onSeeInSources={seePaperInSources}
                     returnTo={reportReturn}
+                    citedQuote={previewQuote}
                 />
             ) : null}
             {upgradeOpen ? (

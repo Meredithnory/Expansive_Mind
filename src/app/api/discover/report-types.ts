@@ -89,6 +89,18 @@ export interface PaperExcerptForSynthesis {
     quoteExcerpt?: string;
 }
 
+/**
+ * A finding and the sentence of the paper that supports it, copied exactly.
+ * Kept only for quote-eligible papers, and only when the sentence was found
+ * word for word in the licensed excerpt the model read.
+ */
+export interface PaperEvidence {
+    /** "E3.2": paper 3, second item. Report prose cites it. */
+    id: string;
+    finding: string;
+    quote: string;
+}
+
 export interface PaperExtraction {
     index: number;
     title: string;
@@ -114,6 +126,7 @@ export interface PaperExtraction {
     includedStudyDesign?: string;
     populationMatch?: PopulationMatch;
     claims?: ClaimEvidenceRecord[];
+    evidence?: PaperEvidence[];
 }
 
 export interface ReportGap {
@@ -189,6 +202,11 @@ export interface OpportunityReportSections {
     venturePotential: VenturePotentialItem[];
     couldNotVerify: string[];
     projectSeeds: ProjectSeed[];
+    /**
+     * Per text field ("stateOfScience", "gaps.0.description"), the evidence id
+     * each "Paper N" chip cites, in chip order; null for a plain citation.
+     */
+    citationEvidence?: Record<string, Array<string | null>>;
 }
 
 export type ClaimLedgerKind = "gap" | "problem" | "venture";

@@ -61,6 +61,21 @@ describe("parseStoredPaperExtraction", () => {
         });
     });
 
+    it("reads back well-formed evidence and skips broken rows", () => {
+        const parsed = parseStoredPaperExtraction({
+            index: 3,
+            title: "Example trial",
+            evidence: [
+                { id: "E3.1", finding: "Events fell", quote: "Events fell by 12%." },
+                { id: "bad", finding: "x", quote: "y" },
+                { id: "E3.2", finding: "", quote: "No finding" },
+            ],
+        });
+        expect(parsed?.evidence).toEqual([
+            { id: "E3.1", finding: "Events fell", quote: "Events fell by 12%." },
+        ]);
+    });
+
     it("does not treat a stored DOI or a reviewer flag as human-checked support", () => {
         const parsed = parseStoredPaperExtraction({
             index: 1,

@@ -52,6 +52,8 @@ type PaperPreviewDrawerProps = {
     onSeeInSources?: (index: number) => void;
     /** The report and tab, for the reader's "Your report" link. */
     returnTo?: ReportReturn;
+    /** The evidence sentence the clicked citation stands on. */
+    citedQuote?: string | null;
 };
 
 function sourceBadgeClass(database: PreviewPaper["database"]) {
@@ -101,6 +103,7 @@ export default function PaperPreviewDrawer({
     onSelectPaper,
     onSeeInSources,
     returnTo,
+    citedQuote = null,
 }: PaperPreviewDrawerProps) {
     const panelRef = useRef<HTMLElement>(null);
     const titleId = useId();
@@ -154,7 +157,7 @@ export default function PaperPreviewDrawer({
         returnTo,
     );
     // The passage the report cites; the reader scrolls to it and marks it.
-    const citedExcerpt = extraction?.supportingExcerpt || "";
+    const citedExcerpt = citedQuote || extraction?.supportingExcerpt || "";
     const renderQuote = (text: string) => {
         const shown = visiblePaperQuote({
             quote: text,
@@ -315,21 +318,44 @@ export default function PaperPreviewDrawer({
                                         ))}
                                     </ul>
                                 </div>
-                            ) : extraction?.supportingExcerpt ? (
-                                renderQuote(extraction.supportingExcerpt)
+                            ) : citedExcerpt ? (
+                                renderQuote(citedExcerpt)
                             ) : null}
                             {extraction && extraction.keyFindings.length > 0 ? (
                                 <div className={styles.evidenceBlock}>
                                     <h3>Findings used</h3>
                                     <ul>
                                         {extraction.keyFindings.map(
-                                            (finding, index) => (
-                                                <li
-                                                    key={`${paper.index}-finding-${index}`}
-                                                >
-                                                    {finding}
-                                                </li>
-                                            ),
+                                            (finding, index) => {
+                                                const quote = extraction.evidence?.find(
+                                                    (item) => item.finding === finding,
+                                                )?.quote;
+                                                return (
+                                                    <li
+                                                        key={`${paper.index}-finding-${index}`}
+                                                    >
+                                                        {finding}
+                                                        {quote ? (
+                                                            <>
+                                                                {" "}
+                                                                <a
+                                                                    href={withReportOrigin(
+                                                                        buildPaperFocusHref(paper.href, quote, {
+                                                                            method: false,
+                                                                        }),
+                                                                        paper.index,
+                                                                        null,
+                                                                        returnTo,
+                                                                    )}
+                                                                    className={styles.findingLink}
+                                                                >
+                                                                    See it in the paper →
+                                                                </a>
+                                                            </>
+                                                        ) : null}
+                                                    </li>
+                                                );
+                                            },
                                         )}
                                     </ul>
                                 </div>

@@ -130,6 +130,20 @@ const paperExtractionSchema = new Schema(
             ],
             default: undefined,
         },
+        // A finding and the verbatim sentence behind it (quote-eligible papers only).
+        evidence: {
+            type: [
+                new Schema(
+                    {
+                        id: { type: String, required: true, maxlength: 12 },
+                        finding: { type: String, required: true, maxlength: 600 },
+                        quote: { type: String, required: true, maxlength: 400 },
+                    },
+                    { _id: false, strict: "throw" },
+                ),
+            ],
+            default: undefined,
+        },
     },
     {
         _id: false,

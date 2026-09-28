@@ -223,7 +223,8 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             ],
         }));
         const discovery = await cached({
-            namespace: `discovery-v6-claim-passages-${getContentAccessMode()}`,
+            // v7: reports cite the evidence sentence behind each "Paper N".
+            namespace: `discovery-v7-cited-evidence-${getContentAccessMode()}`,
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),

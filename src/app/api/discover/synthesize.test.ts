@@ -6,6 +6,7 @@ const { createPrivateChatCompletion } = vi.hoisted(() => ({
 vi.mock("../openrouter", () => ({ createPrivateChatCompletion }));
 
 import {
+    attachCitationEvidence,
     parseOpportunityReport,
     renderOpportunityReport,
     synthesizeOpportunityReport,
@@ -279,5 +280,60 @@ describe("synthesizeOpportunityReport", () => {
         expect(createPrivateChatCompletion.mock.calls[0][2]).toEqual({
             timeoutMs: 90_000,
         });
+    });
+});
+
+describe("attachCitationEvidence", () => {
+    const extraction = (index: number, ids: string[]): PaperExtraction => ({
+        index,
+        title: `Paper ${index}`,
+        sourceLabel: "Springer Nature",
+        authors: [],
+        keyFindings: [],
+        methods: "",
+        limitations: [],
+        openQuestions: [],
+        evidenceType: "other",
+        evidence: ids.map((id) => ({ id, finding: "f", quote: "q" })),
+    });
+
+    it("turns evidence ids into plain citations and remembers them per chip", () => {
+        const cited = attachCitationEvidence(
+            {
+                sections: {
+                    stateOfScience: "Cells fail to persist [E2.1] and exhaust [E1.1, Paper 3].",
+                    gaps: [
+                        {
+                            title: "Gap",
+                            description: "Persistence beyond two weeks is untested [E2.1].",
+                            whyItMatters: "",
+                            citations: [1],
+                            confidence: "suggested",
+                        },
+                    ],
+                    problems: [],
+                    venturePotential: [],
+                    couldNotVerify: ["No dose data [E9.9]."],
+                    projectSeeds: [],
+                },
+            },
+            [extraction(1, ["E1.1"]), extraction(2, ["E2.1"]), extraction(3, [])],
+        );
+        const { sections } = cited;
+        expect(sections.stateOfScience).toBe(
+            "Cells fail to persist [Paper 2] and exhaust [Papers 1, 3].",
+        );
+        expect(sections.gaps[0].description).toBe(
+            "Persistence beyond two weeks is untested [Paper 2].",
+        );
+        // Paper 2 is cited by evidence, so the gap lists it.
+        expect(sections.gaps[0].citations).toEqual([1, 2]);
+        // An id for a paper outside the report is dropped from the text.
+        expect(sections.couldNotVerify[0]).toBe("No dose data.");
+        expect(sections.citationEvidence).toEqual({
+            stateOfScience: ["E2.1", "E1.1", null],
+            "gaps.0.description": ["E2.1"],
+        });
+        expect(renderOpportunityReport(cited)).not.toMatch(/\[E\d/);
     });
 });

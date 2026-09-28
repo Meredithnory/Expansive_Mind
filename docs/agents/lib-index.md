@@ -15,6 +15,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `canvas-image.ts` | client | Canvas → file, size cap |
 | `chat-access.ts` | both | `paperChatMode`: body excerpts, abstract only, or no chat |
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
+| `cited-text.ts` | both | Report citation parsing: `[Paper 3]`, `[Papers 2, 5]`, `[10]` to chips; evidence ids `[E3.2]` to plain citations plus a per-chip evidence map |
 | `claim-evidence.ts` | both | Study-design labels in Discover. Not the claim ledger |
 | `contact.ts` | both | Contact form parse / mailto |
 | `contact-mail.ts` | both | Contact emails: the message to Meredith and the "we got your message" reply (never echoes the message) |
@@ -41,6 +42,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `openrouter-policy.ts` | both | ZDR + deny data collection |
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
+| `paper-evidence.ts` | both | Verify a finding's quote is verbatim in the excerpt; pick the evidence sentence a clicked citation opens |
 | `paper-highlights.ts` | server | Highlight CRUD |
 | `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
 | `profile-colors.ts` | both | Coat colors (profileColor) with shade and ink |

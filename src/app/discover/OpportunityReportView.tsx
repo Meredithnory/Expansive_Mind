@@ -13,7 +13,8 @@ import type {
     ReportConfidence,
     ReportGap,
 } from "../api/discover/report-types";
-import { withReportOrigin } from "../lib/paper-sources";
+import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
+import { gapEvidenceId, type CiteContext } from "../lib/paper-evidence";
 import { useSession } from "../lib/use-session";
 import { splitCitedText, splitParagraphs } from "./report-text";
 import {
@@ -62,24 +63,50 @@ function resolveSeedGap(seed: ProjectSeed, gaps: ReportGap[]): ReportGap {
     };
 }
 
-type CitePaper = (index: number, trigger?: HTMLElement | null) => void;
+type CitePaper = (
+    index: number,
+    trigger?: HTMLElement | null,
+    cite?: CiteContext,
+) => void;
 
 function CitedText({
     text,
     paperCount,
     activePaperIndex,
     onCite,
+    refs,
 }: {
     text: string;
     paperCount: number;
     activePaperIndex?: number | null;
     onCite: CitePaper;
+    /** The evidence id each chip cites, in chip order (report.sections.citationEvidence). */
+    refs?: Array<string | null>;
 }) {
     const segments = splitCitedText(text, paperCount);
+    let chip = -1;
+    // The claim a chip backs: the words since the sentence start or the last
+    // chip. Chips in one group ("[Papers 1, 6]") share it.
+    let claim = "";
     return (
         <>
-            {segments.map((segment, index) =>
-                segment.type === "cite" ? (
+            {segments.map((segment, index) => {
+                if (segment.type === "text") {
+                    if (segment.value.trim().length > 2) {
+                        claim = segment.value.split(/(?<=[.!?])\s+/).pop() ?? "";
+                    }
+                    return (
+                        <React.Fragment key={`text-${index}`}>
+                            {segment.value}
+                        </React.Fragment>
+                    );
+                }
+                chip += 1;
+                const cite: CiteContext = {
+                    evidenceId: refs?.[chip] ?? null,
+                    context: claim,
+                };
+                return (
                     <button
                         key={`cite-${index}-${segment.index}`}
                         type="button"
@@ -93,17 +120,13 @@ function CitedText({
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
-                            onCite(segment.index, event.currentTarget);
+                            onCite(segment.index, event.currentTarget, cite);
                         }}
                     >
                         {segment.label}
                     </button>
-                ) : (
-                    <React.Fragment key={`text-${index}`}>
-                        {segment.value}
-                    </React.Fragment>
-                ),
-            )}
+                );
+            })}
         </>
     );
 }
@@ -299,6 +322,7 @@ export default function OpportunityReportView({
     onGuestUpgrade,
     reportView,
     initialGap = null,
+    evidenceQuote,
 }: {
     report: OpportunityReport;
     paperCount: number;
@@ -315,8 +339,11 @@ export default function OpportunityReportView({
     reportView?: string;
     /** Back from the reader: the gap it was opened from (1-based). */
     initialGap?: number | null;
+    /** The evidence sentence a paper citation points to, for reader links. */
+    evidenceQuote?: (paperIndex: number, cite: CiteContext) => string | null;
 }) {
     const { sections } = report;
+    const refsFor = (key: string) => sections.citationEvidence?.[key];
     const { refresh } = useSession();
     const [highlightedGap, setHighlightedGap] = useState<number | null>(null);
     // The gap shown large on the gap board (1-based).
@@ -501,6 +528,20 @@ export default function OpportunityReportView({
     }, [action.key, action.projectId, action.status, discarding, refresh]);
 
     const stateParagraphs = splitParagraphs(sections.stateOfScience);
+    // citationEvidence counts chips across the whole state text; give each
+    // paragraph its own slice.
+    const stateRefs = (() => {
+        const all = refsFor("stateOfScience") ?? [];
+        let used = 0;
+        return stateParagraphs.map((paragraph) => {
+            const count = splitCitedText(paragraph, paperCount).filter(
+                (segment) => segment.type === "cite",
+            ).length;
+            const slice = all.slice(used, used + count);
+            used += count;
+            return slice;
+        });
+    })();
     const showError = action.status === "error";
     const outline = reportOutline(report);
     const entryFor = (id: ReportSectionId) =>
@@ -518,6 +559,15 @@ export default function OpportunityReportView({
         (index) => index >= 1 && index <= paperCount,
     );
     const focusPaper = papers.find((paper) => paper.index === focusCitations[0]);
+    // What a gap chip cites: the evidence the gap's text names for that paper.
+    const gapCite = (paperIndex: number): CiteContext => ({
+        evidenceId: gapEvidenceId(sections.citationEvidence, focusNumber - 1, paperIndex),
+        context: focusGap ? `${focusGap.title}. ${focusGap.description}` : "",
+    });
+    const focusPaperQuote =
+        focusPaper && evidenceQuote
+            ? evidenceQuote(focusPaper.index, gapCite(focusPaper.index))
+            : null;
 
     return (
         <div className={styles.briefGrid}>
@@ -558,6 +608,7 @@ export default function OpportunityReportView({
                                 >
                                     <CitedText
                                         text={paragraph}
+                                        refs={stateRefs[index]}
                                         paperCount={paperCount}
                                         activePaperIndex={activePaperIndex}
                                         onCite={onCitePaper}
@@ -599,6 +650,7 @@ export default function OpportunityReportView({
                             <p className={styles.gapFocusText}>
                                 <CitedText
                                     text={focusGap.description}
+                                    refs={refsFor(`gaps.${focusNumber - 1}.description`)}
                                     paperCount={paperCount}
                                     activePaperIndex={activePaperIndex}
                                     onCite={onCitePaper}
@@ -613,6 +665,7 @@ export default function OpportunityReportView({
                                 <strong>Why it matters</strong>
                                 <CitedText
                                     text={focusGap.whyItMatters}
+                                    refs={refsFor(`gaps.${focusNumber - 1}.whyItMatters`)}
                                     paperCount={paperCount}
                                     activePaperIndex={activePaperIndex}
                                     onCite={onCitePaper}
@@ -627,7 +680,11 @@ export default function OpportunityReportView({
                                         <Link
                                             key={index}
                                             href={withReportOrigin(
-                                                focusPaper.href,
+                                                focusPaperQuote
+                                                    ? buildPaperFocusHref(focusPaper.href, focusPaperQuote, {
+                                                          method: false,
+                                                      })
+                                                    : focusPaper.href,
                                                 index,
                                                 focusNumber,
                                                 {
@@ -650,7 +707,11 @@ export default function OpportunityReportView({
                                             aria-haspopup="dialog"
                                             aria-expanded={activePaperIndex === index}
                                             onClick={(event) =>
-                                                onCitePaper(index, event.currentTarget)
+                                                onCitePaper(
+                                                    index,
+                                                    event.currentTarget,
+                                                    gapCite(index),
+                                                )
                                             }
                                         >
                                             {`Paper ${index}`}
@@ -742,6 +803,7 @@ export default function OpportunityReportView({
                                     <p>
                                         <CitedText
                                             text={problem.description}
+                                            refs={refsFor(`problems.${index}.description`)}
                                             paperCount={paperCount}
                                             activePaperIndex={activePaperIndex}
                                             onCite={onCitePaper}
@@ -815,6 +877,7 @@ export default function OpportunityReportView({
                                         <p>
                                             <CitedText
                                                 text={seed.oneLiner}
+                                                refs={refsFor(`projectSeeds.${index}.oneLiner`)}
                                                 paperCount={paperCount}
                                                 activePaperIndex={activePaperIndex}
                                                 onCite={onCitePaper}
@@ -872,6 +935,7 @@ export default function OpportunityReportView({
                                     <p>
                                         <CitedText
                                             text={item.thesis}
+                                            refs={refsFor(`venturePotential.${index}.thesis`)}
                                             paperCount={paperCount}
                                             activePaperIndex={activePaperIndex}
                                             onCite={onCitePaper}
@@ -883,6 +947,7 @@ export default function OpportunityReportView({
                                         <strong>Feasibility</strong>
                                         <CitedText
                                             text={item.feasibilitySignals}
+                                            refs={refsFor(`venturePotential.${index}.feasibilitySignals`)}
                                             paperCount={paperCount}
                                             activePaperIndex={activePaperIndex}
                                             onCite={onCitePaper}
@@ -894,6 +959,7 @@ export default function OpportunityReportView({
                                         <strong>Risks</strong>
                                         <CitedText
                                             text={item.risks}
+                                            refs={refsFor(`venturePotential.${index}.risks`)}
                                             paperCount={paperCount}
                                             activePaperIndex={activePaperIndex}
                                             onCite={onCitePaper}
@@ -930,6 +996,7 @@ export default function OpportunityReportView({
                                 <li key={`${item}-${index}`}>
                                     <CitedText
                                         text={item}
+                                        refs={refsFor(`couldNotVerify.${index}`)}
                                         paperCount={paperCount}
                                         activePaperIndex={activePaperIndex}
                                         onCite={onCitePaper}

@@ -3226,6 +3226,50 @@
     color: #fff;
 }
 
+// Papers tab: each finding the report used, linking to its sentence in the paper.
+.paperEvidence {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 4px 0 2px;
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    a {
+        color: #d7e3f1;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        text-decoration: none;
+
+        span {
+            color: #ff8ec4;
+        }
+
+        &:hover,
+        &:focus-visible {
+            color: #fff;
+            text-decoration: underline;
+            text-decoration-color: rgba(255, 142, 196, 0.6);
+            text-underline-offset: 3px;
+        }
+    }
+}
+
+.paperEvidenceLabel {
+    color: #ff5aa9;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
 .paperMeta {
     flex: 1;
     margin: 0 0 12px;

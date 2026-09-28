@@ -1,3 +1,4 @@
+import { parseCitationEvidence } from "./cited-text";
 import type {
     OpportunityReport,
     PaperExtraction,
@@ -180,6 +181,7 @@ export function parseGuestOpportunityReport(
         return undefined;
     }
 
+    const citationEvidence = parseCitationEvidence(nested.citationEvidence);
     return {
         ...(parseFounderReport(raw.founder) ? { founder: parseFounderReport(raw.founder) } : {}),
         sections: {
@@ -189,6 +191,7 @@ export function parseGuestOpportunityReport(
             venturePotential,
             couldNotVerify,
             projectSeeds,
+            ...(citationEvidence ? { citationEvidence } : {}),
         },
     };
 }

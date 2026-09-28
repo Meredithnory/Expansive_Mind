@@ -132,6 +132,16 @@ describe("parseGuestOpportunityReport", () => {
         expect(parsed?.sections.gaps[0].confidence).toBe("suggested");
     });
 
+    it("keeps which evidence each citation chip points to", () => {
+        const parsed = parseGuestOpportunityReport({
+            sections: {
+                stateOfScience: "Cells fail [Paper 2].",
+                citationEvidence: { stateOfScience: ["E2.1"] },
+            },
+        });
+        expect(parsed?.sections.citationEvidence).toEqual({ stateOfScience: ["E2.1"] });
+    });
+
     it("returns undefined when the payload has no usable sections", () => {
         expect(parseGuestOpportunityReport({})).toBeUndefined();
         expect(parseGuestOpportunityReport(null)).toBeUndefined();
