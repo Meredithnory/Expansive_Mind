@@ -12,9 +12,14 @@ import type {
     ProjectSeed,
     ReportConfidence,
     ReportGap,
+    PaperEvidence,
 } from "../api/discover/report-types";
-import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
-import { gapEvidenceId, type CiteContext } from "../lib/paper-evidence";
+import { withReportOrigin } from "../lib/paper-sources";
+import {
+    evidenceFocusHref,
+    gapEvidenceId,
+    type CiteContext,
+} from "../lib/paper-evidence";
 import { useSession } from "../lib/use-session";
 import { splitCitedText, splitParagraphs } from "./report-text";
 import {
@@ -322,7 +327,7 @@ export default function OpportunityReportView({
     onGuestUpgrade,
     reportView,
     initialGap = null,
-    evidenceQuote,
+    evidenceFor,
 }: {
     report: OpportunityReport;
     paperCount: number;
@@ -339,8 +344,8 @@ export default function OpportunityReportView({
     reportView?: string;
     /** Back from the reader: the gap it was opened from (1-based). */
     initialGap?: number | null;
-    /** The evidence sentence a paper citation points to, for reader links. */
-    evidenceQuote?: (paperIndex: number, cite: CiteContext) => string | null;
+    /** The evidence a paper citation points to, for reader links. */
+    evidenceFor?: (paperIndex: number, cite: CiteContext) => PaperEvidence | null;
 }) {
     const { sections } = report;
     const refsFor = (key: string) => sections.citationEvidence?.[key];
@@ -564,9 +569,9 @@ export default function OpportunityReportView({
         evidenceId: gapEvidenceId(sections.citationEvidence, focusNumber - 1, paperIndex),
         context: focusGap ? `${focusGap.title}. ${focusGap.description}` : "",
     });
-    const focusPaperQuote =
-        focusPaper && evidenceQuote
-            ? evidenceQuote(focusPaper.index, gapCite(focusPaper.index))
+    const focusPaperEvidence =
+        focusPaper && evidenceFor
+            ? evidenceFor(focusPaper.index, gapCite(focusPaper.index))
             : null;
 
     return (
@@ -680,11 +685,7 @@ export default function OpportunityReportView({
                                         <Link
                                             key={index}
                                             href={withReportOrigin(
-                                                focusPaperQuote
-                                                    ? buildPaperFocusHref(focusPaper.href, focusPaperQuote, {
-                                                          method: false,
-                                                      })
-                                                    : focusPaper.href,
+                                                evidenceFocusHref(focusPaper.href, focusPaperEvidence),
                                                 index,
                                                 focusNumber,
                                                 {

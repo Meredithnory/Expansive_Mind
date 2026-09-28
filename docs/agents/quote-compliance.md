@@ -8,7 +8,12 @@ Engineering record of what the quote code does. This is not legal advice, and it
 
 ## Per-citation evidence
 
-`PaperExtraction.evidence` stores, per key finding, the sentence of the paper that supports it. It is kept only when the paper has a `quoteExcerpt` (the same strict license gate as the supporting excerpt, and never abstract-only or Scholar), when the sentence is found word for word in the licensed excerpt the model read, and when it is at most 300 characters (`EVIDENCE_QUOTE_MAX_CHARS` in `src/app/lib/paper-evidence.ts`, under the 600 cap). The report uses it to locate and highlight the passage in the reader. The paper preview shows it through `visiblePaperQuote`, like any other quote.
+`PaperExtraction.evidence` records, per key finding, where the supporting sentence sits in the paper. An item exists only when the sentence was found word for word in the excerpt the model read and is at most 300 characters (`EVIDENCE_QUOTE_MAX_CHARS` in `src/app/lib/paper-evidence.ts`, under the 600 cap).
+
+- `quote`, the sentence text, is stored only when the paper has a `quoteExcerpt` (the same strict license gate as the supporting excerpt, never abstract-only or Scholar). The paper preview shows it through `visiblePaperQuote`, like any other quote.
+- `anchor` is stored for every item: a 53-bit hash of the folded sentence and its length. It holds no paper text. The reader finds the sentence again in the text it already displays under its own access rules and highlights it; if the reader shows no such text, nothing is highlighted.
+
+Meredith approved this split on 2026-09-28: keep the sentence for quotable papers, fingerprints only for the rest.
 
 ## License gate
 

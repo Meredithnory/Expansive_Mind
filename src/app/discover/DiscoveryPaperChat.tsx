@@ -7,6 +7,8 @@ import type { FormattedPaper } from "../api/general-interfaces";
 import { buildChatMessages, type ChatMessage } from "../lib/chat-messages";
 import { locateExcerptInPaper, type PaperCitation } from "../lib/paper-citation";
 import { withReportOrigin, type ReportReturn } from "../lib/paper-sources";
+import { findAnchoredSentence, paperSearchText } from "../lib/paper-evidence";
+import type { EvidenceAnchor } from "../api/discover/report-types";
 import styles from "./discovery-paper-chat.module.scss";
 
 /** A citation click: the passage to highlight and the viewport point the panel grows from. */
@@ -15,6 +17,8 @@ export type PaperChatFocus = {
     excerpt: string;
     /** The finding the highlighted sentence is evidence for, when a chip named one. */
     citedFor?: string | null;
+    /** For a paper we can't quote: the evidence sentence's fingerprint. */
+    anchor?: EvidenceAnchor | null;
     requestId: number;
     origin: { x: number; y: number } | null;
 };
@@ -56,11 +60,13 @@ function PaperConversation({
     focusExcerpt,
     focusKey,
     citedFor,
+    focusAnchor,
     returnTo,
 }: {
     paper: Paper;
     context: string;
     citedFor?: string | null;
+    focusAnchor?: EvidenceAnchor | null;
     returnTo?: ReportReturn;
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
@@ -107,15 +113,24 @@ function PaperConversation({
     }, [paper.database, paper.paperId, paper.idName, attempt]);
 
     // Same path as a chat citation: locate the excerpt, then Paperbox scrolls
-    // to it and paints the highlight.
+    // to it and paints the highlight. A paper we can't quote has no stored
+    // sentence, only its fingerprint; find the sentence in the loaded text.
+    const [passageMissing, setPassageMissing] = useState(false);
+    const anchorKey = focusAnchor ? `${focusAnchor.hash}.${focusAnchor.length}` : "";
     useEffect(() => {
-        if (!loaded || !focusExcerpt || !focusKey) return;
-        setFocusCitation(locateExcerptInPaper(loaded, focusExcerpt));
+        if (!loaded || !focusKey) return;
+        const passage =
+            focusExcerpt ||
+            (focusAnchor ? findAnchoredSentence(paperSearchText(loaded), focusAnchor) : null);
+        setPassageMissing(!passage);
+        if (!passage) return;
+        setFocusCitation(locateExcerptInPaper(loaded, passage));
         setFocusRequestId((current) => current + 1);
-    }, [loaded, focusExcerpt, focusKey]);
-    // Papers without a licensed excerpt (abstract-only, or a license that does
-    // not allow quoting) have nothing exact to highlight. Say so.
-    const noPassage = Boolean(focusKey) && !focusExcerpt;
+        // focusAnchor is read through anchorKey so a new object with the same
+        // fingerprint doesn't repaint.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loaded, focusExcerpt, anchorKey, focusKey]);
+    const noPassage = Boolean(focusKey) && passageMissing;
 
     if (error) {
         return (
@@ -133,7 +148,7 @@ function PaperConversation({
     return (
         <div className={styles.split}>
             <div className={styles.paperPane}>
-                {citedFor && focusExcerpt ? (
+                {citedFor && (focusExcerpt || focusAnchor) && !passageMissing ? (
                     <div className={styles.citedFor}>
                         <span className={styles.citedForLabel}>Cited for</span>
                         <p>{citedFor}</p>
@@ -144,8 +159,8 @@ function PaperConversation({
                 ) : null}
                 {noPassage && (
                     <p className={styles.noPassage} role="status">
-                        This paper has no licensed passage to highlight. Ask the
-                        chat where it supports the claim.
+                        There’s no exact passage to highlight for this citation.
+                        Ask the chat where the paper supports the claim.
                     </p>
                 )}
                 <Paperbox
@@ -365,6 +380,11 @@ export default function DiscoveryPaperChat({
                                 citedFor={
                                     focus?.paperIndex === paper.index
                                         ? focus.citedFor
+                                        : null
+                                }
+                                focusAnchor={
+                                    focus?.paperIndex === paper.index
+                                        ? focus.anchor
                                         : null
                                 }
                             />

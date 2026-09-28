@@ -44,7 +44,7 @@ import {
 import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
 import {
     citedEvidence,
-    citedEvidenceQuote,
+    evidenceFocusHref,
     type CiteContext,
 } from "../lib/paper-evidence";
 import {
@@ -648,11 +648,11 @@ function DiscoverClient({
         target.scrollIntoView({ behavior: "smooth", block: "center" });
     }, []);
 
-    // The sentence a citation stands on: the evidence the report cited, else
-    // the paper's evidence closest to the claim, else the paper's excerpt.
-    const evidenceQuote = useCallback(
+    // The evidence a citation stands on: what the report cited, else the
+    // paper's evidence closest to the claim.
+    const evidenceFor = useCallback(
         (paperIndex: number, cite: CiteContext) =>
-            citedEvidenceQuote(
+            citedEvidence(
                 extractionForPaper(result?.extractions, paperIndex)?.evidence,
                 paperIndex,
                 cite,
@@ -666,24 +666,22 @@ function DiscoverClient({
                 (paper) => paper.index === paperIndex,
             );
             if (!exists) return;
-            const cited = cite
-                ? citedEvidence(
-                      extractionForPaper(result?.extractions, paperIndex)?.evidence,
-                      paperIndex,
-                      cite,
-                  )
-                : null;
+            const cited = cite ? evidenceFor(paperIndex, cite) : null;
             const citedQuote = cited?.quote ?? null;
             if (trigger) citeTriggerRef.current = trigger;
             if (isLoggedIn) {
                 const rect = trigger?.getBoundingClientRect();
                 setPaperChatFocus((current) => ({
                     paperIndex,
+                    // A paper we can't quote has only the sentence's
+                    // fingerprint; the panel finds it in the paper.
                     excerpt:
                         citedQuote ||
-                        extractionForPaper(result?.extractions, paperIndex)
-                            ?.supportingExcerpt ||
-                        "",
+                        (cited?.anchor
+                            ? ""
+                            : extractionForPaper(result?.extractions, paperIndex)
+                                  ?.supportingExcerpt || ""),
+                    anchor: citedQuote ? null : (cited?.anchor ?? null),
                     citedFor: cited?.finding ?? null,
                     requestId: (current?.requestId ?? 0) + 1,
                     origin: rect
@@ -703,7 +701,7 @@ function DiscoverClient({
             setPreviewQuote(citedQuote);
             setPreviewPaperIndex(paperIndex);
         },
-        [captureScroll, isLoggedIn, result],
+        [captureScroll, evidenceFor, isLoggedIn, result],
     );
     const activePaperIndex =
         isLoggedIn && paperChatOpen
@@ -1932,7 +1930,7 @@ function DiscoverClient({
                                 papers={result.papers}
                                 only={["state", "limits"]}
                                 reportView="state"
-                                evidenceQuote={evidenceQuote}
+                                evidenceFor={evidenceFor}
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
                                     hasSavedDiscoveryId ? result.id : undefined
@@ -2030,7 +2028,7 @@ function DiscoverClient({
                                 papers={result.papers}
                                 only={["gaps", "problems", "experiments", "translation"]}
                                 reportView="gaps"
-                                evidenceQuote={evidenceQuote}
+                                evidenceFor={evidenceFor}
                                 initialGap={returnGapNumber}
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
@@ -2241,9 +2239,7 @@ function DiscoverClient({
                                                     <li key={item.id}>
                                                         <Link
                                                             href={withReportOrigin(
-                                                                buildPaperFocusHref(paper.href, item.quote, {
-                                                                    method: false,
-                                                                }),
+                                                                evidenceFocusHref(paper.href, item),
                                                                 paper.index,
                                                                 null,
                                                                 reportReturn,

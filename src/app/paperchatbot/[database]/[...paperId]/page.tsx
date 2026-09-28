@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import RouteLoading from "../../../components/RouteLoading";
 import PaperChatClient from "./PaperChatClient";
+import { parseAnchorParam } from "../../../lib/paper-evidence";
 import {
     parseReportPaperNumber,
     parseReportView,
@@ -42,6 +43,7 @@ export default async function PaperChatPage({ params, searchParams }: PaperChatP
                 reportGap={parseReportPaperNumber(first(query.gap))}
                 reportId={parseSavedReportId(first(query.report))}
                 reportView={parseReportView(first(query.view))}
+                focusAnchor={parseAnchorParam(first(query.anchor))}
             />
         </Suspense>
     );

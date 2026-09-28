@@ -130,14 +130,25 @@ const paperExtractionSchema = new Schema(
             ],
             default: undefined,
         },
-        // A finding and the verbatim sentence behind it (quote-eligible papers only).
+        // A finding and where its sentence sits in the paper. The sentence
+        // text is kept only for quote-eligible papers; the anchor is a
+        // fingerprint (hash + length), never paper text.
         evidence: {
             type: [
                 new Schema(
                     {
                         id: { type: String, required: true, maxlength: 12 },
                         finding: { type: String, required: true, maxlength: 600 },
-                        quote: { type: String, required: true, maxlength: 400 },
+                        quote: { type: String, maxlength: 400 },
+                        anchor: {
+                            type: new Schema(
+                                {
+                                    hash: { type: String, required: true, maxlength: 16 },
+                                    length: { type: Number, required: true, min: 1, max: 400 },
+                                },
+                                { _id: false, strict: "throw" },
+                            ),
+                        },
                     },
                     { _id: false, strict: "throw" },
                 ),

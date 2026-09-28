@@ -1,7 +1,8 @@
 // Evidence behind report citations: verify the model's quotes against the
 // paper, and pick the quote a clicked "Paper N" chip should highlight.
-import type { PaperEvidence } from "../api/discover/report-types";
+import type { EvidenceAnchor, PaperEvidence } from "../api/discover/report-types";
 import { evidencePaper } from "./cited-text";
+import { buildPaperFocusHref } from "./paper-sources";
 
 export const EVIDENCE_QUOTE_MAX_CHARS = 300;
 const EVIDENCE_QUOTE_MIN_CHARS = 25;
@@ -51,9 +52,77 @@ export function matchVerbatim(source: string, quote: string): string | null {
     return source.slice(folded.at[start], folded.at[end] + 1);
 }
 
+/** cyrb53: a fast 53-bit string hash, the same in Node and the browser. */
+function cyrb53(text: string) {
+    let h1 = 0xdeadbeef;
+    let h2 = 0x41c6ce57;
+    for (let i = 0; i < text.length; i += 1) {
+        const ch = text.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+/** A sentence's fingerprint: where to find it, without keeping its words. */
+export function evidenceAnchor(sentence: string): EvidenceAnchor {
+    const folded = fold(sentence).out;
+    return { hash: cyrb53(folded), length: folded.length };
+}
+
 /**
- * Keep the findings whose quote is really in the excerpt, as E{paper}.{n}.
- * Nothing is kept for a paper that can't be quoted (license, abstract only).
+ * The sentence in `text` whose fingerprint is `anchor`, as the text writes
+ * it; null when the paper doesn't contain it (e.g. its text changed).
+ */
+export function findAnchoredSentence(text: string, anchor: EvidenceAnchor): string | null {
+    const folded = fold(text);
+    const { length } = anchor;
+    if (length < EVIDENCE_QUOTE_MIN_CHARS || length > folded.out.length) return null;
+    for (let start = 0; start + length <= folded.out.length; start += 1) {
+        // A sentence never starts on a space.
+        if (folded.out[start] === " ") continue;
+        if (cyrb53(folded.out.slice(start, start + length)) === anchor.hash) {
+            return text.slice(folded.at[start], folded.at[start + length - 1] + 1);
+        }
+    }
+    return null;
+}
+
+/** The text a loaded paper shows, where an anchored sentence is looked up. */
+export function paperSearchText(paper: {
+    abstract?: string;
+    paper?: Array<{ content?: string; subSections?: Array<{ content?: string }> }>;
+}): string {
+    return [
+        paper.abstract ?? "",
+        ...(paper.paper ?? []).flatMap((section) => [
+            section.content ?? "",
+            ...(section.subSections ?? []).map((sub) => sub.content ?? ""),
+        ]),
+    ]
+        .filter(Boolean)
+        .join("\n");
+}
+
+export function isEvidenceAnchor(value: unknown): value is EvidenceAnchor {
+    if (!value || typeof value !== "object") return false;
+    const row = value as Record<string, unknown>;
+    return (
+        typeof row.hash === "string" &&
+        /^[0-9a-f]{1,16}$/.test(row.hash) &&
+        typeof row.length === "number" &&
+        Number.isInteger(row.length) &&
+        row.length >= EVIDENCE_QUOTE_MIN_CHARS &&
+        row.length <= 400
+    );
+}
+
+/**
+ * Keep the findings whose sentence is really in the excerpt, as E{paper}.{n}.
+ * Every kept item gets an anchor so the reader can highlight it; the
+ * sentence itself is stored only when the paper can be quoted.
  */
 export function verifiedPaperEvidence(input: {
     paperIndex: number;
@@ -61,19 +130,19 @@ export function verifiedPaperEvidence(input: {
     quotable: boolean;
     items: Array<{ finding: string; quote: string }>;
 }): PaperEvidence[] {
-    if (!input.quotable) return [];
     const evidence: PaperEvidence[] = [];
     const seen = new Set<string>();
     for (const item of input.items) {
         const finding = item.finding.trim();
-        const quote = matchVerbatim(input.excerpt, item.quote);
-        if (!finding || !quote || quote.length > EVIDENCE_QUOTE_MAX_CHARS) continue;
-        if (seen.has(quote)) continue;
-        seen.add(quote);
+        const sentence = matchVerbatim(input.excerpt, item.quote);
+        if (!finding || !sentence || sentence.length > EVIDENCE_QUOTE_MAX_CHARS) continue;
+        if (seen.has(sentence)) continue;
+        seen.add(sentence);
         evidence.push({
             id: `E${input.paperIndex}.${evidence.length + 1}`,
             finding,
-            quote,
+            anchor: evidenceAnchor(sentence),
+            ...(input.quotable ? { quote: sentence } : {}),
         });
     }
     return evidence;
@@ -118,7 +187,7 @@ export function citedEvidence(
     const words = contentWords(cite.context);
     let best: { item: PaperEvidence; score: number } | null = null;
     for (const item of items) {
-        const theirs = contentWords(`${item.finding} ${item.quote}`);
+        const theirs = contentWords(`${item.finding} ${item.quote ?? ""}`);
         let shared = 0;
         for (const word of theirs) if (words.has(word)) shared += 1;
         const score = shared / Math.max(1, Math.min(words.size, theirs.size));
@@ -136,6 +205,19 @@ export function citedEvidenceQuote(
     return citedEvidence(evidence, paperIndex, cite)?.quote ?? null;
 }
 
+/**
+ * The passage to highlight for an evidence item in a loaded paper: its
+ * stored sentence, else the sentence its anchor finds in the paper's text.
+ */
+export function evidencePassage(
+    item: Pick<PaperEvidence, "quote" | "anchor"> | null | undefined,
+    paperText: string,
+): string | null {
+    if (!item) return null;
+    if (item.quote) return item.quote;
+    return item.anchor ? findAnchoredSentence(paperText, item.anchor) : null;
+}
+
 /** The evidence a gap cites for one of its papers, from the gap's own text. */
 export function gapEvidenceId(
     citationEvidence: Record<string, Array<string | null>> | undefined,
@@ -148,4 +230,28 @@ export function gapEvidenceId(
         }
     }
     return null;
+}
+
+/**
+ * A reader link that opens at an evidence sentence: the sentence itself
+ * when we may keep it, otherwise its fingerprint (`?anchor=hash.length`).
+ */
+export function evidenceFocusHref(
+    href: string,
+    item: Pick<PaperEvidence, "quote" | "anchor"> | null | undefined,
+): string {
+    if (item?.quote) return buildPaperFocusHref(href, item.quote, { method: false });
+    if (!item?.anchor || !href.startsWith("/paperchatbot/")) return href;
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    params.set("anchor", `${item.anchor.hash}.${item.anchor.length}`);
+    return `${path}?${params}`;
+}
+
+/** `?anchor=hash.length` back to a fingerprint. */
+export function parseAnchorParam(value: string | null | undefined): EvidenceAnchor | null {
+    const match = /^([0-9a-f]{1,16})\.(\d{1,3})$/.exec(value ?? "");
+    if (!match) return null;
+    const anchor = { hash: match[1], length: Number(match[2]) };
+    return isEvidenceAnchor(anchor) ? anchor : null;
 }

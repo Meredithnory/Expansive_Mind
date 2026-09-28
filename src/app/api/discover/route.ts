@@ -223,8 +223,9 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             ],
         }));
         const discovery = await cached({
-            // v7: reports cite the evidence sentence behind each "Paper N".
-            namespace: `discovery-v7-cited-evidence-${getContentAccessMode()}`,
+            // v8: every evidence sentence has a fingerprint, so citations of
+            // papers we can't quote highlight too.
+            namespace: `discovery-v8-evidence-anchors-${getContentAccessMode()}`,
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),

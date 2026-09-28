@@ -1,5 +1,6 @@
 "use client";
 
+import { evidenceFocusHref } from "../lib/paper-evidence";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -327,22 +328,20 @@ export default function PaperPreviewDrawer({
                                     <ul>
                                         {extraction.keyFindings.map(
                                             (finding, index) => {
-                                                const quote = extraction.evidence?.find(
+                                                const evidence = extraction.evidence?.find(
                                                     (item) => item.finding === finding,
-                                                )?.quote;
+                                                );
                                                 return (
                                                     <li
                                                         key={`${paper.index}-finding-${index}`}
                                                     >
                                                         {finding}
-                                                        {quote ? (
+                                                        {evidence ? (
                                                             <>
                                                                 {" "}
                                                                 <a
                                                                     href={withReportOrigin(
-                                                                        buildPaperFocusHref(paper.href, quote, {
-                                                                            method: false,
-                                                                        }),
+                                                                        evidenceFocusHref(paper.href, evidence),
                                                                         paper.index,
                                                                         null,
                                                                         returnTo,

@@ -1,5 +1,7 @@
 "use client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { findAnchoredSentence, paperSearchText } from "../../../lib/paper-evidence";
+import type { EvidenceAnchor } from "../../../api/discover/report-types";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./paperchatbot.module.scss";
 import Paperbox from "../../../components/paperchatbot/Paperbox";
 import dynamic from "next/dynamic";
@@ -133,6 +135,8 @@ type PaperChatClientProps = {
     reportId?: string | null;
     /** The report tab it was opened from (`?view=gaps`). */
     reportView?: ReportViewId | null;
+    /** An evidence sentence to highlight by fingerprint (`?anchor=hash.length`). */
+    focusAnchor?: EvidenceAnchor | null;
 };
 
 const PaperChatClient = ({
@@ -149,6 +153,7 @@ const PaperChatClient = ({
     reportGap = null,
     reportId = null,
     reportView = null,
+    focusAnchor = null,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -157,6 +162,15 @@ const PaperChatClient = ({
     const [browserBodyLoading, setBrowserBodyLoading] = useState(false);
     const [researchPaper, setResearchPaper] = useState<FormattedPaper | null>(
         null,
+    );
+    // A Discover link to a paper we can't quote carries the evidence
+    // sentence's fingerprint, not its words; find the sentence here.
+    const anchoredExcerpt = useMemo(
+        () =>
+            focusAnchor && researchPaper
+                ? findAnchoredSentence(paperSearchText(researchPaper), focusAnchor)
+                : null,
+        [focusAnchor, researchPaper],
     );
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -711,7 +725,7 @@ const PaperChatClient = ({
                                     onShowHighlights={() =>
                                         setShowHighlightsRequest((count) => count + 1)
                                     }
-                                    focusExcerpt={focusExcerpt}
+                                    focusExcerpt={focusExcerpt ?? anchoredExcerpt}
                                     locateMethod={locateMethod}
                                     focusCitation={focusCitation}
                                     focusRequestId={focusRequestId}

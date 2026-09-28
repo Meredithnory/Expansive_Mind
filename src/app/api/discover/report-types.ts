@@ -90,15 +90,25 @@ export interface PaperExcerptForSynthesis {
 }
 
 /**
- * A finding and the sentence of the paper that supports it, copied exactly.
- * Kept only for quote-eligible papers, and only when the sentence was found
- * word for word in the licensed excerpt the model read.
+ * Where a paper's text a sentence sits, without its words: a fingerprint of
+ * the folded sentence and its folded length. The reader finds it again.
+ */
+export interface EvidenceAnchor {
+    hash: string;
+    length: number;
+}
+
+/**
+ * A finding and the sentence of the paper that supports it, found word for
+ * word in the excerpt the model read. Every item has an anchor; the sentence
+ * text itself is kept only for quote-eligible papers.
  */
 export interface PaperEvidence {
     /** "E3.2": paper 3, second item. Report prose cites it. */
     id: string;
     finding: string;
-    quote: string;
+    quote?: string;
+    anchor?: EvidenceAnchor;
 }
 
 export interface PaperExtraction {
