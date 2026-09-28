@@ -15,6 +15,8 @@ import {
     supportRelationLabel,
 } from "../lib/claim-evidence";
 import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
+import { visiblePaperQuote } from "../lib/quote-eligibility";
+import QuoteWithAttribution from "./QuoteWithAttribution";
 import { resolveScholarCitesId } from "../lib/citing-works";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import type { CitationSource } from "../lib/paper-impact";
@@ -31,6 +33,7 @@ export type PreviewPaper = {
     sourceUrl: string;
     href: string;
     doi?: string;
+    licenseUrl?: string;
     citationCount?: number;
     citationSource?: CitationSource;
     scholarCitesId?: string;
@@ -143,6 +146,25 @@ export default function PaperPreviewDrawer({
     );
     // The passage the report cites; the reader scrolls to it and marks it.
     const citedExcerpt = extraction?.supportingExcerpt || "";
+    const renderQuote = (text: string) => {
+        const shown = visiblePaperQuote({
+            quote: text,
+            title: paper.title,
+            doi: paper.doi,
+            href: paper.href,
+            sourceUrl: paper.sourceUrl,
+            licenseUrl: paper.licenseUrl,
+        });
+        if (!shown) return null;
+        return (
+            <QuoteWithAttribution
+                quote={shown.quote}
+                title={shown.title}
+                link={shown.link}
+                className={styles.excerpt}
+            />
+        );
+    };
     const citedHref = citedExcerpt
         ? withReportOrigin(
               buildPaperFocusHref(paper.href, citedExcerpt, { method: false }),
@@ -272,9 +294,9 @@ export default function PaperPreviewDrawer({
                                                         : "Not checked against a passage."}
                                                 </p>
                                                 {claim.passageText ? (
-                                                    <blockquote className={styles.excerpt}>
-                                                        {claim.passageText}
-                                                    </blockquote>
+                                                    renderQuote(claim.passageText) ?? (
+                                                        <p>No source passage verified.</p>
+                                                    )
                                                 ) : (
                                                     <p>No source passage verified.</p>
                                                 )}
@@ -283,9 +305,7 @@ export default function PaperPreviewDrawer({
                                     </ul>
                                 </div>
                             ) : extraction?.supportingExcerpt ? (
-                                <blockquote className={styles.excerpt}>
-                                    {extraction.supportingExcerpt}
-                                </blockquote>
+                                renderQuote(extraction.supportingExcerpt)
                             ) : null}
                             {extraction && extraction.keyFindings.length > 0 ? (
                                 <div className={styles.evidenceBlock}>

@@ -166,6 +166,8 @@ export interface ClaimLedgerRow {
     paperId?: string;
     doi?: string;
     href?: string;
+    /** Paper title shown with the quote. A quote without a title is omitted. */
+    title?: string;
     quote: string;
     /** Canonical commercial-friendly license URI that justified the quote. */
     licenseUrl?: string;

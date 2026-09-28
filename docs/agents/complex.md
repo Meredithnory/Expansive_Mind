@@ -11,3 +11,4 @@ Open the one file for the task, then stop. File locations stay in [FEATURES.md](
 | Quotas and guest caps | [quotas.md](quotas.md) |
 | Billing and webhook | [billing.md](billing.md) |
 | Content access and licenses | [content-access.md](content-access.md) |
+| Quote cap, fail-closed license, attribution | [quote-compliance.md](quote-compliance.md) |
