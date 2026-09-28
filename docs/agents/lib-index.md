@@ -17,6 +17,9 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
 | `claim-evidence.ts` | both | Study-design labels in Discover. Not the claim ledger |
 | `contact.ts` | both | Contact form parse / mailto |
+| `contact-mail.ts` | both | Contact emails: the message to Meredith and the "we got your message" reply (never echoes the message) |
+| `email-layout.ts` | both | Branded HTML email shell, escaping, and the default sender (`support@expansivemind.ai`) |
+| `send-email.ts` | server | Sends one email through Resend; never throws |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
 | `quote-eligibility.ts` | both | Strict quote gate. Does not decide whether a share slug can be created |
 | `quote-citation.ts` | both | "Copy with citation": quote + byline, DOI link, license |

@@ -25,6 +25,6 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Initial Researcher Pro prices |
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client analytics |
 | `ADMIN_EMAILS` | Comma-separated owner allowlist (unlimited quota + `/admin`) |
-| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email and password-reset email. Without `RESEND_API_KEY`, `/forgot-password` says reset is unavailable. `CONTACT_FROM_EMAIL` must be a Resend-verified sender or reset mail is rejected |
+| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email and password-reset email. Without `RESEND_API_KEY`, `/forgot-password` says reset is unavailable. `CONTACT_FROM_EMAIL` defaults to `Expansive Mind <support@expansivemind.ai>`; the sending domain must be verified in Resend or mail is rejected. Contact sends Meredith the message and the sender a short reply (max 2 a day per address) |
 
 Never commit secrets. New vars need a blank key in `.env.example` and a row here.

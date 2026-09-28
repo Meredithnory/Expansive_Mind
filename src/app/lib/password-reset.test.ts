@@ -76,7 +76,7 @@ describe("password reset tokens and copy", () => {
             "Expansive Mind <hi@example.com>",
         );
         expect(passwordResetFromAddress({})).toBe(
-            "Expansive Mind <beth.t@example.com>",
+            "Expansive Mind <support@expansivemind.ai>",
         );
     });
 });

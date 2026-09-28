@@ -1,4 +1,11 @@
 import { createHash, randomBytes } from "crypto";
+import {
+    EMAIL_THEME,
+    emailFromAddress,
+    emailPanel,
+    escapeHtml,
+    renderEmail,
+} from "./email-layout";
 
 export {
     PASSWORD_RESET_CONFIRM_RATE_LIMIT,
@@ -16,16 +23,8 @@ const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 
-/** Login card, nav wordmark, and footer colors. Email clients need hex. */
-export const PASSWORD_RESET_EMAIL_THEME = {
-    background: "#000000",
-    cardBorder: "#141414",
-    heading: "#ffffff",
-    text: "#d7ebff",
-    muted: "#8c8c8c",
-    pink: "#ff0084",
-    font: "Manrope, system-ui, sans-serif",
-} as const;
+/** Same palette as every Expansive Mind email (see email-layout.ts). */
+export const PASSWORD_RESET_EMAIL_THEME = EMAIL_THEME;
 
 export function normalizeAccountEmail(value: unknown): string | null {
     if (typeof value !== "string") return null;
@@ -62,11 +61,7 @@ export function buildPasswordResetLink(origin: string, token: string) {
 export function passwordResetFromAddress(env?: {
     CONTACT_FROM_EMAIL?: string;
 }) {
-    const from =
-        env === undefined
-            ? process.env.CONTACT_FROM_EMAIL
-            : env.CONTACT_FROM_EMAIL;
-    return from || "Expansive Mind <beth.t@example.com>";
+    return emailFromAddress(env);
 }
 
 export function passwordResetSubject() {
@@ -89,39 +84,22 @@ export function passwordResetText(link: string, year = new Date().getFullYear())
     ].join("\n");
 }
 
-function escapeHtml(value: string) {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-
 export function passwordResetHtml(link: string, year = new Date().getFullYear()) {
-    const theme = PASSWORD_RESET_EMAIL_THEME;
     const safeLink = escapeHtml(link);
-    return `<!DOCTYPE html>
-<html lang="en">
-<body style="margin:0;padding:0;background:${theme.background};">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${theme.background};padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${theme.background};border:1px solid ${theme.cardBorder};border-radius:24px;">
-          <tr>
-            <td style="padding:44px 36px;font-family:${theme.font};">
-              <p style="margin:0 0 28px;font-size:20px;font-weight:600;letter-spacing:-0.02em;color:${theme.heading};">Expansive Mind</p>
-              <h1 style="margin:0 0 16px;font-size:32px;font-weight:600;letter-spacing:-0.02em;color:${theme.heading};">Reset your password</h1>
-              <p style="margin:0 0 28px;font-size:16px;line-height:1.5;color:${theme.text};">Choose a new password with the link below. It works once and expires in one hour.</p>
-              <a href="${safeLink}" style="display:inline-block;background:${theme.pink};color:${theme.heading};text-decoration:none;font-weight:600;font-size:16px;border-radius:16px;padding:16px 22px;">Choose a new password</a>
-              <p style="margin:28px 0 0;font-size:14px;line-height:1.5;color:${theme.muted};">Or copy this link:<br><a href="${safeLink}" style="color:${theme.pink};word-break:break-all;">${safeLink}</a></p>
-              <p style="margin:24px 0 0;font-size:14px;line-height:1.5;color:${theme.muted};">If you didn't ask for this, you can ignore this email. Your password will stay the same.</p>
-              <p style="margin:32px 0 0;font-size:13px;color:${theme.muted};">© ${year} Expansive Mind. All rights reserved.</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+    return renderEmail({
+        origin: new URL(link).origin,
+        preheader: "Choose a new password with the link inside. It works once and expires in one hour.",
+        eyebrow: "Password reset",
+        heading: "Reset your password",
+        bodyHtml:
+            "Choose a new password with the button below. The link works once and expires in one hour.",
+        button: { label: "Choose a new password", href: link },
+        afterButtonHtml: emailPanel(
+            `<span style="display:block;margin:0 0 6px;font-size:12px;font-weight:700;color:${EMAIL_THEME.muted};">Or paste this link into your browser</span><a href="${safeLink}" style="font-size:13px;line-height:1.5;color:${EMAIL_THEME.link};word-break:break-all;text-decoration:none;">${safeLink}</a>`,
+            0,
+        ),
+        footerNote:
+            "If you didn't ask for this, you can ignore this email. Your password stays the same.",
+        year,
+    });
 }

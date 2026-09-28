@@ -1,41 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
-import { hasValidMutationOrigin } from "../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    trustedApplicationOrigin,
+} from "../../lib/request-security";
+import {
+    contactConfirmationEmail,
+    contactNotificationEmail,
+} from "../../lib/contact-mail";
+import { sendEmail } from "../../lib/send-email";
 import {
     DEVELOPER_EMAIL,
     DEVELOPER_NAME,
     contactMailto,
-    contactTextBody,
     parseContactFields,
     type ContactFields,
 } from "../../lib/contact";
 
-async function sendWithResend(fields: ContactFields) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) return false;
-
-    const from =
-        process.env.CONTACT_FROM_EMAIL || "Expansive Mind <beth.t@example.com>";
-    const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            from,
-            to: [DEVELOPER_EMAIL],
-            reply_to: fields.email,
-            subject: `Expansive Mind — ${fields.topic}`,
-            text: contactTextBody(fields),
-        }),
-    });
-
-    if (!response.ok) {
-        console.error("Contact email failed", response.status);
-        return false;
+function emailOrigin(request: NextRequest) {
+    try {
+        return trustedApplicationOrigin(request);
+    } catch {
+        return "https://expansivemind.ai";
     }
+}
 
+/**
+ * Meredith's copy first. Only when that was accepted does the sender get the
+ * short "we got it" reply, at most twice a day per address.
+ */
+async function deliver(request: NextRequest, fields: ContactFields) {
+    const origin = emailOrigin(request);
+    const notice = await sendEmail({
+        to: DEVELOPER_EMAIL,
+        replyTo: fields.email,
+        ...contactNotificationEmail(fields, { origin }),
+    });
+    if (!notice.accepted) return false;
+
+    const confirmLimit = await consumeRateLimit({
+        scope: "contact-confirm",
+        identity: fields.email,
+        limit: 2,
+        windowMs: 24 * 60 * 60_000,
+    });
+    if (confirmLimit.allowed) {
+        await sendEmail({
+            to: fields.email,
+            ...contactConfirmationEmail(fields, { origin }),
+        });
+    }
     return true;
 }
 
@@ -78,7 +92,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, delivered: "inbox" });
         }
 
-        const delivered = (await sendWithResend(parsed.fields))
+        const delivered = (await deliver(request, parsed.fields))
             ? "inbox"
             : "mailto";
 
