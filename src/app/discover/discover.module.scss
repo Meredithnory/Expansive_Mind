@@ -536,25 +536,18 @@
     display: none;
 }
 
-.dockedForm {
-    position: fixed;
-    right: auto;
-    bottom: var(--discover-composer-bottom, 160px);
-    left: 50%;
-    z-index: 30;
-    width: min(780px, calc(100vw - 32px));
-    margin: 0;
-    padding: 9px 11px 10px;
-    border: 1px solid rgba(215, 235, 255, 0.12);
+// "Ask a follow-up": opens under the report header and pushes the report
+// down, instead of floating over it. A bottom sheet on phones.
+.followUpForm {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 18px;
+    padding: 12px 14px 12px 18px;
+    border: 1px solid rgba(255, 90, 169, 0.4);
     border-radius: 20px;
-    background: rgba(5, 5, 7, 0.94);
-    box-shadow:
-        0 24px 70px rgba(0, 0, 0, 0.75),
-        0 0 0 1px rgba(255, 255, 255, 0.025) inset;
-    backdrop-filter: blur(22px);
-    transform: translateX(-50%);
-    transform-origin: bottom center;
-    animation: docked-composer-rise 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    background: #0a0a0f;
+    animation: follow-up-drop 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
     .formHeading {
         position: absolute;
@@ -599,27 +592,6 @@
         transition: min-height 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .submit {
-        min-width: 40px;
-        min-height: 40px;
-        width: 40px;
-        margin: 0;
-        padding: 0;
-        border-radius: 999px;
-        justify-content: center;
-
-        > span:first-child {
-            display: none;
-        }
-    }
-
-    .submitIcon {
-        width: 40px;
-        height: 40px;
-        border-radius: 999px;
-        background: transparent;
-    }
-
     .formFooter {
         display: none;
     }
@@ -648,122 +620,56 @@
     }
 }
 
-.composerLauncher {
-    position: fixed;
-    right: auto;
-    bottom: var(--discover-composer-bottom, 160px);
-    left: 50%;
-    z-index: 28;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    min-width: 44px;
-    min-height: 44px;
-    width: max-content;
-    max-width: calc(100vw - 32px);
-    margin: 0;
-    padding: 8px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 0, 132, 0.42);
-    border-radius: 999px;
-    background:
-        linear-gradient(180deg, rgba(255, 0, 132, 0.18), rgba(5, 5, 7, 0.92));
-    box-shadow:
-        0 14px 40px rgba(0, 0, 0, 0.55),
-        0 0 0 1px rgba(10, 177, 255, 0.08) inset;
-    color: #fff;
-    font: inherit;
-    font-size: 0.92rem;
-    font-weight: 650;
-    letter-spacing: -0.01em;
-    cursor: pointer;
-    transform: translateX(-50%);
-    backdrop-filter: blur(16px);
-    animation: composer-peek-rise 6.4s ease-in-out infinite;
-    transition:
-        transform 420ms cubic-bezier(0.34, 1.45, 0.64, 1),
-        gap 320ms ease,
-        padding 320ms ease,
-        border-color 200ms ease,
-        background 200ms ease;
-
-    &:hover,
-    &:focus-visible,
-    &:active {
-        gap: 10px;
-        padding: 8px 16px 8px 8px;
-        border-color: rgba(255, 0, 132, 0.7);
-        background:
-            linear-gradient(180deg, rgba(255, 0, 132, 0.28), rgba(5, 5, 7, 0.95));
-        transform: translateX(-50%) translateY(-4px);
-        animation: none;
-    }
-
-    &:focus-visible {
-        outline: 2px solid #ff0084;
-        outline-offset: 3px;
-    }
-}
-
-.composerLauncherLabel {
-    display: inline-block;
-    max-width: 0;
-    overflow: hidden;
-    opacity: 0;
-    white-space: nowrap;
-    animation: composer-peek-label 6.4s ease-in-out infinite;
-    transition:
-        max-width 380ms cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 220ms ease;
-}
-
-.composerLauncher:hover .composerLauncherLabel,
-.composerLauncher:focus-visible .composerLauncherLabel,
-.composerLauncher:active .composerLauncherLabel {
-    max-width: 12rem;
-    opacity: 1;
-    animation: none;
-}
-
-@keyframes composer-peek-rise {
-    0%,
-    64%,
-    100% {
-        transform: translateX(-50%) translateY(12px);
-    }
-
-    74%,
-    90% {
-        transform: translateX(-50%) translateY(-6px);
-    }
-}
-
-@keyframes composer-peek-label {
-    0%,
-    64%,
-    100% {
-        max-width: 0;
+@keyframes follow-up-drop {
+    from {
         opacity: 0;
+        transform: translateY(-6px);
     }
-
-    74%,
-    90% {
-        max-width: 12rem;
+    to {
         opacity: 1;
+        transform: none;
     }
 }
 
-.composerLauncherIcon {
+@keyframes follow-up-sheet {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: none;
+    }
+}
+
+.followUpToggle {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    background: rgba(255, 0, 132, 0.2);
-    color: #ff8ec4;
-    flex-shrink: 0;
+    gap: 8px;
+}
+
+.followUpToggleOpen,
+.followUpToggleOpen:hover {
+    border-color: rgba(255, 90, 169, 0.6);
+    background: rgba(255, 0, 132, 0.14);
+    color: #fff;
+}
+
+// The box's title reads as the mockup's pink eyebrow.
+.followUpForm .dockedComposerTitle {
+    color: #ff5aa9;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.followUpNote {
+    margin-right: auto;
+    color: #7c8594;
+    font-size: 0.78rem;
+}
+
+.followUpBackdrop {
+    display: none;
 }
 
 .dockedComposerChrome {
@@ -827,29 +733,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dockedForm {
+    .followUpForm {
         animation: none;
     }
 
-    .dockedForm .textarea {
+    .followUpForm .textarea {
         transition: none;
-    }
-
-    .composerLauncher,
-    .composerLauncherLabel {
-        animation: none;
-        transition: none;
-    }
-
-    .composerLauncher {
-        gap: 10px;
-        padding: 10px 18px 10px 14px;
-        transform: translateX(-50%);
-    }
-
-    .composerLauncherLabel {
-        max-width: 12rem;
-        opacity: 1;
     }
 }
 
@@ -3610,16 +3499,21 @@
         flex-wrap: wrap;
     }
 
-    .dockedForm {
-        /* Clearance comes from --discover-composer-bottom (footer + bottom nav). */
-        bottom: var(--discover-composer-bottom, calc(76px + env(safe-area-inset-bottom, 0px)));
-        width: calc(100% - 24px);
-        max-width: none;
-        max-height: min(48dvh, 360px);
+    // The follow-up box becomes a bottom sheet over a dimmed report.
+    .followUpForm {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1001;
+        max-height: calc(100dvh - 24px);
+        margin: 0;
         overflow-y: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        padding-bottom: 12px;
+        overscroll-behavior: contain;
+        padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+        border-bottom: 0;
+        border-radius: 26px 26px 0 0;
+        animation: follow-up-sheet 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 
         .promptShell {
             flex-direction: column;
@@ -3631,26 +3525,6 @@
             gap: 8px;
         }
 
-        .modeSwitch,
-        .modeButton {
-            min-height: 44px;
-        }
-
-        .paperSelect {
-            max-width: none;
-            min-height: 44px;
-        }
-
-        .submit {
-            width: 44px;
-            min-width: 44px;
-            min-height: 44px;
-
-            span:first-child {
-                display: none;
-            }
-        }
-
         .composerClose {
             width: 44px;
             height: 44px;
@@ -3659,21 +3533,14 @@
         }
     }
 
-    .composerLauncher {
-        bottom: var(--discover-composer-bottom, calc(76px + env(safe-area-inset-bottom, 0px)));
-        width: max-content;
-        max-width: calc(100vw - 24px);
-        min-width: 48px;
-        min-height: 48px;
-        padding: 8px;
-        font-size: 0.95rem;
-
-        &:hover,
-        &:focus-visible,
-        &:active {
-            width: max-content;
-            padding: 8px 16px 8px 8px;
-        }
+    .followUpBackdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: block;
+        border: 0;
+        background: rgba(0, 0, 0, 0.6);
+        cursor: pointer;
     }
 
     .submit {

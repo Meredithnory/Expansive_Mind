@@ -42,7 +42,11 @@ import {
     yearRangeLabel,
 } from "../lib/evidence-type";
 import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
-import { citedEvidenceQuote, type CiteContext } from "../lib/paper-evidence";
+import {
+    citedEvidence,
+    citedEvidenceQuote,
+    type CiteContext,
+} from "../lib/paper-evidence";
 import {
     buildPaperFocusHref,
     parseReportPaperNumber,
@@ -366,9 +370,6 @@ function DiscoverClient({
         question: string;
         suggestion: string;
     } | null>(null);
-    const [composerMode, setComposerMode] = useState<"discover" | "paper">(
-        "discover",
-    );
     const [dockedComposerOpen, setDockedComposerOpen] = useState(false);
     const [paperChatOpen, setPaperChatOpen] = useState(false);
     // Set by a citation click: the passage to highlight and where the panel grows from.
@@ -377,31 +378,26 @@ function DiscoverClient({
     const [selectedPaperIndex, setSelectedPaperIndex] = useState<
         number | undefined
     >();
-    const [pendingPaperQuestion, setPendingPaperQuestion] = useState<
-        string | null
-    >(null);
     const [handoffPrompt, setHandoffPrompt] = useState<string | null>(null);
-    const composerLauncherRef = useRef<HTMLButtonElement>(null);
+    const followUpTriggerRef = useRef<HTMLButtonElement>(null);
 
     const isRunning = step !== "idle" && step !== "done";
     const isCheckingSpelling = spellingCheck === "checking";
     const { assessment: queryAssessment, assessedQuery, clearAssessment } =
         useDiscoveryQuerySuggestion(question, {
-            enabled: !isRunning && composerMode === "discover",
+            enabled: !isRunning,
         });
 
     useEffect(() => {
-        setComposerMode("discover");
         setDockedComposerOpen(false);
         setPaperChatOpen(false);
-        setPendingPaperQuestion(null);
         setSelectedPaperIndex(result?.papers[0]?.index);
     }, [result?.id, result?.papers[0]?.index]);
 
     const closeDockedComposer = useCallback(() => {
         setDockedComposerOpen(false);
         window.requestAnimationFrame(() => {
-            composerLauncherRef.current?.focus();
+            followUpTriggerRef.current?.focus();
         });
     }, []);
 
@@ -412,52 +408,6 @@ function DiscoverClient({
         });
     }, []);
 
-    // Keep the docked composer clear of the shared footer (and mobile bottom nav).
-    useEffect(() => {
-        if (!result) {
-            document.documentElement.style.removeProperty(
-                "--discover-composer-bottom",
-            );
-            return;
-        }
-
-        const footer = document.querySelector<HTMLElement>("[data-app-footer]");
-        if (!footer) return;
-
-        const syncClearance = () => {
-            const rect = footer.getBoundingClientRect();
-            // Phones hide the footer on research screens. A hidden footer
-            // reports top 0, which pushed the composer off the top of the
-            // screen; fall back to the stylesheet's nav clearance instead.
-            if (rect.height === 0) {
-                document.documentElement.style.removeProperty(
-                    "--discover-composer-bottom",
-                );
-                return;
-            }
-            const top = rect.top;
-            const clearance = Math.max(
-                12,
-                Math.round(window.innerHeight - top + 10),
-            );
-            document.documentElement.style.setProperty(
-                "--discover-composer-bottom",
-                `${clearance}px`,
-            );
-        };
-
-        syncClearance();
-        const observer = new ResizeObserver(syncClearance);
-        observer.observe(footer);
-        window.addEventListener("resize", syncClearance);
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("resize", syncClearance);
-            document.documentElement.style.removeProperty(
-                "--discover-composer-bottom",
-            );
-        };
-    }, [result?.id]);
 
     useEffect(() => {
         if (!result || !dockedComposerOpen) return;
@@ -716,7 +666,15 @@ function DiscoverClient({
                 (paper) => paper.index === paperIndex,
             );
             if (!exists) return;
-            const citedQuote = cite ? evidenceQuote(paperIndex, cite) : null;
+            const cited = cite
+                ? citedEvidence(
+                      extractionForPaper(result?.extractions, paperIndex)?.evidence,
+                      paperIndex,
+                      cite,
+                  )
+                : null;
+            const citedQuote = cited?.quote ?? null;
+            if (trigger) citeTriggerRef.current = trigger;
             if (isLoggedIn) {
                 const rect = trigger?.getBoundingClientRect();
                 setPaperChatFocus((current) => ({
@@ -726,6 +684,7 @@ function DiscoverClient({
                         extractionForPaper(result?.extractions, paperIndex)
                             ?.supportingExcerpt ||
                         "",
+                    citedFor: cited?.finding ?? null,
                     requestId: (current?.requestId ?? 0) + 1,
                     origin: rect
                         ? {
@@ -736,14 +695,7 @@ function DiscoverClient({
                 }));
                 setPreviewPaperIndex(null);
                 setSelectedPaperIndex(paperIndex);
-                setComposerMode("paper");
-                setDockedComposerOpen(true);
                 setPaperChatOpen(true);
-                setSpellingPrompt(null);
-                clearAssessment();
-                window.requestAnimationFrame(() => {
-                    textareaRef.current?.focus();
-                });
                 return;
             }
             captureScroll();
@@ -751,7 +703,7 @@ function DiscoverClient({
             setPreviewQuote(citedQuote);
             setPreviewPaperIndex(paperIndex);
         },
-        [captureScroll, clearAssessment, evidenceQuote, isLoggedIn, result],
+        [captureScroll, isLoggedIn, result],
     );
     const activePaperIndex =
         isLoggedIn && paperChatOpen
@@ -1251,149 +1203,17 @@ function DiscoverClient({
         sessionLoading,
     ]);
 
-    return (
-        <div
-            ref={pageRef}
-            className={clsx(styles.page, {
-                [styles.initialPage]: !result,
-                [styles.reportPage]: Boolean(result),
-                [styles.reportPageChatOpen]: paperChatOpen,
-            })}
-            data-discover-page
-            data-discover-landing={result ? undefined : "true"}
-            data-discover-running={isRunning ? "true" : undefined}
-            data-page-scroll
-        >
-            {modeChrome ? (
-                <div
-                    className={clsx(styles.modeChrome, {
-                        [styles.modeChromeCompact]: Boolean(result),
-                    })}
-                >
-                    {modeChrome}
-                </div>
-            ) : null}
-            {hero ? (
-                <section
-                    className={clsx(styles.hero, {
-                        [styles.heroCompact]: Boolean(result),
-                    })}
-                >
-                    {hero}
-                </section>
-            ) : !result && !isRunning ? (
-                <section className={styles.landingHero}>
-                    <h1 className={styles.landingTitle}>
-                        What do you want to find out?
-                    </h1>
-                    <p className={styles.landingLead}>
-                        Ask one research question. Get a cited brief:
-                        what&apos;s known and where the gaps are.
-                    </p>
-                </section>
-            ) : null}
-
-            {!sessionLoading && !isLoggedIn && (
-                guestExhausted ? (
-                    <div className={styles.quotaLine} role="status">
-                        <p className={styles.quotaMessage}>
-                            Guest Discovery limit reached.
-                        </p>
-                        <button
-                            type="button"
-                            className={styles.quotaUnlock}
-                            onClick={() => openGuestUpgrade(true)}
-                        >
-                            Unlock Researcher Pro monthly
-                        </button>
-                    </div>
-                ) : (
-                    <p className={styles.quotaLine} role="status">
-                        {`${discoveryQuota?.remaining ?? guestLimit} of ${guestLimit} guest Discovery left on this network`}
-                    </p>
-                )
-            )}
-
-            {handoffPrompt && !isRunning && !result ? (
-                <div
-                    className={styles.handoffPrompt}
-                    role="dialog"
-                    aria-labelledby="discover-handoff-title"
-                    aria-describedby="discover-handoff-question"
-                >
-                    <p
-                        id="discover-handoff-title"
-                        className={styles.handoffTitle}
-                    >
-                        Run Discovery with this question?
-                    </p>
-                    <p
-                        id="discover-handoff-question"
-                        className={styles.handoffQuestion}
-                    >
-                        {handoffPrompt}
-                    </p>
-                    <div className={styles.handoffActions}>
-                        <button
-                            type="button"
-                            className={styles.handoffDecline}
-                            onClick={declineHandoffDiscovery}
-                        >
-                            Not now
-                        </button>
-                        <button
-                            type="button"
-                            className={styles.handoffConfirm}
-                            onClick={confirmHandoffDiscovery}
-                            disabled={isCheckingSpelling}
-                        >
-                            Run discovery
-                        </button>
-                    </div>
-                </div>
-            ) : null}
-
-            {result && !isRunning && !dockedComposerOpen ? (
-                <button
-                    ref={composerLauncherRef}
-                    type="button"
-                    className={styles.composerLauncher}
-                    aria-expanded={false}
-                    aria-controls="discover-docked-composer"
-                    onClick={openDockedComposer}
-                >
-                    <span className={styles.composerLauncherIcon} aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="16" height="16">
-                            <path
-                                fill="currentColor"
-                                d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.4l-3.7 3.2a.75.75 0 0 1-1.2-.6V16A2.5 2.5 0 0 1 4 13.5v-8Zm2.5-.5a.5.5 0 0 0-.5.5v8c0 .28.22.5.5.5H7.8a1 1 0 0 1 1 1v1.35L11.05 15H17.5a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-11Z"
-                            />
-                        </svg>
-                    </span>
-                    <span className={styles.composerLauncherLabel}>
-                        Ask another question
-                    </span>
-                </button>
-            ) : null}
-
-            {!isRunning && (!result || dockedComposerOpen) && (
+    // The question box: the landing composer before a report, and the
+    // "Ask a follow-up" box inside a report (inline; a sheet on phone).
+    const composerForm =
+        !isRunning && (!result || dockedComposerOpen) ? (
             <form
-                id={result ? "discover-docked-composer" : undefined}
+                id={result ? "discover-follow-up" : undefined}
                 className={clsx(styles.form, {
-                    [styles.dockedForm]: Boolean(result),
+                    [styles.followUpForm]: Boolean(result),
                     [styles.composerForm]: Boolean(result),
                 })}
                 onSubmit={(event) => {
-                    if (composerMode === "paper") {
-                        event.preventDefault();
-                        const trimmed = question.trim();
-                        if (!trimmed || selectedPaperIndex === undefined) return;
-                        setPaperChatOpen(true);
-                        setPendingPaperQuestion(trimmed);
-                        setQuestion("");
-                        clearAssessment();
-                        return;
-                    }
                     const trimmedQuestion = question.trim();
                     if (trimmedQuestion) {
                         handoffHandledQueries.add(trimmedQuestion);
@@ -1408,9 +1228,7 @@ function DiscoverClient({
                 {result ? (
                     <div className={styles.dockedComposerChrome}>
                         <p className={styles.dockedComposerTitle}>
-                            {composerMode === "paper"
-                                ? "Ask a paper"
-                                : "Ask another question"}
+                            Ask a follow-up
                         </p>
                         <button
                             type="button"
@@ -1430,9 +1248,7 @@ function DiscoverClient({
                         htmlFor="discover-question"
                     >
                         {result
-                            ? composerMode === "paper"
-                                ? "Ask a paper from this report"
-                                : "Ask another research question"
+                            ? "Ask another research question"
                             : "Ask a research question"}
                     </label>
                     {result ? (
@@ -1468,35 +1284,25 @@ function DiscoverClient({
                                 event.preventDefault();
                                 if (
                                     isRunning ||
-                                    (composerMode === "discover" &&
-                                        isCheckingSpelling) ||
+                                    isCheckingSpelling ||
                                     !question.trim() ||
-                                    (composerMode === "discover" &&
-                                        (queryUnclear || spellingPrompt))
+                                    queryUnclear ||
+                                    spellingPrompt
                                 ) {
                                     return;
                                 }
                                 event.currentTarget.form?.requestSubmit();
                             }}
                             aria-describedby="discover-question-feedback"
-                            aria-invalid={
-                                composerMode === "discover" &&
-                                (queryUnclear || Boolean(spellingPrompt))
-                            }
+                            aria-invalid={queryUnclear || Boolean(spellingPrompt)}
                             placeholder={
                                 result
-                                    ? composerMode === "paper"
-                                        ? "Ask this paper…"
-                                        : "Ask another question…"
+                                    ? "Ask another research question, building on this report…"
                                     : "Ask a research question…"
                             }
-                            rows={result ? 1 : 3}
+                            rows={result ? 2 : 3}
                             maxLength={2000}
-                            disabled={
-                                isRunning ||
-                                (composerMode === "discover" &&
-                                    isCheckingSpelling)
-                            }
+                            disabled={isRunning || isCheckingSpelling}
                             spellCheck
                         />
                         <div className={styles.composerBar}>
@@ -1525,104 +1331,33 @@ function DiscoverClient({
                                     )}
                                 </div>
                             ) : null}
-                            {result && isLoggedIn ? (
-                                <div
-                                    className={styles.modeSwitch}
-                                    role="tablist"
-                                    aria-label="Composer mode"
-                                >
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={composerMode === "discover"}
-                                        className={clsx(
-                                            styles.modeButton,
-                                            composerMode === "discover" &&
-                                                styles.modeButtonActive,
-                                        )}
-                                        onClick={() => {
-                                            setComposerMode("discover");
-                                            setPaperChatOpen(false);
-                                        }}
-                                    >
-                                        Discover
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={composerMode === "paper"}
-                                        aria-controls="discovery-paper-chat"
-                                        className={clsx(
-                                            styles.modeButton,
-                                            composerMode === "paper" &&
-                                                styles.modeButtonActive,
-                                        )}
-                                        onClick={() => {
-                                            setComposerMode("paper");
-                                            setPaperChatOpen(true);
-                                            setSpellingPrompt(null);
-                                            clearAssessment();
-                                        }}
-                                    >
-                                        Chat with a paper
-                                    </button>
-                                </div>
-                            ) : null}
-                            {result &&
-                            isLoggedIn &&
-                            composerMode === "paper" ? (
-                                <label className={styles.paperSelectLabel}>
-                                    <span className={styles.srOnly}>
-                                        Paper to discuss
-                                    </span>
-                                    <select
-                                        className={styles.paperSelect}
-                                        value={selectedPaperIndex ?? ""}
-                                        onChange={(event) => {
-                                            const next = Number(event.target.value);
-                                            setSelectedPaperIndex(next);
-                                            setPaperChatOpen(true);
-                                        }}
-                                    >
-                                        {result.papers.map((paper) => (
-                                            <option
-                                                key={paper.index}
-                                                value={paper.index}
-                                            >
-                                                Paper {paper.index}: {paper.title}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            ) : null}
                             <div className={styles.composerActions}>
                                 {!result ? (
                                     <span className={styles.landingCount}>
                                         {question.length.toLocaleString()} / 2,000
                                     </span>
-                                ) : null}
+                                ) : (
+                                    <span className={styles.followUpNote}>
+                                        Runs a new Discovery. Your report stays saved.
+                                    </span>
+                                )}
                                 <button
                                     type="submit"
                                     className={styles.submit}
                                     disabled={
                                         isRunning ||
                                         !question.trim() ||
-                                        (composerMode === "discover" &&
-                                            (isCheckingSpelling ||
-                                                queryUnclear ||
-                                                Boolean(spellingPrompt)))
+                                        isCheckingSpelling ||
+                                        queryUnclear ||
+                                        Boolean(spellingPrompt)
                                     }
                                 >
                                     <span>
                                         {isRunning
                                             ? "Working…"
-                                            : composerMode === "paper"
-                                              ? "Ask paper"
-                                              : isCheckingSpelling
+                                            : isCheckingSpelling
                                                 ? "Checking spelling…"
-                                                : result
-                                                  ? "Run"
-                                                  : "Run discovery"}
+                                                : "Run discovery"}
                                     </span>
                                     <span
                                         className={styles.submitIcon}
@@ -1734,7 +1469,112 @@ function DiscoverClient({
                         ) : null}
                     </div>
             </form>
+        ) : null;
+
+    return (
+        <div
+            ref={pageRef}
+            className={clsx(styles.page, {
+                [styles.initialPage]: !result,
+                [styles.reportPage]: Boolean(result),
+                [styles.reportPageChatOpen]: paperChatOpen,
+            })}
+            data-discover-page
+            data-discover-landing={result ? undefined : "true"}
+            data-discover-running={isRunning ? "true" : undefined}
+            data-page-scroll
+        >
+            {modeChrome ? (
+                <div
+                    className={clsx(styles.modeChrome, {
+                        [styles.modeChromeCompact]: Boolean(result),
+                    })}
+                >
+                    {modeChrome}
+                </div>
+            ) : null}
+            {hero ? (
+                <section
+                    className={clsx(styles.hero, {
+                        [styles.heroCompact]: Boolean(result),
+                    })}
+                >
+                    {hero}
+                </section>
+            ) : !result && !isRunning ? (
+                <section className={styles.landingHero}>
+                    <h1 className={styles.landingTitle}>
+                        What do you want to find out?
+                    </h1>
+                    <p className={styles.landingLead}>
+                        Ask one research question. Get a cited brief:
+                        what&apos;s known and where the gaps are.
+                    </p>
+                </section>
+            ) : null}
+
+            {!sessionLoading && !isLoggedIn && (
+                guestExhausted ? (
+                    <div className={styles.quotaLine} role="status">
+                        <p className={styles.quotaMessage}>
+                            Guest Discovery limit reached.
+                        </p>
+                        <button
+                            type="button"
+                            className={styles.quotaUnlock}
+                            onClick={() => openGuestUpgrade(true)}
+                        >
+                            Unlock Researcher Pro monthly
+                        </button>
+                    </div>
+                ) : (
+                    <p className={styles.quotaLine} role="status">
+                        {`${discoveryQuota?.remaining ?? guestLimit} of ${guestLimit} guest Discovery left on this network`}
+                    </p>
+                )
             )}
+
+            {handoffPrompt && !isRunning && !result ? (
+                <div
+                    className={styles.handoffPrompt}
+                    role="dialog"
+                    aria-labelledby="discover-handoff-title"
+                    aria-describedby="discover-handoff-question"
+                >
+                    <p
+                        id="discover-handoff-title"
+                        className={styles.handoffTitle}
+                    >
+                        Run Discovery with this question?
+                    </p>
+                    <p
+                        id="discover-handoff-question"
+                        className={styles.handoffQuestion}
+                    >
+                        {handoffPrompt}
+                    </p>
+                    <div className={styles.handoffActions}>
+                        <button
+                            type="button"
+                            className={styles.handoffDecline}
+                            onClick={declineHandoffDiscovery}
+                        >
+                            Not now
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.handoffConfirm}
+                            onClick={confirmHandoffDiscovery}
+                            disabled={isCheckingSpelling}
+                        >
+                            Run discovery
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
+
+            {result ? null : composerForm}
 
             {!result && !isRunning ? (
                 <div className={styles.landingExtras}>
@@ -1968,6 +1808,24 @@ function DiscoverClient({
                         </div>
                         <div className={styles.reportTopActions}>
                             <button
+                                ref={followUpTriggerRef}
+                                type="button"
+                                className={clsx(styles.reportNewQuestion, styles.followUpToggle, {
+                                    [styles.followUpToggleOpen]: dockedComposerOpen,
+                                })}
+                                aria-expanded={dockedComposerOpen}
+                                aria-controls="discover-follow-up"
+                                onClick={() =>
+                                    dockedComposerOpen ? closeDockedComposer() : openDockedComposer()
+                                }
+                                disabled={isRunning}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M5 5h14v10H10l-4 4v-4H5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                                </svg>
+                                Ask a follow-up
+                            </button>
+                            <button
                                 type="button"
                                 className={styles.reportNewQuestion}
                                 onClick={startNewQuestion}
@@ -1993,6 +1851,20 @@ function DiscoverClient({
                             )}
                         </div>
                     </header>
+
+                    {composerForm ? (
+                        <>
+                            {/* Phone: the follow-up box is a sheet over a dimmed report. */}
+                            <button
+                                type="button"
+                                className={styles.followUpBackdrop}
+                                aria-label="Close"
+                                tabIndex={-1}
+                                onClick={closeDockedComposer}
+                            />
+                            {composerForm}
+                        </>
+                    ) : null}
 
                     {reportViews.length > 1 && (
                         <div
@@ -2502,15 +2374,14 @@ function DiscoverClient({
                     question={result.question}
                     open={paperChatOpen}
                     selected={selectedPaperIndex}
-                    pendingQuestion={pendingPaperQuestion}
-                    onPendingQuestionHandled={() => setPendingPaperQuestion(null)}
                     focus={paperChatFocus}
-                    dockKey={`${dockedComposerOpen}-${composerMode}`}
                     returnTo={reportReturn}
+                    onSelectPaper={(index) => setSelectedPaperIndex(index)}
                     onClose={() => {
                         setPaperChatOpen(false);
-                        setComposerMode("discover");
-                        textareaRef.current?.focus();
+                        // Back to the chip that opened it.
+                        const trigger = citeTriggerRef.current;
+                        window.requestAnimationFrame(() => trigger?.focus());
                     }}
                 />
             )}

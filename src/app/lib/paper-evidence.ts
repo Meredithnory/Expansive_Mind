@@ -103,29 +103,37 @@ export type CiteContext = {
  * the report cited, else the paper's evidence closest to the chip's
  * sentence, else null (the caller falls back to the paper's excerpt).
  */
-export function citedEvidenceQuote(
+export function citedEvidence(
     evidence: PaperEvidence[] | undefined,
     paperIndex: number,
     cite: CiteContext = {},
-): string | null {
+): PaperEvidence | null {
     const items = (evidence ?? []).filter((item) => evidencePaper(item.id) === paperIndex);
     if (items.length === 0) return null;
     if (cite.evidenceId) {
         const exact = items.find((item) => item.id === cite.evidenceId);
-        if (exact) return exact.quote;
+        if (exact) return exact;
     }
     if (!cite.context) return null;
     const words = contentWords(cite.context);
-    let best: { quote: string; score: number } | null = null;
+    let best: { item: PaperEvidence; score: number } | null = null;
     for (const item of items) {
         const theirs = contentWords(`${item.finding} ${item.quote}`);
         let shared = 0;
         for (const word of theirs) if (words.has(word)) shared += 1;
         const score = shared / Math.max(1, Math.min(words.size, theirs.size));
-        if (!best || score > best.score) best = { quote: item.quote, score };
+        if (!best || score > best.score) best = { item, score };
     }
     // Only a clear match; a weak one would point at the wrong evidence.
-    return best && best.score >= 0.34 ? best.quote : null;
+    return best && best.score >= 0.34 ? best.item : null;
+}
+
+export function citedEvidenceQuote(
+    evidence: PaperEvidence[] | undefined,
+    paperIndex: number,
+    cite: CiteContext = {},
+): string | null {
+    return citedEvidence(evidence, paperIndex, cite)?.quote ?? null;
 }
 
 /** The evidence a gap cites for one of its papers, from the gap's own text. */

@@ -1,6 +1,6 @@
 "use client";
 import clsx from "clsx";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Chatbox from "../components/paperchatbot/Chatbox";
 import Paperbox from "../components/paperchatbot/Paperbox";
 import type { FormattedPaper } from "../api/general-interfaces";
@@ -13,6 +13,8 @@ import styles from "./discovery-paper-chat.module.scss";
 export type PaperChatFocus = {
     paperIndex: number;
     excerpt: string;
+    /** The finding the highlighted sentence is evidence for, when a chip named one. */
+    citedFor?: string | null;
     requestId: number;
     origin: { x: number; y: number } | null;
 };
@@ -20,14 +22,11 @@ export type PaperChatFocus = {
 /** Matches the .popup transition; hidden is applied after the close animation. */
 const CLOSE_MS = 280;
 
-/** Space kept between the panel and the nav above it or the ask bar below it. */
+/** Space kept between the panel and the nav above it. */
 const EDGE_GAP = 12;
 
-/**
- * Fit the panel between the top nav (desktop; the phone nav sits at the
- * bottom) and the docked ask bar, whose height changes with its mode.
- */
-function fitBetweenNavAndDock(node: HTMLElement) {
+/** Start the panel under the top nav (desktop; the phone nav sits at the bottom). */
+function fitUnderNav(node: HTMLElement) {
     const nav = document.querySelector<HTMLElement>("[data-app-nav]");
     const navRect = nav?.getBoundingClientRect();
     if (navRect && navRect.height > 0 && navRect.bottom < window.innerHeight / 2) {
@@ -37,17 +36,6 @@ function fitBetweenNavAndDock(node: HTMLElement) {
         );
     } else {
         node.style.removeProperty("--paper-chat-top");
-    }
-    const dock = document.getElementById("discover-docked-composer");
-    if (dock && dock.offsetHeight > 0) {
-        // Offsets, not getBoundingClientRect: the dock rises in with a transform.
-        const bottom = Number.parseFloat(getComputedStyle(dock).bottom) || 0;
-        node.style.setProperty(
-            "--paper-chat-bottom",
-            `${Math.round(bottom + dock.offsetHeight + EDGE_GAP)}px`,
-        );
-    } else {
-        node.style.removeProperty("--paper-chat-bottom");
     }
 }
 
@@ -67,10 +55,12 @@ function PaperConversation({
     onPendingQuestionHandled,
     focusExcerpt,
     focusKey,
+    citedFor,
     returnTo,
 }: {
     paper: Paper;
     context: string;
+    citedFor?: string | null;
     returnTo?: ReportReturn;
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
@@ -143,6 +133,15 @@ function PaperConversation({
     return (
         <div className={styles.split}>
             <div className={styles.paperPane}>
+                {citedFor && focusExcerpt ? (
+                    <div className={styles.citedFor}>
+                        <span className={styles.citedForLabel}>Cited for</span>
+                        <p>{citedFor}</p>
+                        <span className={styles.citedForNote}>
+                            The pink sentence is the evidence the report used.
+                        </span>
+                    </div>
+                ) : null}
                 {noPassage && (
                     <p className={styles.noPassage} role="status">
                         This paper has no licensed passage to highlight. Ask the
@@ -179,7 +178,6 @@ function PaperConversation({
                     allMessages={messages}
                     setAllMessages={setMessages}
                     researchContext={context}
-                    hideComposer
                     pendingQuestion={pendingQuestion}
                     onPendingQuestionHandled={onPendingQuestionHandled}
                     onLocateCitation={(citation) => {
@@ -201,8 +199,8 @@ export default function DiscoveryPaperChat({
     pendingQuestion,
     onPendingQuestionHandled,
     focus = null,
-    dockKey,
     returnTo,
+    onSelectPaper,
 }: {
     papers: Paper[];
     question: string;
@@ -212,11 +210,12 @@ export default function DiscoveryPaperChat({
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
     focus?: PaperChatFocus | null;
-    /** Changes when the ask bar opens, closes, or switches mode. */
-    dockKey?: string;
     /** The report and tab, for the full paper's "Your report" link. */
     returnTo?: ReportReturn;
+    /** Switch the panel to another paper in the report. */
+    onSelectPaper?: (index: number) => void;
 }) {
+    const switcherId = useId();
     const [visited, setVisited] = useState<number[]>([]);
     const close = useRef<HTMLButtonElement>(null);
     const panel = useRef<HTMLElement>(null);
@@ -243,27 +242,17 @@ export default function DiscoveryPaperChat({
     useLayoutEffect(() => {
         const node = panel.current;
         if (!mounted || !node) return;
-        const fit = () => fitBetweenNavAndDock(node);
+        const fit = () => fitUnderNav(node);
         fit();
         const resize = new ResizeObserver(fit);
-        const dock = document.getElementById("discover-docked-composer");
         const nav = document.querySelector("[data-app-nav]");
-        if (dock) resize.observe(dock);
         if (nav) resize.observe(nav);
-        // DiscoverClient lifts the dock above the footer by rewriting
-        // --discover-composer-bottom on <html>.
-        const lift = new MutationObserver(fit);
-        lift.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["style"],
-        });
         window.addEventListener("resize", fit);
         return () => {
             resize.disconnect();
-            lift.disconnect();
             window.removeEventListener("resize", fit);
         };
-    }, [mounted, dockKey]);
+    }, [mounted]);
 
     // Grow from the clicked citation. Other opens (composer) grow from the bottom center.
     useLayoutEffect(() => {
@@ -318,7 +307,25 @@ export default function DiscoveryPaperChat({
             }}
         >
             <header>
-                <h2 id="discovery-paper-chat-title">Paper chat</h2>
+                <div className={styles.headerLead}>
+                    <h2 id="discovery-paper-chat-title">Paper chat</h2>
+                    {onSelectPaper && papers.length > 1 ? (
+                        <label className={styles.paperSwitch} htmlFor={switcherId}>
+                            <span className={styles.srOnly}>Paper to read and ask</span>
+                            <select
+                                id={switcherId}
+                                value={selected ?? ""}
+                                onChange={(event) => onSelectPaper(Number(event.target.value))}
+                            >
+                                {papers.map((paper) => (
+                                    <option key={paper.index} value={paper.index}>
+                                        Paper {paper.index}: {paper.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    ) : null}
+                </div>
                 <button
                     ref={close}
                     type="button"
@@ -354,6 +361,11 @@ export default function DiscoveryPaperChat({
                                     focus?.paperIndex === paper.index
                                         ? focus.requestId
                                         : undefined
+                                }
+                                citedFor={
+                                    focus?.paperIndex === paper.index
+                                        ? focus.citedFor
+                                        : null
                                 }
                             />
                         </div>
