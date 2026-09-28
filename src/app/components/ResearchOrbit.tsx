@@ -8,15 +8,19 @@ import styles from "./styles/research-orbit.module.scss";
 const TURN_MS = 40_000;
 
 /**
- * The slow ring of dots behind the Research landing (About and Contact pin a
- * copy behind their hero). Its angle comes from the clock, so the loading
+ * The slow ring of dots behind every page. The root layout renders one
+ * (`site`); Research, About, and Contact render their own and the site copy
+ * steps aside. Its angle comes from the clock, so the loading
  * screen, the page, and a Discovery ↔ Search switch all show it mid-turn
  * instead of restarting it.
  */
 export default function ResearchOrbit({
     mode = "discover",
+    site = false,
 }: {
     mode?: ResearchMode;
+    /** The copy in the root layout: behind every page, never remounted. */
+    site?: boolean;
 }) {
     const ringRef = useRef<HTMLDivElement>(null);
 
@@ -29,9 +33,10 @@ export default function ResearchOrbit({
 
     return (
         <div
-            className={styles.orbit}
+            className={site ? `${styles.orbit} ${styles.site}` : styles.orbit}
             data-mode={mode}
             data-research-orbit=""
+            data-site-orbit={site ? "" : undefined}
             aria-hidden="true"
         >
             <div className={styles.glow} />

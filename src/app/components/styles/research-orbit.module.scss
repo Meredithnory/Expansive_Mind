@@ -1,4 +1,4 @@
-// Background ring behind the Research landing (Discovery and Search).
+// Background ring behind every page (site copy) and the Research landing.
 // Fixed, so it sits in the same place on the loading screen and the page;
 // the Research scroll area contains it, keeping it behind the content.
 
@@ -91,6 +91,16 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+// The site-wide copy sits under every page's content (z-index -1 against a
+// transparent body; html paints the black). A page with its own ring wins.
+.site {
+    z-index: -1;
+}
+
+:global(body:has([data-research-orbit]:not([data-site-orbit]))) .site {
+    display: none;
 }
 
 // Reports, running discoveries, and search results have their own content.

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import ResearchOrbit from "./components/ResearchOrbit";
 import { Manrope } from "next/font/google";
 import "./globals.scss";
 import Footer from "./components/Footer";
@@ -42,6 +43,7 @@ export default function RootLayout({
         <html lang="en" className={manrope.variable}>
             <body className="antialiased">
                 <SessionProvider>
+                    <ResearchOrbit site />
                     <ScrollTheme />
                     <KeyboardInset />
                     <AudienceTracker />

@@ -32,7 +32,8 @@
 .heroBackdrop {
     position: fixed;
     inset: 0;
-    z-index: 0;
+    /* Under the site ring (-1), so the circles turn over the video. */
+    z-index: -2;
     background: #000 url("/dnabg-poster.jpg") 62% 50% / cover no-repeat;
     /* Nothing sits above the hero, so only its bottom edge is clipped. */
     clip-path: inset(0 0 calc(100% - var(--home-hero-bottom, 100%)) 0);

@@ -76,7 +76,8 @@ html {
         sans-serif;
 }
 body {
-    background-color: #000;
+    /* html paints the black; a transparent body lets the site ring show. */
+    background-color: transparent;
     color: white;
     margin: 0;
     width: min(80%, 1440px);
