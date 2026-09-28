@@ -21,6 +21,12 @@ describe("paper chat discovery context",()=>{
   expect(messages.some((m:{content:string})=>m.content.startsWith("reply-11:"))).toBe(true);
   expect(messages.some((m:{content:string})=>m.content.startsWith("reply-0:"))).toBe(false);
  });
+ it("uses the budget model and caps each answer",async()=>{
+  await respondToMessage("Explain",{access:{canSendToAI:true},title:"Study"} as FormattedPaper,[]);
+  const request=completion.mock.calls.at(-1)![0];
+  expect(request.model).toBe("anthropic/claude-haiku-4.5");
+  expect(request.max_tokens).toBe(600);
+ });
  it("still rejects papers not approved for AI processing that have no abstract",async()=>{
   await expect(respondToMessage("Explain",{access:{canSendToAI:false}} as FormattedPaper,[])).rejects.toThrow("not approved");
  });

@@ -102,9 +102,9 @@ Write each one as the person would ask it, under 80 characters, answerable from 
         {
             model: PAPER_ASSISTANT_MODEL,
             messages,
-            // Room for a full walkthrough; the prompt still asks for short
-            // answers to quick questions, so most replies stay brief.
-            max_tokens: 900,
+            // Caps the cost of each answer; the prompt already asks for
+            // short answers to quick questions.
+            max_tokens: 600,
             temperature: 0.2,
         },
         usageContext,

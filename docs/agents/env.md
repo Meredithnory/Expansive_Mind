@@ -17,7 +17,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `UNPAYWALL_EMAIL` | Unpaywall DOI OA lookup (URL / conflict check). Unset skips the locator. Does not authorize Share quotes |
 | `EUROPEPMC_EMAIL` | Enables Europe PMC search + NIH full-text XML fallback |
 | `AI_API_KEY` | OpenRouter |
-| `FIGURE_VISION_MODEL` | Figure chat model (default `anthropic/claude-sonnet-5`, same as paper chat; see `src/app/api/paper-assistant-model.ts`) |
+| `FIGURE_VISION_MODEL` | Figure chat model (default `anthropic/claude-haiku-4.5`, same as paper chat; leave unset in Vercel unless you mean to override it; see `src/app/api/paper-assistant-model.ts`) |
 | `APP_URL` | Public origin; **required https in production** |
 | `CONTENT_ACCESS_MODE` | `legacy` (default, reader/AI live access) or `strict`. Share / claim-ledger quotes always use the strict commercial-friendly gate |
 | `STRIPE_SECRET_KEY` | Stripe SDK |
