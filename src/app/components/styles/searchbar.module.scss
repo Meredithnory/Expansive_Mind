@@ -130,6 +130,11 @@
         }
     }
 
+    /* Only the results page's phone bar shows the icon instead of the word. */
+    .buttonIcon {
+        display: none;
+    }
+
     .buttonSearching:disabled {
         background: var(--search-accent-fill);
         color: #7cd3ff;

@@ -1,3 +1,4 @@
+import type { PublicationDateRange } from "../../lib/search-filters";
 import convert from "xml-js";
 import { evaluateContentAccess } from "../../lib/content-access-policy";
 import { abstractToText } from "../../lib/abstract-text";
@@ -152,10 +153,7 @@ export const mergeResultsByTier = <T>(...sourceResults: T[][]) => {
     return merged;
 };
 
-export type PublicationDateRange = {
-    fromYear: number;
-    toYear: number;
-};
+export type { PublicationDateRange };
 
 //Pass in a search Value or keywords to this function to handle the search of the paper IDs that match that keyword/search value
 export const searchNIHPaperIds = async (

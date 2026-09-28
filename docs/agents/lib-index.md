@@ -57,6 +57,8 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `request-security.ts` | server | Origin check + limited JSON body |
 | `saved-paper-utils.ts` | server | Find / migrate saved papers |
 | `scroll-to-range.ts` | client | Scroll a focused passage to the reading line by its own position |
+| `search-filters.ts` | both | Search source/date filters; date filter → publication-year range for `/api/search` |
+| `search-result-view.ts` | both | Search result row labels: source, year, access chip, open action, counts, searches left |
 | `search-suggest.ts` | client | Ghost suggest + fetch helpers |
 | `session-types.ts` | both | Session / quota snapshot types |
 | `session-version.ts` | both | Revocable JWT `tokenVersion` |

@@ -15,6 +15,7 @@ import type { DiscoverCandidate } from "../discover/select-candidates";
 import { dedupeDiscoverCandidates } from "../discover/select-candidates";
 import type { FormattedPaper } from "../general-interfaces";
 import type { PaperFallback } from "../paper/load-paper";
+import type { PublicationDateRange } from "../../lib/search-filters";
 import { nihSource } from "./adapters/nih";
 import { springerSource } from "./adapters/springer";
 import { scholarSource } from "./adapters/scholar";
@@ -105,6 +106,7 @@ async function searchHome(
     query: string,
     page: number,
     hydrate: boolean,
+    dateRange?: PublicationDateRange,
 ): Promise<SourcePage<DiscoverCandidate>> {
     const home = HOMES[database];
     if (!home.isConfigured()) {
@@ -117,7 +119,7 @@ async function searchHome(
         };
     }
     try {
-        return await home.search({ query, page, hydrate });
+        return await home.search({ query, page, hydrate, dateRange });
     } catch {
         return {
             hits: [],
@@ -293,6 +295,7 @@ export async function searchHomed(input: {
     page: number;
     databases: SourceDatabase[];
     hydrate: boolean;
+    dateRange?: PublicationDateRange;
 }): Promise<{
     byDatabase: { database: SourceDatabase; hits: SearchRow[] }[];
     totalCount: number;
@@ -307,6 +310,7 @@ export async function searchHomed(input: {
                 input.query,
                 input.page,
                 input.hydrate,
+                input.dateRange,
             );
             return { database, page };
         }),

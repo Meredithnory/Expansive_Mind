@@ -55,6 +55,8 @@ vi.mock("../research/registry", () => ({
 }));
 
 import { GET } from "./route";
+import { searchCrossrefPapers, searchEuropePmcPapers } from "./utils";
+import { searchHomed } from "../research/registry";
 
 const searchHit = {
     results: [{ title: "Events fell" }],
@@ -134,10 +136,11 @@ describe("GET /api/search", () => {
         expect(mocks.cached).not.toHaveBeenCalled();
     });
 
-    it("rejects an unknown source and a page past the cap", async () => {
+    it("rejects an unknown source, date, and a page past the cap", async () => {
         expect((await GET(searchRequest("q=kinase&source=pubmed"))).status).toBe(
             400,
         );
+        expect((await GET(searchRequest("q=kinase&date=1999"))).status).toBe(400);
         expect((await GET(searchRequest("q=kinase&page=101"))).status).toBe(400);
         expect(mocks.consumeGuestDailyCap).not.toHaveBeenCalled();
     });
@@ -214,5 +217,33 @@ describe("GET /api/search", () => {
         await GET(searchRequest("q=kinase"));
 
         expect(mocks.deferUsageRecording).not.toHaveBeenCalled();
+    });
+
+    it("filters every source by publication year and caches per range", async () => {
+        const year = new Date().getUTCFullYear();
+        const range = { fromYear: year - 4, toYear: year };
+        const empty = { results: [], totalCount: 0, totalPages: 0 };
+        vi.mocked(searchEuropePmcPapers).mockResolvedValue(empty);
+        vi.mocked(searchCrossrefPapers).mockResolvedValue(empty);
+        vi.mocked(searchHomed).mockResolvedValue({
+            byDatabase: [],
+            totalCount: 0,
+            totalPages: 0,
+            warnings: [],
+            callCount: 0,
+        });
+
+        const response = await GET(searchRequest("q=kinase&date=5-years"));
+        expect(response.status).toBe(200);
+        expect((await response.json()).date).toBe("5-years");
+
+        const call = mocks.cached.mock.calls[0][0];
+        expect(call.key).toBe(`kinase:0:all:${year - 4}-${year}:lexical`);
+        await call.load();
+        expect(searchHomed).toHaveBeenCalledWith(
+            expect.objectContaining({ dateRange: range }),
+        );
+        expect(searchEuropePmcPapers).toHaveBeenCalledWith("kinase", 0, range);
+        expect(searchCrossrefPapers).toHaveBeenCalledWith("kinase", 0, range);
     });
 });

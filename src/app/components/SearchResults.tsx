@@ -1,35 +1,36 @@
 "use client";
-import React from "react";
-import styles from "./styles/searchresults.module.scss";
+import React, { Fragment, type ReactNode } from "react";
+import Link from "next/link";
 import clsx from "clsx";
-import { useRouter } from "next/navigation";
-import {
-    buildPaperPath,
-    resolveSourceFromSearch,
-} from "../lib/paper-sources";
-import {
-    HighlightSearchAbstract,
-    HighlightSearchTitle,
-} from "../lib/highlight-search";
+import styles from "./styles/searchresults.module.scss";
+import { buildPaperPath, resolveSourceFromSearch } from "../lib/paper-sources";
+import { HighlightSearchAbstract } from "../lib/highlight-search";
 import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import type { CitationSource } from "../lib/paper-impact";
 import { resolveScholarCitesId } from "../lib/citing-works";
+import {
+    RESULT_SOURCE_COLOR,
+    normalizeAbstract,
+    resultAccess,
+    resultOpenLabel,
+    resultSourceKey,
+    resultSourceLink,
+    resultSourceName,
+    resultYear,
+    shortAuthors,
+} from "../lib/search-result-view";
 import PaperImpactBadge from "./PaperImpactBadge";
 
-// CHANGED: This interface used to have a 'pmcid' field (which only worked for NIH papers).
-// Now we have 'sourceId' which is the ID in whatever source system the paper came from,
-// and an optional 'doi' field which is the universal DOI (Digital Object Identifier).
-// This lets us handle papers from NIH, Springer, and future sources with the same component.
-type MatchTier = "title" | "abstract" | "body";
-
-interface SearchResult {
-    sourceId: string; // CHANGED: was 'pmcid: string' — now works for any source (NIH pmcid, Springer DOI, etc.)
-    doi?: string;     // ADDED: DOI is used for cross-source deduplication — same paper can appear on NIH and Springer
+export interface SearchResult {
+    /** The paper's ID in its own source (NIH PMCID, Springer DOI, Scholar cluster). */
+    sourceId: string;
+    /** Used to open Europe PMC and Crossref rows in the reader. */
+    doi?: string;
     title: string;
     authors: string[];
     date: string;
     abstract: string | string[] | null;
-    matchTier?: MatchTier;
+    matchTier?: "title" | "abstract" | "body";
     source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
     pmcid?: string;
     sourceLabel?: string;
@@ -42,310 +43,137 @@ interface SearchResult {
     clusterId?: string;
 }
 
-// this function takes the abstract from the API and turns it into a plain string
-// the abstract can come back in a bunch of different shapes depending on the source (NIH vs Springer)
-// so we have to handle all of them here
-const normalizeAbstract = (
-    abstract: string | string[] | null | unknown,
-): string => {
-    // if there's no abstract at all just return empty string so nothing renders
-    if (!abstract) return "";
-
-    // NIH sometimes gives us an array of paragraphs so we join them with a space
-    // also recursively call normalizeAbstract in case any item is itself an object
-    if (Array.isArray(abstract)) {
-        return abstract
-            .map((item) =>
-                typeof item === "string" ? item : normalizeAbstract(item),
-            )
-            .join(" ");
+/** The reader route for a row, carrying the query so the paper opens highlighted. */
+export function searchResultHref(paper: SearchResult, query: string): string | null {
+    let path: string | null = null;
+    if (paper.source === "europepmc" && paper.pmcid) {
+        path = buildPaperPath("nih", paper.pmcid, "pmcid");
+    } else if (
+        (paper.source === "europepmc" || paper.source === "crossref") &&
+        paper.doi
+    ) {
+        path = buildPaperPath("springer", paper.doi, "doi");
+    } else if (paper.source !== "europepmc" && paper.source !== "crossref") {
+        const sourceConfig = resolveSourceFromSearch(paper.source);
+        const paperId =
+            paper.source === "nature" ? paper.doi || paper.sourceId : paper.sourceId;
+        if (paperId) {
+            path = buildPaperPath(
+                sourceConfig.database,
+                paperId,
+                sourceConfig.defaultIdName,
+            );
+        }
     }
-
-    // simplest case — already a plain string, just return it
-    if (typeof abstract === "string") return abstract;
-
-    // this is the tricky one — the XML parser sometimes gives us a nested object
-    // like { p: "some text" } or { "#text": "some text" } instead of a string
-    // so we need to walk the whole object and pull out all the text values
-    if (typeof abstract === "object") {
-        // helper that recursively collects all string leaf values from any node
-        const collect = (node: unknown): string[] => {
-            if (!node) return [];
-            if (typeof node === "string") return [node];
-            // if it's an array just collect from each item
-            if (Array.isArray(node)) return node.flatMap(collect);
-            if (typeof node === "object") {
-                return (
-                    Object.entries(node)
-                        // skip XML attribute keys (start with @) and internal keys (start with _)
-                        // those are things like @pub-type or _text which aren't readable text
-                        .filter(
-                            ([k]) => !k.startsWith("@") && !k.startsWith("_"),
-                        )
-                        .flatMap(([, v]) => collect(v))
-                );
-            }
-            return [];
-        };
-        // join all the text pieces we found into one string
-        return collect(abstract).join(" ").trim();
-    }
-
-    // fallback just in case something weird comes through
-    return "";
-};
-
-const formatPublicationDate = (date: string): string => {
-    const trimmed = date?.trim();
-    if (!trimmed) return "";
-
-    const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    }
-
-    return trimmed;
-};
-
-interface searchResultsProps {
-    searchResults: SearchResult[];
-    searchValue: string;
+    if (!path) return null;
+    const params = new URLSearchParams({ q: query });
+    return `${path}${path.includes("?") ? "&" : "?"}${params}`;
 }
 
-const SearchResults = ({ searchResults, searchValue }: searchResultsProps) => {
-    const router = useRouter();
-    const params = new URLSearchParams();
-    params.append("q", searchValue);
+interface SearchResultsProps {
+    searchResults: SearchResult[];
+    searchValue: string;
+    /** Shown in the list after the second row (the phone's "Go deeper" card). */
+    inlineAside?: ReactNode;
+}
 
-    const handlePaperClick = (paper: SearchResult) => {
-        if (paper.source === "europepmc" && paper.pmcid) {
-            const paperPath = buildPaperPath("nih", paper.pmcid, "pmcid");
-            const separator = paperPath.includes("?") ? "&" : "?";
-            router.push(`${paperPath}${separator}${params}`);
-            return;
-        }
-        if (
-            (paper.source === "europepmc" || paper.source === "crossref") &&
-            paper.doi
-        ) {
-            const paperPath = buildPaperPath("springer", paper.doi, "doi");
-            const separator = paperPath.includes("?") ? "&" : "?";
-            router.push(`${paperPath}${separator}${params}`);
-            return;
-        }
-        const sourceConfig = resolveSourceFromSearch(
-            paper.source === "europepmc" || paper.source === "crossref"
-                ? undefined
-                : paper.source,
-        );
-        const idName = sourceConfig.defaultIdName;
-        const paperId =
-            paper.source === "nature"
-                ? paper.doi || paper.sourceId
-                : paper.sourceId;
-
-        if (!paperId) return;
-
-        const paperPath = buildPaperPath(
-            sourceConfig.database,
-            paperId,
-            idName,
-        );
-        const separator = paperPath.includes("?") ? "&" : "?";
-        router.push(`${paperPath}${separator}${params}`);
-    };
-
-    const getHighlightClass = (paper: SearchResult) =>
-        paper.source === "nature"
-            ? styles.natureHighlight
-            : paper.source === "scholar"
-              ? styles.scholarHighlight
-              : styles.nihHighlight;
-
-    const getAbstractHighlightClass = (paper: SearchResult) =>
-        paper.source === "nature"
-            ? styles.natureAbstractHighlight
-            : paper.source === "scholar"
-              ? styles.scholarAbstractHighlight
-              : styles.nihAbstractHighlight;
-
-    const renderTitle = (paper: SearchResult) => {
-        const highlightClass = getHighlightClass(paper);
-
-        const titleNode = (
-            <div className={clsx(styles.title, styles.text)}>
-                <HighlightSearchTitle
-                    title={paper.title}
-                    searchValue={searchValue}
-                    highlightClass={highlightClass}
-                />
-            </div>
-        );
-
-        return (
-            <button
-                onClick={() => handlePaperClick(paper)}
-                style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    width: "100%",
-                }}
-            >
-                {titleNode}
-            </button>
-        );
-    };
+const SearchResults = ({ searchResults, searchValue, inlineAside }: SearchResultsProps) => {
+    const asideRow = inlineAside ? (
+        <li className={styles.asideRow}>{inlineAside}</li>
+    ) : null;
 
     return (
-        <div className={styles.paperwrap}>
-            {searchResults.map((paper, index) => (
-                <div
-                    key={`${paper.sourceId}-${index}`}
-                    className={clsx(
-                        styles.paper,
-                        paper.source === "nature" && styles.naturePaper,
-                        paper.source === "scholar" && styles.scholarPaper,
-                        paper.source === "europepmc" && styles.europePmcPaper,
-                        paper.source === "crossref" && styles.crossrefPaper,
-                    )}
-                >
-                    <div className={styles.paperMeta}>
-                        <div className={styles.metaTags}>
-                        <div
-                            className={clsx(
-                                styles.sourceTag,
-                                styles.text,
-                                paper.source === "nature" && styles.natureTag,
-                                paper.source === "scholar" && styles.scholarTag,
-                                paper.source === "europepmc" &&
-                                    styles.europePmcTag,
-                                paper.source === "crossref" && styles.crossrefTag,
-                            )}
-                            aria-label={paper.sourceLabel || "NIH PubMed"}
-                        >
-                            <span
-                                className={clsx(
-                                    styles.sourceDot,
-                                    paper.source === "nature" &&
-                                        styles.natureDot,
-                                    paper.source === "scholar" &&
-                                        styles.scholarDot,
-                                    paper.source === "europepmc" &&
-                                        styles.europePmcDot,
-                                    paper.source === "crossref" &&
-                                        styles.crossrefDot,
-                                )}
-                            />
-                            <span className={styles.sourceText}>
-                                {paper.sourceLabel || "NIH PubMed"}
-                            </span>
-                        </div>
-                        <span className={styles.accessTag}>
-                            {paper.source === "scholar"
-                                ? "Resolve full text on open"
-                                : paper.access?.canSendToAI
-                                ? "Full text + AI"
-                                : paper.source === "nih"
-                                  ? "License checked on open"
-                                  : "Metadata only"}
-                        </span>
-                        </div>
-                        <span className={styles.impactTag}>
-                            <PaperImpactBadge
-                                citationCount={paper.citationCount}
-                                citationSource={paper.citationSource}
-                                doi={paper.doi}
-                                scholarCitesId={resolveScholarCitesId({
-                                    scholarCitesId: paper.scholarCitesId,
-                                    database:
-                                        paper.source === "scholar"
-                                            ? "scholar"
-                                            : undefined,
-                                    idName:
-                                        paper.source === "scholar"
-                                            ? "cluster_id"
-                                            : undefined,
-                                    paperId: paper.sourceId,
-                                    clusterId: paper.clusterId,
-                                })}
-                                sourcePaper={{
-                                    title: paper.title,
-                                    doi: paper.doi,
-                                    authors: Array.isArray(paper.authors)
-                                        ? paper.authors
-                                        : [],
-                                    year: paper.date,
-                                }}
-                            />
-                        </span>
-                        {paper.date && (
-                            <time
-                                className={clsx(
-                                    styles.publicationdate,
-                                    paper.source === "nature"
-                                        ? styles.natureDate
-                                        : paper.source === "scholar"
-                                          ? styles.scholarDate
-                                          : styles.nihDate,
-                                )}
-                                dateTime={paper.date}
-                            >
-                                <span className={styles.dateLabel}>
-                                    Published
+        <ul className={styles.list} aria-label="Results">
+            {searchResults.map((paper, index) => {
+                const href = searchResultHref(paper, searchValue);
+                const access = resultAccess(paper);
+                const year = resultYear(paper.date);
+                const authors = shortAuthors(paper.authors);
+                const snippet = normalizeAbstract(paper.abstract);
+                const sourceLink = resultSourceLink(paper);
+                return (
+                    <Fragment key={`${paper.source}-${paper.sourceId}-${index}`}>
+                        <li className={styles.row}>
+                            <div className={styles.meta}>
+                                <span className={styles.source}>
+                                    <span
+                                        className={styles.dot}
+                                        style={{ background: RESULT_SOURCE_COLOR[resultSourceKey(paper)] }}
+                                        aria-hidden="true"
+                                    />
+                                    {resultSourceName(paper)}
+                                    {year ? ` · ${year}` : ""}
                                 </span>
-                                <span className={styles.dateValue}>
-                                    {formatPublicationDate(paper.date)}
+                                <span className={clsx(styles.access, access.full && styles.accessFull)}>
+                                    {access.label}
                                 </span>
-                            </time>
-                        )}
-                    </div>
-                    {renderTitle(paper)}
-                    <div className={clsx(styles.author, styles.text)}>
-                        {Array.isArray(paper.authors)
-                            ? paper.authors.join(", ")
-                            : "No authors listed."}
-                    </div>
-                    {(() => {
-                        const abstractText = normalizeAbstract(paper.abstract);
-                        if (!abstractText) return null;
-                        return (
-                            <div className={clsx(styles.abstract, styles.text)}>
-                                <strong>
-                                    {paper.contentLabel || "Abstract"}:
-                                </strong>{" "}
-                                <HighlightSearchAbstract
-                                    abstract={abstractText}
-                                    searchValue={searchValue}
-                                    title={paper.title}
-                                    highlightClass={getAbstractHighlightClass(
-                                        paper,
-                                    )}
-                                />
                             </div>
-                        );
-                    })()}
-                    {paper.sourceUrl &&
-                        !paper.access?.canDisplayFullText && (
-                            <a
-                                className={styles.sourceLink}
-                                href={paper.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(event) => event.stopPropagation()}
-                            >
-                                Open canonical source
-                            </a>
-                        )}
-                </div>
-            ))}
-        </div>
+                            {href ? (
+                                <Link href={href} className={styles.title}>
+                                    {paper.title}
+                                </Link>
+                            ) : (
+                                <span className={styles.title}>{paper.title}</span>
+                            )}
+                            {authors ? <span className={styles.authors}>{authors}</span> : null}
+                            {snippet ? (
+                                <p className={styles.snippet}>
+                                    <HighlightSearchAbstract
+                                        abstract={snippet}
+                                        searchValue={searchValue}
+                                        title={null}
+                                        highlightClass={styles.hit}
+                                    />
+                                </p>
+                            ) : null}
+                            <div className={styles.actions}>
+                                {href ? (
+                                    <Link href={href} className={styles.open}>
+                                        {resultOpenLabel(paper)}
+                                        <span aria-hidden="true">→</span>
+                                    </Link>
+                                ) : null}
+                                {sourceLink ? (
+                                    <a
+                                        className={styles.sourceLink}
+                                        href={sourceLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        View source
+                                        <span aria-hidden="true">↗</span>
+                                    </a>
+                                ) : null}
+                                <span className={styles.impact}>
+                                    <PaperImpactBadge
+                                        citationCount={paper.citationCount}
+                                        citationSource={paper.citationSource}
+                                        doi={paper.doi}
+                                        scholarCitesId={resolveScholarCitesId({
+                                            scholarCitesId: paper.scholarCitesId,
+                                            database:
+                                                paper.source === "scholar" ? "scholar" : undefined,
+                                            idName:
+                                                paper.source === "scholar" ? "cluster_id" : undefined,
+                                            paperId: paper.sourceId,
+                                            clusterId: paper.clusterId,
+                                        })}
+                                        sourcePaper={{
+                                            title: paper.title,
+                                            doi: paper.doi,
+                                            authors: Array.isArray(paper.authors) ? paper.authors : [],
+                                            year: paper.date,
+                                        }}
+                                    />
+                                </span>
+                            </div>
+                        </li>
+                        {index === 1 ? asideRow : null}
+                    </Fragment>
+                );
+            })}
+            {searchResults.length < 2 ? asideRow : null}
+        </ul>
     );
 };
 

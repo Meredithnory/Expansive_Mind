@@ -10,78 +10,28 @@ import React, {
 import SearchBar from "../components/SearchBar";
 import { useRouter } from "next/navigation";
 import styles from "./searchpaper.module.scss";
-import SearchResults from "../components/SearchResults";
+import resultStyles from "./search-results.module.scss";
+import SearchResults, { type SearchResult } from "../components/SearchResults";
 import { SearchLoadingOverlay } from "../components/Loading";
 import { searchQueriesMatch } from "../lib/search-suggest";
 import { useInlineSearchSuggestion } from "../lib/use-inline-search-suggestion";
 import Image from "next/image";
 import clsx from "clsx";
-import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import { useSession } from "../lib/use-session";
 import Link from "next/link";
 import posthog from "posthog-js";
+import {
+    DATE_FILTERS,
+    dateFilterLabel,
+    parseDateFilter,
+    parseSourceFilter,
+    type DateFilter,
+    type SourceFilter,
+} from "../lib/search-filters";
+import { resultCountLabel, searchesLeftLabel } from "../lib/search-result-view";
+import { SearchFilterBar, SearchFilterBox } from "./SearchFilters";
 
-export type SourceFilter =
-    | "all"
-    | "nih"
-    | "springer"
-    | "scholar"
-    | "europe-pmc"
-    | "crossref";
-type DateFilter = "any" | "this-year" | "2-years" | "5-years" | "10-years";
-
-const SOURCE_FILTERS: {
-    value: SourceFilter;
-    label: string;
-    description: string;
-    shortName: string;
-}[] = [
-    {
-        value: "all",
-        label: "All sources",
-        shortName: "All",
-        description: "NIH, Springer, Scholar, Europe PMC, Crossref",
-    },
-    {
-        value: "nih",
-        label: "NIH PubMed Central",
-        shortName: "NIH",
-        description: "PubMed Central open access",
-    },
-    {
-        value: "springer",
-        label: "Springer Nature",
-        shortName: "Springer",
-        description: "Open access publications",
-    },
-    {
-        value: "scholar",
-        label: "Google Scholar",
-        shortName: "Scholar",
-        description: "Ranked by relevance",
-    },
-    {
-        value: "europe-pmc",
-        label: "Europe PMC",
-        shortName: "Europe PMC",
-        description: "Discovery and PMC index",
-    },
-    {
-        value: "crossref",
-        label: "Crossref",
-        shortName: "Crossref",
-        description: "DOI metadata index",
-    },
-];
-
-const FILTER_OPTION_CLASS: Record<SourceFilter, string> = {
-    all: styles.filterOptionAll,
-    nih: styles.filterOptionNih,
-    springer: styles.filterOptionSpringer,
-    scholar: styles.filterOptionScholar,
-    "europe-pmc": styles.filterOptionEuropePmc,
-    crossref: styles.filterOptionCrossref,
-};
+export type { SourceFilter };
 
 /** The landing's source chips; Scholar is marked Pro. */
 const LANDING_SOURCES: { value: SourceFilter; label: string }[] = [
@@ -108,58 +58,47 @@ const SEARCHES_FROM = [
     { label: "Google Scholar (Pro)", color: "#8b5cf6" },
 ];
 
-const DATE_FILTERS: { value: DateFilter; label: string }[] = [
-    { value: "any", label: "Any time" },
-    { value: "this-year", label: "This year" },
-    { value: "2-years", label: "Last 2 years" },
-    { value: "5-years", label: "Last 5 years" },
-    { value: "10-years", label: "Last 10 years" },
-];
-
-interface SearchResult {
-    sourceId: string;
-    doi?: string;
-    title: string;
-    authors: string[];
-    date: string;
-    abstract: string | string[] | null;
-    matchTier?: "title" | "abstract" | "body";
-    source?: "nih" | "nature" | "scholar" | "europepmc" | "crossref";
-    pmcid?: string;
-    sourceLabel?: string;
-    sourceUrl?: string;
-    contentLabel?: "Abstract" | "Search snippet";
-    access?: ContentAccessPolicy;
-    citationCount?: number;
-    citationSource?: "crossref" | "europepmc" | "scholar";
-    scholarCitesId?: string;
-    clusterId?: string;
+function searchParamsFor(
+    query: string,
+    page: number,
+    source: SourceFilter,
+    date: DateFilter,
+) {
+    const params = new URLSearchParams({ q: query, page: String(page) });
+    if (source !== "all") params.set("source", source);
+    if (date !== "any") params.set("date", date);
+    return params;
 }
 
-const parseSourceFilter = (value: string | null): SourceFilter => {
-    if (
-        value === "nih" ||
-        value === "springer" ||
-        value === "scholar" ||
-        value === "europe-pmc" ||
-        value === "crossref"
-    ) {
-        return value;
-    }
-    return "all";
-};
+/** Errors a plan change or an account fixes. */
+const LIMIT_CODES = new Set(["QUOTA_EXCEEDED", "DAILY_CAP_REACHED", "PRO_REQUIRED"]);
 
-const parseDateFilter = (value: string | null): DateFilter => {
-    if (
-        value === "this-year" ||
-        value === "2-years" ||
-        value === "5-years" ||
-        value === "10-years"
-    ) {
-        return value;
-    }
-    return "any";
-};
+function resultKey(paper: SearchResult) {
+    return `${paper.source}:${(paper.doi || paper.sourceId || paper.title).toLowerCase()}`;
+}
+
+function GoDeeper({ query, compact = false }: { query: string; compact?: boolean }) {
+    return (
+        <aside className={clsx(resultStyles.deeper, compact && resultStyles.deeperCompact)}>
+            <span className={resultStyles.deeperEyebrow}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+                Go deeper
+            </span>
+            <h2 className={resultStyles.deeperTitle}>See what these papers add up to</h2>
+            <p className={resultStyles.deeperText}>
+                {compact
+                    ? "A cited brief: what’s known, the gaps, and who’s working on them."
+                    : "Discovery reads the open papers and writes a cited brief: what’s known, the gaps, and who’s working on them."}
+            </p>
+            <Link className={resultStyles.deeperButton} href={`/discover?q=${encodeURIComponent(query)}`}>
+                Discover this topic
+            </Link>
+            {compact ? null : <span className={resultStyles.deeperNote}>Uses one Discovery run.</span>}
+        </aside>
+    );
+}
 
 type SearchPaperClientProps = {
     initialQuery: string;
@@ -192,23 +131,19 @@ const SearchPaperClient = ({
     const [loading, setLoading] = useState(Boolean(qParam));
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
     const [pastSearchValue, setPastSearchValue] = useState("");
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [error, setError] = useState("");
+    const [errorCode, setErrorCode] = useState<string | null>(null);
     const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
-    const [filtersExpanded, setFiltersExpanded] = useState(true);
-
-    useEffect(() => {
-        // On a phone the open filter grid fills the screen and hides results.
-        if (window.matchMedia("(max-width: 720px)").matches) {
-            setFiltersExpanded(false);
-        }
-    }, []);
-    const [filterSidebarStuck, setFilterSidebarStuck] = useState(false);
+    const [resultPlan, setResultPlan] = useState<string | null>(null);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [moreError, setMoreError] = useState("");
     const [searchTransitionActive, setSearchTransitionActive] = useState(false);
     const pageRef = useRef<HTMLDivElement>(null);
-    const filterSidebarRef = useRef<HTMLElement>(null);
-    const previousPageRef = useRef<number | null>(null);
+    // Bumped by every new search so a slow "show more" can't land on the wrong list.
+    const searchRunRef = useRef(0);
     const searchTransitionStartedAtRef = useRef<number | null>(null);
     const searchTransitionTimerRef =
         useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -218,6 +153,7 @@ const SearchPaperClient = ({
     const activeDate = dateParam;
     const committedQuery = (pastSearchValue || qParam || "").trim();
     const hasCommittedSearch = Boolean(committedQuery);
+    const filtered = activeSource !== "all" || activeDate !== "any";
     const displayError = error
         .replace(" Create a free account to continue.", "")
         .replace(" Upgrade to continue.", "");
@@ -254,33 +190,20 @@ const SearchPaperClient = ({
         window.scrollTo({ top: 0, behavior: "auto" });
     }, [skipInitialScroll]);
 
+    // Preserve combined-page mode so refresh and share links stay on Search.
+    const keepsSearchMode = () =>
+        skipInitialScroll ||
+        Boolean(modeChrome) ||
+        new URLSearchParams(window.location.search).get("mode") === "search";
+
     const pushSearchParams = (
         query: string,
         page: number,
         source: SourceFilter = activeSource,
         date: DateFilter = activeDate,
     ) => {
-        const params = new URLSearchParams({
-            q: query,
-            page: String(page),
-        });
-
-        // Preserve combined-page mode so refresh and share links stay on Search.
-        if (
-            skipInitialScroll ||
-            modeChrome ||
-            new URLSearchParams(window.location.search).get("mode") === "search"
-        ) {
-            params.set("mode", "search");
-        }
-
-        if (source !== "all") {
-            params.set("source", source);
-        }
-        if (date !== "any") {
-            params.set("date", date);
-        }
-
+        const params = searchParamsFor(query, page, source, date);
+        if (keepsSearchMode()) params.set("mode", "search");
         router.push(`${window.location.pathname}?${params}`, { scroll: false });
     };
 
@@ -343,19 +266,9 @@ const SearchPaperClient = ({
     // Before a search, filters only change the URL (and stay on Search).
     const pushLandingFilters = (source: SourceFilter, date: DateFilter) => {
         const params = new URLSearchParams();
-        if (
-            skipInitialScroll ||
-            modeChrome ||
-            new URLSearchParams(window.location.search).get("mode") === "search"
-        ) {
-            params.set("mode", "search");
-        }
-        if (source !== "all") {
-            params.set("source", source);
-        }
-        if (date !== "any") {
-            params.set("date", date);
-        }
+        if (keepsSearchMode()) params.set("mode", "search");
+        if (source !== "all") params.set("source", source);
+        if (date !== "any") params.set("date", date);
         const next = params.toString();
         router.push(
             next
@@ -365,35 +278,18 @@ const SearchPaperClient = ({
         );
     };
 
-    const handleSourceChange = (source: SourceFilter) => {
+    const handleFiltersChange = (source: SourceFilter, date: DateFilter) => {
         const query = (pastSearchValue || qParam || searchValue).trim();
         if (!query) {
-            pushLandingFilters(source, activeDate);
-            if (source !== "all") {
+            pushLandingFilters(source, date);
+            if (source !== activeSource && source !== "all") {
                 window.setTimeout(() => {
                     document.getElementById("paper-search-input")?.focus();
                 }, 0);
             }
             return;
         }
-
-        pushSearchParams(query, 0, source);
-        if (window.matchMedia("(max-width: 720px)").matches) {
-            setFiltersExpanded(false);
-        }
-        scrollToTop();
-    };
-
-    const handleDateChange = (date: DateFilter) => {
-        const query = (pastSearchValue || qParam || searchValue).trim();
-        if (!query) {
-            pushLandingFilters(activeSource, date);
-            return;
-        }
-        pushSearchParams(query, 0, activeSource, date);
-        if (window.matchMedia("(max-width: 720px)").matches) {
-            setFiltersExpanded(false);
-        }
+        pushSearchParams(query, 0, source, date);
         scrollToTop();
     };
 
@@ -404,6 +300,7 @@ const SearchPaperClient = ({
             source: SourceFilter = "all",
             date: DateFilter = "any",
         ): Promise<void> => {
+            const run = ++searchRunRef.current;
             const searchStartedAt = performance.now();
             const completeVisualTransition = async () => {
                 const remaining = Math.max(
@@ -417,26 +314,24 @@ const SearchPaperClient = ({
                 }
             };
             setLoading(true);
+            setLoadingMore(false);
             setError("");
-            const params = new URLSearchParams({
-                q: query,
-                page: String(page),
-            });
+            setErrorCode(null);
+            setMoreError("");
 
-            if (source !== "all") {
-                params.set("source", source);
-            }
-            if (date !== "any") {
-                params.set("date", date);
-            }
-
-            const res = await fetch(`/api/search?${params}`);
-            const data = await res.json();
+            const res = await fetch(
+                `/api/search?${searchParamsFor(query, page, source, date)}`,
+            );
+            const data = await res.json().catch(() => ({}));
             void refresh();
+            if (run !== searchRunRef.current) return;
 
             if (!res.ok) {
                 setSearchResults([]);
+                setTotalCount(0);
+                setTotalPages(0);
                 setError(data.error || "Search is temporarily unavailable.");
+                setErrorCode(typeof data.code === "string" ? data.code : null);
                 setQuotaRemaining(data.quota?.remaining ?? null);
                 await completeVisualTransition();
                 setLoading(false);
@@ -449,50 +344,77 @@ const SearchPaperClient = ({
                 return;
             }
 
-            setSearchResults(Array.isArray(data.results) ? data.results : []);
+            const results: SearchResult[] = Array.isArray(data.results)
+                ? data.results
+                : [];
+            setSearchResults(results);
             setPastSearchValue(query);
-            setTotalPages(data.totalPages);
+            setTotalPages(Number(data.totalPages) || 0);
+            setTotalCount(Number(data.totalCount) || 0);
             setCurrentPage(page);
             setQuotaRemaining(data.quota?.remaining ?? null);
+            setResultPlan(typeof data.plan === "string" ? data.plan : null);
             await completeVisualTransition();
             setLoading(false);
             finishSearchTransition();
             posthog.capture("search_completed", {
                 source,
-                result_count: Array.isArray(data.results)
-                    ? data.results.length
-                    : 0,
+                date,
+                result_count: results.length,
                 cache_hit: Boolean(data.cacheHit),
             });
         },
         [finishSearchTransition, refresh],
     );
 
+    const loadMore = async () => {
+        if (loadingMore || loading || currentPage >= totalPages - 1) return;
+        const run = searchRunRef.current;
+        const nextPage = currentPage + 1;
+        setLoadingMore(true);
+        setMoreError("");
+        const res = await fetch(
+            `/api/search?${searchParamsFor(committedQuery, nextPage, activeSource, activeDate)}`,
+        );
+        const data = await res.json().catch(() => ({}));
+        void refresh();
+        if (run !== searchRunRef.current) return;
+        setLoadingMore(false);
+        if (data.quota) setQuotaRemaining(data.quota.remaining ?? null);
+        if (!res.ok) {
+            setMoreError(data.error || "Couldn't load more results.");
+            return;
+        }
+        const more: SearchResult[] = Array.isArray(data.results) ? data.results : [];
+        setSearchResults((shown) => {
+            const seen = new Set(shown.map(resultKey));
+            return [...shown, ...more.filter((paper) => !seen.has(resultKey(paper)))];
+        });
+        setCurrentPage(nextPage);
+        setTotalPages(Number(data.totalPages) || 0);
+        posthog.capture("search_more_loaded", {
+            source: activeSource,
+            date: activeDate,
+            page: nextPage,
+            result_count: more.length,
+        });
+    };
+
     useEffect(() => {
         setSearchValue(qParam ?? "");
         if (qParam) {
             doSearch(qParam, activePage, activeSource, activeDate);
         } else {
+            searchRunRef.current += 1;
             setSearchResults([]);
             setPastSearchValue("");
             setTotalPages(0);
+            setTotalCount(0);
             setCurrentPage(0);
             setLoading(false);
+            setLoadingMore(false);
         }
     }, [qParam, activePage, activeSource, activeDate, doSearch]);
-
-    useEffect(() => {
-        if (loading || !qParam) return;
-
-        if (
-            previousPageRef.current !== null &&
-            previousPageRef.current !== activePage
-        ) {
-            scrollToTop();
-        }
-
-        previousPageRef.current = activePage;
-    }, [activePage, loading, qParam]);
 
     useEffect(() => {
         const scrollContainer = pageRef.current;
@@ -528,53 +450,18 @@ const SearchPaperClient = ({
         };
     }, [loading]);
 
-    useEffect(() => {
-        if (!hasCommittedSearch) {
-            setFilterSidebarStuck(false);
-            return;
-        }
-        if (typeof window === "undefined") return;
-        if (window.matchMedia("(max-width: 900px)").matches) {
-            setFilterSidebarStuck(false);
-            return;
-        }
-
-        const sidebar = filterSidebarRef.current;
-        const layout = sidebar?.parentElement;
-        if (!sidebar || !layout) return;
-
-        const probe = document.createElement("div");
-        probe.setAttribute("aria-hidden", "true");
-        probe.style.cssText =
-            "width:1px;height:1px;margin:0;padding:0;pointer-events:none;";
-        layout.insertBefore(probe, sidebar);
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setFilterSidebarStuck(!entry.isIntersecting);
-            },
-            {
-                root:
-                    document.querySelector(".main-content") instanceof
-                    HTMLElement
-                        ? document.querySelector(".main-content")
-                        : null,
-                // Match sticky top so "stuck" fires when the card pins under the nav.
-                rootMargin: "-20px 0px 0px 0px",
-                threshold: [1],
-            },
-        );
-        observer.observe(probe);
-
-        return () => {
-            observer.disconnect();
-            probe.remove();
-        };
-    }, [hasCommittedSearch, loading]);
-
     const activeQuery = pastSearchValue;
     const initialLoading =
         loading && searchResults.length === 0 && !pastSearchValue;
+    const searchesLeft = searchesLeftLabel(quotaRemaining, resultPlan);
+    const hasMore =
+        !error && searchResults.length > 0 && currentPage < totalPages - 1;
+    const filterProps = {
+        source: activeSource,
+        date: activeDate,
+        onChange: handleFiltersChange,
+        scholarLocked: resultPlan !== "pro",
+    };
 
     return (
         <div
@@ -641,11 +528,13 @@ const SearchPaperClient = ({
                     searchValue={searchValue}
                     setSearchValue={handleSearchValueChange}
                     handleSubmit={handleSubmit}
-                    className={styles.searchbar}
+                    className={clsx(styles.searchbar, hasCommittedSearch && resultStyles.resultsSearchbar)}
                     ghostCompletion={ghostCompletion}
                     onAcceptGhost={handleAcceptGhost}
                     inputId="paper-search-input"
-                    accentSource={activeSource}
+                    // Results keep the blue Search button of the design; the
+                    // active source shows in the filters instead.
+                    accentSource={hasCommittedSearch ? "all" : activeSource}
                     searching={loading || searchTransitionActive}
                     footer={
                         hasCommittedSearch ? undefined : (
@@ -660,7 +549,7 @@ const SearchPaperClient = ({
                                         className={styles.findSource}
                                         aria-pressed={activeSource === source.value}
                                         onClick={() =>
-                                            handleSourceChange(source.value)
+                                            handleFiltersChange(source.value, activeDate)
                                         }
                                     >
                                         {source.label}
@@ -671,8 +560,9 @@ const SearchPaperClient = ({
                                     <select
                                         value={activeDate}
                                         onChange={(event) =>
-                                            handleDateChange(
-                                                event.target.value as DateFilter,
+                                            handleFiltersChange(
+                                                activeSource,
+                                                parseDateFilter(event.target.value),
                                             )
                                         }
                                     >
@@ -734,288 +624,114 @@ const SearchPaperClient = ({
                         </p>
                     </div>
                 ) : null}
-                <div
-                    className={clsx(styles.searchLayout, {
-                        [styles.searchLayoutHidden]: !hasCommittedSearch,
-                    })}
-                >
-                    <aside
-                        ref={filterSidebarRef}
-                        className={clsx(styles.filterSidebar, {
-                            [styles.filterSidebarHidden]: !hasCommittedSearch,
-                            [styles.filterSidebarCollapsed]: !filtersExpanded,
-                            [styles.filterSidebarStuck]:
-                                filterSidebarStuck && hasCommittedSearch,
-                        })}
-                    >
-                        <div className={styles.filterHeader}>
-                            <div className={styles.filterHeaderTop}>
-                                <h2 className={styles.filterTitle}>Filters</h2>
-                                <span className={styles.filterCountDesktop}>
-                                    2
-                                </span>
-                                <button
-                                    type="button"
-                                    className={styles.filterToggle}
-                                    aria-expanded={filtersExpanded}
-                                    aria-controls="source-filter-options"
-                                    onClick={() =>
-                                        setFiltersExpanded((expanded) => !expanded)
-                                    }
-                                >
-                                    <span>
-                                        {filtersExpanded ? "Hide" : "Show"} filters
-                                    </span>
-                                    <span
-                                        className={clsx(styles.filterChevron, {
-                                            [styles.filterChevronExpanded]:
-                                                filtersExpanded,
-                                        })}
-                                        aria-hidden="true"
-                                    />
-                                </button>
-                            </div>
-                            <p
-                                className={clsx(styles.filterLegend, {
-                                    [styles.filterLegendCollapsed]:
-                                        !filtersExpanded,
-                                })}
-                            >
-                                Source and publication date
-                            </p>
-                        </div>
-                        <div
-                            id="source-filter-options"
-                            className={clsx(styles.filterList, {
-                                [styles.filterListCollapsed]: !filtersExpanded,
-                            })}
-                        >
-                            {SOURCE_FILTERS.map((filter) => {
-                                const isSelected =
-                                    activeSource === filter.value;
-                                const isFiltered =
-                                    isSelected && filter.value !== "all";
+                {hasCommittedSearch ? (
+                    <div className={resultStyles.results}>
+                        <SearchFilterBar {...filterProps} />
+                        <SearchFilterBox {...filterProps} />
 
-                                return (
-                                    <button
-                                        key={filter.value}
-                                        type="button"
-                                        className={clsx(
-                                            styles.filterOption,
-                                            FILTER_OPTION_CLASS[filter.value],
-                                            {
-                                                [styles.filterOptionActive]:
-                                                    isFiltered,
-                                            },
-                                        )}
-                                        onClick={() =>
-                                            handleSourceChange(filter.value)
-                                        }
-                                        aria-pressed={isSelected}
-                                    >
-                                        <span className={styles.filterOptionRow}>
-                                            <span
-                                                className={styles.filterDot}
-                                                aria-hidden="true"
+                        {!initialLoading ? (
+                            <div className={resultStyles.countRow}>
+                                <p className={resultStyles.count} aria-live="polite">
+                                    <strong>
+                                        {error
+                                            ? "No results"
+                                            : resultCountLabel(totalCount, searchResults.length)}
+                                    </strong>
+                                    <span className={resultStyles.countQuery}>
+                                        {" "}for &ldquo;{committedQuery}&rdquo;
+                                    </span>
+                                    <span className={resultStyles.countDate}>
+                                        {" "}· {dateFilterLabel(activeDate).toLowerCase()}
+                                    </span>
+                                    {filtered ? (
+                                        <span className={resultStyles.countClear}>
+                                            {" "}·{" "}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleFiltersChange("all", "any")}
+                                            >
+                                                Clear filters
+                                            </button>
+                                        </span>
+                                    ) : null}
+                                </p>
+                                {searchesLeft ? (
+                                    <span className={resultStyles.quota}>{searchesLeft}</span>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        <div className={resultStyles.grid}>
+                            <div className={resultStyles.main}>
+                                {initialLoading ? (
+                                    <div className={resultStyles.skeleton} aria-hidden="true">
+                                        {[0, 1, 2].map((item) => (
+                                            <div
+                                                key={item}
+                                                className={`${resultStyles.skeletonRow} loading-skeleton`}
                                             />
-                                            <span className={styles.filterLabel}>
-                                                {filter.label}
-                                            </span>
-                                            {isFiltered && (
-                                                <span
-                                                    className={
-                                                        styles.filterActiveBadge
-                                                    }
-                                                >
-                                                    Active
-                                                </span>
-                                            )}
-                                        </span>
-                                        <span
-                                            className={styles.filterDescription}
-                                        >
-                                            {filter.description}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <div className={styles.dateFilter}>
-                                <span className={styles.dateFilterTitle}>
-                                    Published
-                                </span>
-                                <div className={styles.dateOptions}>
-                                    {DATE_FILTERS.map((filter) => (
-                                        <button
-                                            key={filter.value}
-                                            type="button"
-                                            className={clsx(
-                                                styles.dateOption,
-                                                activeDate === filter.value &&
-                                                    styles.dateOptionActive,
-                                            )}
-                                            onClick={() =>
-                                                handleDateChange(filter.value)
-                                            }
-                                            aria-pressed={
-                                                activeDate === filter.value
-                                            }
-                                        >
-                                            {filter.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                    </aside>
-
-                    {hasCommittedSearch && (
-                    <div className={styles.resultsContainer}>
-                        {error && (
-                            <div className={styles.emptyResults}>
-                                <span>{displayError}</span>
-                                {!isLoggedIn && (
-                                    <Link
-                                        className={styles.limitCta}
-                                        href="/signup"
-                                    >
-                                        Create a free account
-                                    </Link>
-                                )}
-                                {isLoggedIn && (
-                                    <Link
-                                        className={styles.limitCta}
-                                        href="/pricing"
-                                    >
-                                        View plan options
-                                    </Link>
-                                )}
-                            </div>
-                        )}
-                        {!initialLoading && (
-                            <div className={styles.showingResults}>
-                                Showing results for &ldquo;{committedQuery}
-                                &rdquo;
-                                {activeSource !== "all" && (
-                                    <span className={styles.activeFilterLabel}>
-                                        {" "}
-                                        ·{" "}
-                                        {
-                                            SOURCE_FILTERS.find(
-                                                (filter) =>
-                                                    filter.value ===
-                                                    activeSource,
-                                            )?.label
-                                        }
-                                    </span>
-                                )}
-                                {activeDate !== "any" && (
-                                    <span className={styles.activeFilterLabel}>
-                                        {" "}
-                                        ·{" "}
-                                        {
-                                            DATE_FILTERS.find(
-                                                (filter) =>
-                                                    filter.value === activeDate,
-                                            )?.label
-                                        }
-                                    </span>
-                                )}
-                                {quotaRemaining !== null && (
-                                    <span className={styles.activeFilterLabel}>
-                                        {" "}
-                                        · {quotaRemaining} searches remaining
-                                    </span>
-                                )}
-                                {committedQuery && (
-                                    <Link
-                                        className={styles.synthesizeCta}
-                                        href={`/discover?q=${encodeURIComponent(committedQuery)}`}
-                                    >
-                                        Discover this topic
-                                    </Link>
-                                )}
-                            </div>
-                        )}
-
-                        {initialLoading ? (
-                            <div
-                                className={styles.resultsSkeleton}
-                                aria-hidden="true"
-                            >
-                                {[0, 1, 2].map((item) => (
-                                    <div
-                                        key={item}
-                                        className={`${styles.resultSkeletonCard} loading-skeleton`}
-                                    />
-                                ))}
-                            </div>
-                        ) : error ? null : searchResults.length === 0 ? (
-                            <div className={styles.emptyResults}>
-                                No results found for this source filter.
-                            </div>
-                        ) : (
-                            <SearchResults
-                                searchResults={searchResults}
-                                searchValue={activeQuery}
-                            />
-                        )}
-
-                        {!initialLoading && totalPages > 0 && (
-                            <div className={styles.pagination}>
-                                    <button
-                                        className={styles.prevbutton}
-                                        type="button"
-                                        aria-label="Previous results page"
-                                        disabled={currentPage === 0 || loading}
-                                        onClick={() =>
-                                            pushSearchParams(
-                                                pastSearchValue,
-                                                currentPage - 1,
-                                                activeSource,
-                                            )
-                                        }
-                                    >
-                                        <Image
-                                            className={styles.icon}
-                                            width={1000}
-                                            height={760}
-                                            src="/previcon.svg"
-                                            alt=""
-                                        />
-                                    </button>
-
-                                    <div className={styles.currentpage}>
-                                        Page {currentPage + 1} of {totalPages}
+                                        ))}
                                     </div>
-                                    <button
-                                        type="button"
-                                        aria-label="Next results page"
-                                        disabled={
-                                            currentPage >= totalPages - 1 ||
-                                            loading
-                                        }
-                                        onClick={() =>
-                                            pushSearchParams(
-                                                pastSearchValue,
-                                                currentPage + 1,
-                                                activeSource,
-                                            )
-                                        }
-                                        className={styles.nextbutton}
-                                    >
-                                        <Image
-                                            className={styles.icon}
-                                            width={1000}
-                                            height={760}
-                                            src="/nexticon.svg"
-                                            alt=""
-                                        />
-                                    </button>
+                                ) : error ? (
+                                    <div className={resultStyles.notice}>
+                                        <p>{displayError}</p>
+                                        {errorCode && LIMIT_CODES.has(errorCode) ? (
+                                            <Link
+                                                className={resultStyles.noticeCta}
+                                                href={isLoggedIn ? "/pricing" : "/signup"}
+                                            >
+                                                {isLoggedIn ? "View plan options" : "Create a free account"}
+                                            </Link>
+                                        ) : null}
+                                    </div>
+                                ) : searchResults.length === 0 ? (
+                                    <div className={resultStyles.notice}>
+                                        <p>
+                                            No papers matched
+                                            {filtered ? " these filters" : ""}. Try
+                                            different words
+                                            {filtered ? ", another source, or a wider date range" : ""}.
+                                        </p>
+                                        {filtered ? (
+                                            <button
+                                                type="button"
+                                                className={resultStyles.noticeCta}
+                                                onClick={() => handleFiltersChange("all", "any")}
+                                            >
+                                                Clear filters
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                ) : (
+                                    <SearchResults
+                                        searchResults={searchResults}
+                                        searchValue={activeQuery}
+                                        inlineAside={<GoDeeper query={committedQuery} compact />}
+                                    />
+                                )}
                             </div>
-                        )}
+                            <div className={resultStyles.side}>
+                                <GoDeeper query={committedQuery} />
+                            </div>
+                        </div>
+
+                        {hasMore ? (
+                            <button
+                                type="button"
+                                className={resultStyles.more}
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore ? "Loading more…" : "Show more results"}
+                            </button>
+                        ) : null}
+                        {moreError ? (
+                            <p className={resultStyles.moreError} role="alert">
+                                {moreError}
+                            </p>
+                        ) : null}
                     </div>
-                    )}
-                </div>
+                ) : null}
             </div>
         </div>
     );

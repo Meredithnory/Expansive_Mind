@@ -61,7 +61,7 @@ function mapNihPapers(results: Array<Record<string, unknown>>): DiscoverCandidat
 export const nihSource: ResearchSource = {
     id: "nih",
     isConfigured: () => isNihApiConfigured() || isEuropePmcConfigured(),
-    async search({ query, page, hydrate }) {
+    async search({ query, page, hydrate, dateRange }) {
         if (!isNihApiConfigured()) {
             return {
                 hits: [],
@@ -74,7 +74,7 @@ export const nihSource: ResearchSource = {
             };
         }
 
-        const nihSearch = await searchNIHPaperIds(query, page);
+        const nihSearch = await searchNIHPaperIds(query, page, dateRange);
         const papers =
             hydrate && nihSearch.ids.length > 0
                 ? await getNIHPaperResults(nihSearch.ids, query)

@@ -94,7 +94,7 @@ function mapScholarResults(results: Array<Record<string, unknown>>): DiscoverCan
 export const scholarSource: ResearchSource = {
     id: "scholar",
     isConfigured: () => Boolean(process.env.SERPAPI_KEY),
-    async search({ query, page }) {
+    async search({ query, page, dateRange }) {
         if (!process.env.SERPAPI_KEY) {
             return {
                 hits: [],
@@ -104,7 +104,7 @@ export const scholarSource: ResearchSource = {
                 callCount: 0,
             };
         }
-        const search = await searchGoogleScholarPapers(query, page);
+        const search = await searchGoogleScholarPapers(query, page, dateRange);
         return {
             hits: mapScholarResults(
                 (search.results as Array<Record<string, unknown>>) || [],

@@ -4,6 +4,7 @@ import type { PaperLocator, SourceDatabase } from "../../lib/paper-sources";
 import type { SourceCitation } from "../../lib/research-citation";
 import type { DiscoverCandidate } from "../discover/select-candidates";
 import type { PaperFallback } from "../paper/load-paper";
+import type { PublicationDateRange } from "../../lib/search-filters";
 import type { MatchTier } from "../search/utils";
 
 export type WorkIndexId = "openalex" | "europepmc";
@@ -50,6 +51,7 @@ export interface ResearchSource {
         query: string;
         page: number;
         hydrate: boolean;
+        dateRange?: PublicationDateRange;
     }): Promise<SourcePage<DiscoverCandidate>>;
     fetchFullText(
         locator: PaperLocator,

@@ -1,388 +1,224 @@
-@use "../../variables" as *;
+// Search result rows. Desktop: one bordered list with hairline dividers.
+// Phone: one card per paper. See "Search results" in the design canvas.
 
-.paperwrap {
+.list {
     display: flex;
     flex-direction: column;
+    gap: 1px;
     width: 100%;
-    max-width: 760px;
-    margin-inline: auto;
-    gap: 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
 
-    .paper {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 24px 28px 26px;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background-color: #000;
-        overflow: visible;
-        transition: border-color 180ms ease;
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 18px 20px;
+    background: #0a0a0f;
+    transition: background-color 160ms ease;
 
-        &:hover {
-            .title {
-                color: #ff0084;
-            }
-        }
-    }
-
-    .naturePaper {
-        &:hover {
-            .title {
-                color: #ff4e4e;
-            }
-            .natureTag {
-                border: 1px solid rgba(255, 80, 80, 0.45);
-                background: rgba(255, 80, 80, 0.1);
-                box-shadow: 0 8px 18px rgba(255, 80, 80, 0.22);
-            }
-        }
-    }
-
-    .scholarPaper {
-        &:hover {
-            .title {
-                color: $highlight-blue;
-            }
-            .scholarTag {
-                border: 1px solid rgba(10, 177, 255, 0.45);
-                background: rgba(10, 177, 255, 0.1);
-                box-shadow: 0 8px 18px rgba(10, 177, 255, 0.22);
-            }
-        }
-    }
-
-    .europePmcPaper {
-        &:hover {
-            .title {
-                color: #f6a623;
-            }
-        }
-    }
-
-    .crossrefPaper {
-        &:hover {
-            .title {
-                color: #c7d2fe;
-            }
-        }
-    }
-
-    .paper:not(.naturePaper):not(.scholarPaper):not(.europePmcPaper):not(.crossrefPaper) {
-        &:hover {
-            .sourceTag {
-                border: 1px solid rgba(255, 0, 132, 0.45);
-                background: rgba(255, 0, 132, 0.08);
-                box-shadow: 0 8px 18px rgba(255, 0, 132, 0.18);
-            }
-        }
-    }
-
-    .paperMeta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .metaTags {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .accessTag {
-        padding: 5px 9px;
-        border-radius: 999px;
-        border: 1px solid rgba(215, 235, 255, 0.16);
-        color: rgba(215, 235, 255, 0.7);
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .impactTag {
-        display: inline-flex;
-        max-width: 100%;
-        overflow: visible;
-        position: relative;
-        z-index: 2;
-
-        &:empty {
-            display: none;
-        }
-    }
-
-    .title {
-        color: #d7ebff;
-        font-size: 22px;
-        line-height: 1.25;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        transition: color 160ms ease;
-    }
-    .author {
-        margin-bottom: 12px;
-        padding-top: 8px;
-        font-size: 13px;
-        color: rgba(215, 235, 255, 0.75);
-        font-style: italic;
-    }
-    .sourceTag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        width: fit-content;
-        padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.015);
-        box-shadow: none;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        line-height: 1;
-        backdrop-filter: blur(10px);
-        overflow: hidden;
-        transition:
-            border-color 160ms ease,
-            background-color 160ms ease,
-            box-shadow 160ms ease;
-
-        &:hover {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.04);
-            box-shadow: 0 8px 18px rgba(255, 255, 255, 0.08);
-        }
-    }
-    .natureTag {
-        // neutral by default — styled same as .sourceTag
-
-        &:hover {
-            border: 1px solid rgba(255, 80, 80, 0.45);
-            background: rgba(255, 80, 80, 0.1);
-            box-shadow: 0 8px 18px rgba(255, 80, 80, 0.22);
-        }
-    }
-    .scholarTag {
-        &:hover {
-            border: 1px solid rgba(10, 177, 255, 0.45);
-            background: rgba(10, 177, 255, 0.1);
-            box-shadow: 0 8px 18px rgba(10, 177, 255, 0.22);
-        }
-    }
-    .sourceDot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: $main-pink;
-        box-shadow: 0 0 0 4px rgba(255, 0, 132, 0.15);
-        flex-shrink: 0;
-    }
-    .natureDot {
-        background-color: #ff4e4e;
-        box-shadow: 0 0 0 4px rgba(255, 78, 78, 0.2);
-    }
-    .scholarDot {
-        background-color: $highlight-blue;
-        box-shadow: 0 0 0 4px rgba(10, 177, 255, 0.2);
-    }
-    .europePmcDot {
-        background-color: #f6a623;
-        box-shadow: 0 0 0 4px rgba(246, 166, 35, 0.2);
-    }
-    .crossrefDot {
-        background-color: #c7d2fe;
-        box-shadow: 0 0 0 4px rgba(199, 210, 254, 0.2);
-    }
-    .sourceText {
-        white-space: nowrap;
-        color: #fff;
-    }
-    .publicationdate {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 3px;
-        padding-left: 16px;
-        margin-left: auto;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-        text-align: right;
-        white-space: nowrap;
-    }
-
-    .dateLabel {
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        line-height: 1;
-    }
-
-    .dateValue {
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: 0.02em;
-        font-variant-numeric: tabular-nums;
-        line-height: 1.2;
-    }
-
-    .nihDate {
-        border-left-color: rgba(255, 0, 132, 0.35);
-
-        .dateLabel {
-            color: rgba(255, 0, 132, 0.55);
-        }
-
-        .dateValue {
-            color: rgba(255, 120, 190, 0.95);
-        }
-    }
-
-    .natureDate {
-        border-left-color: rgba(255, 78, 78, 0.35);
-
-        .dateLabel {
-            color: rgba(255, 78, 78, 0.55);
-        }
-
-        .dateValue {
-            color: rgba(255, 150, 150, 0.95);
-        }
-    }
-    .scholarDate {
-        border-left-color: rgba(10, 177, 255, 0.35);
-
-        .dateLabel {
-            color: rgba(10, 177, 255, 0.55);
-        }
-
-        .dateValue {
-            color: rgba(120, 210, 255, 0.95);
-        }
-    }
-    .abstract {
-        font-size: 16px;
-        max-height: 120px;
-        color: #cfe5fc;
-        display: -webkit-box;
-        line-clamp: 5;
-        -webkit-line-clamp: 5;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        line-height: 1.55;
-    }
-
-    .sourceLink {
-        width: fit-content;
-        color: $highlight-blue;
-        font-size: 13px;
-        text-decoration: underline;
-        text-underline-offset: 3px;
-    }
-    .text {
-        margin: 2px 2px;
-    }
-    .nihHighlight {
-        color: $main-pink;
-    }
-
-    .natureHighlight {
-        color: #ff4e4e;
-    }
-    .scholarHighlight {
-        color: $highlight-blue;
-    }
-
-    .nihAbstractHighlight,
-    .natureAbstractHighlight,
-    .scholarAbstractHighlight {
-        color: inherit;
-        font: inherit;
-        border-radius: 2px;
-        padding: 0 0.12em;
-        box-decoration-break: clone;
-        -webkit-box-decoration-break: clone;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .nihAbstractHighlight {
-        background-color: rgba(255, 0, 132, 0.28);
-        color: #ffb3d7;
-    }
-
-    .natureAbstractHighlight {
-        background-color: rgba(255, 78, 78, 0.28);
-        color: #ffb0b0;
-    }
-
-    .scholarAbstractHighlight {
-        background-color: rgba(10, 177, 255, 0.28);
-        color: #9adfff;
-    }
-    .button {
-        background: none;
-        color: inherit;
-        border: none;
-        padding: 0;
-        font: inherit;
-        cursor: pointer;
-        outline: inherit;
+    &:hover {
+        background: #101016;
     }
 }
 
+.meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.source {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #9aa3b2;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+}
+
+.access {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #15151c;
+    color: #c9d1dc;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.accessFull {
+    background: rgba(34, 160, 107, 0.14);
+    color: #6ee7a8;
+}
+
+.title {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.35;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+a.title:hover {
+    color: #b5e6ff;
+}
+
+a.title:focus-visible,
+.open:focus-visible,
+.sourceLink:focus-visible {
+    outline: 2px solid #7cd3ff;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+.authors {
+    color: #9aa3b2;
+    font-size: 12px;
+    font-style: italic;
+    overflow-wrap: anywhere;
+}
+
+.snippet {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: #c9d1dc;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.hit {
+    padding: 0 2px;
+    border-radius: 4px;
+    background: rgba(10, 177, 255, 0.22);
+    color: #fff;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.open,
+.sourceLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #7cd3ff;
+    text-decoration: none;
+
+    &:hover {
+        color: #b5e6ff;
+    }
+}
+
+.sourceLink {
+    color: #9aa3b2;
+}
+
+.impact {
+    margin-left: auto;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.asideRow {
+    display: none;
+}
+
 @media (max-width: 720px) {
-    .paperwrap {
+    .list {
         gap: 14px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        overflow: visible;
+    }
 
-        .paper {
-            padding: 20px 16px 18px;
-            border-radius: 18px;
-        }
+    .row {
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
 
-        .paperMeta {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: end;
-            gap: 8px 12px;
+        &:hover {
+            background: #0a0a0f;
         }
+    }
 
-        .metaTags {
-            grid-column: 1 / -1;
-            width: 100%;
-            gap: 6px;
-        }
+    .source {
+        gap: 7px;
+        font-size: 11px;
+    }
 
-        .impactTag {
-            grid-column: 1;
-            align-self: center;
-        }
+    .access {
+        height: 22px;
+        padding: 0 8px;
+        font-size: 10px;
+    }
 
-        .title {
-            font-size: 19px;
-            line-height: 1.32;
-        }
+    .title {
+        font-size: 16px;
+    }
 
-        .publicationdate {
-            grid-column: 2;
-            width: auto;
-            margin-left: 0;
-            padding: 0;
-            align-items: flex-end;
-            border: 0;
-            text-align: right;
-        }
+    .snippet {
+        line-height: 1.55;
+    }
 
-        .dateValue {
-            font-size: 12px;
-        }
+    .actions {
+        gap: 8px;
+        font-size: 14px;
+    }
 
-        .abstract {
-            font-size: 15px;
-            line-height: 1.5;
-        }
+    // The open action becomes a full-width bar at the foot of the card.
+    .open {
+        order: 1;
+        flex: 1 1 100%;
+        justify-content: space-between;
+        min-height: 44px;
+        margin: 2px -4px -4px;
+        padding: 0 12px;
+        border-radius: 12px;
+        background: #111118;
+    }
+
+    .impact {
+        margin-left: 0;
+    }
+
+    .asideRow {
+        display: block;
     }
 }
