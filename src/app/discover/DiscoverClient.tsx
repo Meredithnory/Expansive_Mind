@@ -42,7 +42,12 @@ import {
     yearRangeLabel,
 } from "../lib/evidence-type";
 import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
-import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
+import {
+    buildPaperFocusHref,
+    parseReportPaperNumber,
+    parseReportView,
+    withReportOrigin,
+} from "../lib/paper-sources";
 import { resolveScholarCitesId } from "../lib/citing-works";
 import { CONFIDENCE_GUIDE, GROUNDING_NOTE } from "./report-sections";
 import {
@@ -295,6 +300,10 @@ function isAbortError(error: unknown) {
 type DiscoverClientProps = {
     qParam: string;
     savedParam: string;
+    /** Back from the reader: the report tab, gap, and paper to reopen at. */
+    returnView?: string;
+    returnGap?: string;
+    returnPaper?: string;
     hero?: ReactNode;
     modeChrome?: ReactNode;
 };
@@ -302,6 +311,9 @@ type DiscoverClientProps = {
 function DiscoverClient({
     qParam,
     savedParam,
+    returnView = "",
+    returnGap = "",
+    returnPaper = "",
     hero,
     modeChrome,
 }: DiscoverClientProps) {
@@ -753,6 +765,34 @@ function DiscoverClient({
             );
         },
         [result, scrollToPaper],
+    );
+
+    // Back from the reader ("Your report"): reopen the tab it left from, then
+    // the gap or paper. Once per report, so later tab clicks stick.
+    const returnTarget = parseReportView(returnView);
+    const returnGapNumber =
+        returnTarget === "gaps" ? parseReportPaperNumber(returnGap) : null;
+    const returnAppliedRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!result || !returnTarget || returnAppliedRef.current === result.id) return;
+        if (!reportViews.some((view) => view.id === returnTarget)) return;
+        returnAppliedRef.current = result.id;
+        setReportView({ id: result.id, view: returnTarget });
+        const paper = parseReportPaperNumber(returnPaper);
+        if (returnTarget === "papers" && paper) {
+            // Two frames: the Papers tab renders, then the paper scrolls in.
+            window.requestAnimationFrame(() =>
+                window.requestAnimationFrame(() => scrollToPaper(paper)),
+            );
+        }
+    }, [result, returnTarget, returnPaper, reportViews, scrollToPaper]);
+
+    const reportReturn = useMemo(
+        () => ({
+            report: hasSavedDiscoveryId ? result?.id : null,
+            view: activeView,
+        }),
+        [activeView, hasSavedDiscoveryId, result?.id],
     );
 
     const previewPaper = useMemo(
@@ -2000,6 +2040,7 @@ function DiscoverClient({
                                 paperCount={result.papers.length}
                                 papers={result.papers}
                                 only={["state", "limits"]}
+                                reportView="state"
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
                                     hasSavedDiscoveryId ? result.id : undefined
@@ -2096,6 +2137,8 @@ function DiscoverClient({
                                 paperCount={result.papers.length}
                                 papers={result.papers}
                                 only={["gaps", "problems", "experiments", "translation"]}
+                                reportView="gaps"
+                                initialGap={returnGapNumber}
                                 isLoggedIn={isLoggedIn}
                                 sourceDiscoveryId={
                                     hasSavedDiscoveryId ? result.id : undefined
@@ -2304,6 +2347,8 @@ function DiscoverClient({
                                                         extraction?.supportingExcerpt,
                                                 ),
                                                 paper.index,
+                                                null,
+                                                reportReturn,
                                             )}
                                             className={styles.openPaper}
                                         >
@@ -2413,6 +2458,8 @@ function DiscoverClient({
                     pendingQuestion={pendingPaperQuestion}
                     onPendingQuestionHandled={() => setPendingPaperQuestion(null)}
                     focus={paperChatFocus}
+                    dockKey={`${dockedComposerOpen}-${composerMode}`}
+                    returnTo={reportReturn}
                     onClose={() => {
                         setPaperChatOpen(false);
                         setComposerMode("discover");
@@ -2428,6 +2475,7 @@ function DiscoverClient({
                     onClose={closePaperPreview}
                     onSelectPaper={openPaperPreview}
                     onSeeInSources={seePaperInSources}
+                    returnTo={reportReturn}
                 />
             ) : null}
             {upgradeOpen ? (

@@ -1,7 +1,11 @@
 import { Suspense } from "react";
 import RouteLoading from "../../../components/RouteLoading";
 import PaperChatClient from "./PaperChatClient";
-import { parseReportPaperNumber } from "../../../lib/paper-sources";
+import {
+    parseReportPaperNumber,
+    parseReportView,
+    parseSavedReportId,
+} from "../../../lib/paper-sources";
 
 type PaperChatPageProps = {
     params: Promise<{ database: string; paperId: string[] }>;
@@ -36,6 +40,8 @@ export default async function PaperChatPage({ params, searchParams }: PaperChatP
                 fromReport={first(query.from) === "report"}
                 reportPaper={parseReportPaperNumber(first(query.paper))}
                 reportGap={parseReportPaperNumber(first(query.gap))}
+                reportId={parseSavedReportId(first(query.report))}
+                reportView={parseReportView(first(query.view))}
             />
         </Suspense>
     );

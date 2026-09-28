@@ -132,10 +132,26 @@ export function buildPaperPath(
 
 /** Marks a reader link as opened from a Discover report, so the reader can
  * offer the way back ("Your report · Gap 1 › Paper 3"). */
+export const REPORT_VIEWS = ["state", "gaps", "papers", "ledger", "opportunity"] as const;
+export type ReportViewId = (typeof REPORT_VIEWS)[number];
+
+/** The report a reader link came from, so "Your report" can reopen it. */
+export type ReportReturn = { report?: string | null; view?: string | null };
+
+/** A saved discovery's id (Mongo ObjectId); guest reports have none. */
+export function parseSavedReportId(value: string | null | undefined) {
+    return value && /^[a-f0-9]{24}$/i.test(value) ? value : null;
+}
+
+export function parseReportView(value: string | null | undefined): ReportViewId | null {
+    return REPORT_VIEWS.find((view) => view === value) ?? null;
+}
+
 export function withReportOrigin(
     href: string,
     paperIndex?: number | null,
     gapNumber?: number | null,
+    returnTo?: ReportReturn,
 ) {
     if (!href.startsWith("/paperchatbot/")) return href;
     const [path, query = ""] = href.split("?");
@@ -147,7 +163,35 @@ export function withReportOrigin(
     if (gapNumber && Number.isInteger(gapNumber) && gapNumber > 0) {
         params.set("gap", String(gapNumber));
     }
+    const report = parseSavedReportId(returnTo?.report);
+    if (report) params.set("report", report);
+    const view = parseReportView(returnTo?.view);
+    if (view) params.set("view", view);
     return `${path}?${params}`;
+}
+
+/**
+ * Where the reader's "Your report" goes: the saved report (a guest's comes
+ * back from this browser) on the tab, gap, or paper it was opened from.
+ */
+export function reportReturnHref({
+    report,
+    view,
+    gap,
+    paper,
+}: {
+    report?: string | null;
+    view?: ReportViewId | null;
+    gap?: number | null;
+    paper?: number | null;
+}) {
+    const params = new URLSearchParams();
+    if (report) params.set("saved", report);
+    if (view) params.set("view", view);
+    if (gap && view === "gaps") params.set("gap", String(gap));
+    if (paper && view === "papers") params.set("paper", String(paper));
+    const query = params.toString();
+    return query ? `/discover?${query}` : "/discover";
 }
 
 /** A report paper or gap number from a reader URL param, if valid. */

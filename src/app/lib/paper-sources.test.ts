@@ -3,6 +3,7 @@ import {
     buildPaperFocusHref,
     parseReportPaperNumber,
     withReportOrigin,
+    reportReturnHref,
     locatorFromLoadedPaper,
     makePaperLocator,
     normalizeStoredPaperId,
@@ -62,6 +63,24 @@ describe("buildPaperFocusHref", () => {
 });
 
 describe("withReportOrigin", () => {
+    it("carries the saved report and tab so the reader can link back", () => {
+        const id = "64b0000000000000000000a1";
+        const href = withReportOrigin("/paperchatbot/nih/1234567", 3, 2, {
+            report: id,
+            view: "gaps",
+        });
+        const params = new URLSearchParams(href.split("?")[1]);
+        expect(params.get("report")).toBe(id);
+        expect(params.get("view")).toBe("gaps");
+        expect(params.get("gap")).toBe("2");
+        // A guest report has no saved id; an unknown tab is dropped.
+        const guest = withReportOrigin("/paperchatbot/nih/1234567", 3, null, {
+            report: "guest-123",
+            view: "elsewhere",
+        });
+        expect(guest).toBe("/paperchatbot/nih/1234567?from=report&paper=3");
+    });
+
     it("marks a reader link as opened from a report", () => {
         const href = withReportOrigin(
             buildPaperFocusHref("/paperchatbot/nih/1234567", "A passage."),
@@ -126,5 +145,23 @@ describe("buildPaperFocusHref without method intent", () => {
             { method: false },
         );
         expect(href).toBe("/paperchatbot/springer/10.1186/abc?focus=A+saved+highlight");
+    });
+});
+
+describe("reportReturnHref", () => {
+    const id = "64b0000000000000000000a1";
+
+    it("reopens the saved report on the tab and gap the paper came from", () => {
+        expect(reportReturnHref({ report: id, view: "gaps", gap: 2, paper: 3 })).toBe(
+            `/discover?saved=${id}&view=gaps&gap=2`,
+        );
+        expect(reportReturnHref({ report: id, view: "papers", gap: 2, paper: 3 })).toBe(
+            `/discover?saved=${id}&view=papers&paper=3`,
+        );
+    });
+
+    it("falls back to the guest report in this browser", () => {
+        expect(reportReturnHref({ view: "state" })).toBe("/discover?view=state");
+        expect(reportReturnHref({})).toBe("/discover");
     });
 });

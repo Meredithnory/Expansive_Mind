@@ -6,7 +6,7 @@ import Paperbox from "../components/paperchatbot/Paperbox";
 import type { FormattedPaper } from "../api/general-interfaces";
 import { buildChatMessages, type ChatMessage } from "../lib/chat-messages";
 import { locateExcerptInPaper, type PaperCitation } from "../lib/paper-citation";
-import { withReportOrigin } from "../lib/paper-sources";
+import { withReportOrigin, type ReportReturn } from "../lib/paper-sources";
 import styles from "./discovery-paper-chat.module.scss";
 
 /** A citation click: the passage to highlight and the viewport point the panel grows from. */
@@ -19,6 +19,37 @@ export type PaperChatFocus = {
 
 /** Matches the .popup transition; hidden is applied after the close animation. */
 const CLOSE_MS = 280;
+
+/** Space kept between the panel and the nav above it or the ask bar below it. */
+const EDGE_GAP = 12;
+
+/**
+ * Fit the panel between the top nav (desktop; the phone nav sits at the
+ * bottom) and the docked ask bar, whose height changes with its mode.
+ */
+function fitBetweenNavAndDock(node: HTMLElement) {
+    const nav = document.querySelector<HTMLElement>("[data-app-nav]");
+    const navRect = nav?.getBoundingClientRect();
+    if (navRect && navRect.height > 0 && navRect.bottom < window.innerHeight / 2) {
+        node.style.setProperty(
+            "--paper-chat-top",
+            `${Math.max(8, Math.round(navRect.bottom + EDGE_GAP))}px`,
+        );
+    } else {
+        node.style.removeProperty("--paper-chat-top");
+    }
+    const dock = document.getElementById("discover-docked-composer");
+    if (dock && dock.offsetHeight > 0) {
+        // Offsets, not getBoundingClientRect: the dock rises in with a transform.
+        const bottom = Number.parseFloat(getComputedStyle(dock).bottom) || 0;
+        node.style.setProperty(
+            "--paper-chat-bottom",
+            `${Math.round(bottom + dock.offsetHeight + EDGE_GAP)}px`,
+        );
+    } else {
+        node.style.removeProperty("--paper-chat-bottom");
+    }
+}
 
 type Paper = {
     index: number;
@@ -36,9 +67,11 @@ function PaperConversation({
     onPendingQuestionHandled,
     focusExcerpt,
     focusKey,
+    returnTo,
 }: {
     paper: Paper;
     context: string;
+    returnTo?: ReportReturn;
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
     /** The cited passage; each new focusKey scrolls to and highlights it again. */
@@ -128,7 +161,7 @@ function PaperConversation({
             <div className={styles.chatPane}>
                 <a
                     className={styles.openFullPaper}
-                    href={withReportOrigin(paper.href, paper.index)}
+                    href={withReportOrigin(paper.href, paper.index, null, returnTo)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Open full paper and conversation in a new tab"
@@ -168,6 +201,8 @@ export default function DiscoveryPaperChat({
     pendingQuestion,
     onPendingQuestionHandled,
     focus = null,
+    dockKey,
+    returnTo,
 }: {
     papers: Paper[];
     question: string;
@@ -177,6 +212,10 @@ export default function DiscoveryPaperChat({
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
     focus?: PaperChatFocus | null;
+    /** Changes when the ask bar opens, closes, or switches mode. */
+    dockKey?: string;
+    /** The report and tab, for the full paper's "Your report" link. */
+    returnTo?: ReportReturn;
 }) {
     const [visited, setVisited] = useState<number[]>([]);
     const close = useRef<HTMLButtonElement>(null);
@@ -199,6 +238,32 @@ export default function DiscoveryPaperChat({
         const timer = window.setTimeout(() => setMounted(false), CLOSE_MS);
         return () => window.clearTimeout(timer);
     }, [open]);
+
+    // Declared before the grow effect so the panel is measured at its final size.
+    useLayoutEffect(() => {
+        const node = panel.current;
+        if (!mounted || !node) return;
+        const fit = () => fitBetweenNavAndDock(node);
+        fit();
+        const resize = new ResizeObserver(fit);
+        const dock = document.getElementById("discover-docked-composer");
+        const nav = document.querySelector("[data-app-nav]");
+        if (dock) resize.observe(dock);
+        if (nav) resize.observe(nav);
+        // DiscoverClient lifts the dock above the footer by rewriting
+        // --discover-composer-bottom on <html>.
+        const lift = new MutationObserver(fit);
+        lift.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["style"],
+        });
+        window.addEventListener("resize", fit);
+        return () => {
+            resize.disconnect();
+            lift.disconnect();
+            window.removeEventListener("resize", fit);
+        };
+    }, [mounted, dockKey]);
 
     // Grow from the clicked citation. Other opens (composer) grow from the bottom center.
     useLayoutEffect(() => {
@@ -274,6 +339,7 @@ export default function DiscoveryPaperChat({
                         >
                             <PaperConversation
                                 paper={paper}
+                                returnTo={returnTo}
                                 context={`Discovery question: ${question}`}
                                 pendingQuestion={
                                     paper.index === selected ? pendingQuestion : null

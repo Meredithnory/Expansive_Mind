@@ -14,7 +14,11 @@ import {
     paperDesignLabel,
     supportRelationLabel,
 } from "../lib/claim-evidence";
-import { buildPaperFocusHref, withReportOrigin } from "../lib/paper-sources";
+import {
+    buildPaperFocusHref,
+    withReportOrigin,
+    type ReportReturn,
+} from "../lib/paper-sources";
 import { visiblePaperQuote } from "../lib/quote-eligibility";
 import QuoteWithAttribution from "./QuoteWithAttribution";
 import { resolveScholarCitesId } from "../lib/citing-works";
@@ -46,6 +50,8 @@ type PaperPreviewDrawerProps = {
     onClose: () => void;
     onSelectPaper: (index: number) => void;
     onSeeInSources?: (index: number) => void;
+    /** The report and tab, for the reader's "Your report" link. */
+    returnTo?: ReportReturn;
 };
 
 function sourceBadgeClass(database: PreviewPaper["database"]) {
@@ -94,6 +100,7 @@ export default function PaperPreviewDrawer({
     onClose,
     onSelectPaper,
     onSeeInSources,
+    returnTo,
 }: PaperPreviewDrawerProps) {
     const panelRef = useRef<HTMLElement>(null);
     const titleId = useId();
@@ -143,6 +150,8 @@ export default function PaperPreviewDrawer({
     const methodHref = withReportOrigin(
         buildPaperFocusHref(paper.href, methodExcerpt),
         paper.index,
+        null,
+        returnTo,
     );
     // The passage the report cites; the reader scrolls to it and marks it.
     const citedExcerpt = extraction?.supportingExcerpt || "";
@@ -169,8 +178,10 @@ export default function PaperPreviewDrawer({
         ? withReportOrigin(
               buildPaperFocusHref(paper.href, citedExcerpt, { method: false }),
               paper.index,
+              null,
+              returnTo,
           )
-        : withReportOrigin(paper.href, paper.index);
+        : withReportOrigin(paper.href, paper.index, null, returnTo);
 
     return createPortal(
         <div className={styles.overlay}>

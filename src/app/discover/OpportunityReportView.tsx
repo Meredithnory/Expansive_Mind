@@ -297,6 +297,8 @@ export default function OpportunityReportView({
     activePaperIndex,
     onCitePaper,
     onGuestUpgrade,
+    reportView,
+    initialGap = null,
 }: {
     report: OpportunityReport;
     paperCount: number;
@@ -309,12 +311,19 @@ export default function OpportunityReportView({
     activePaperIndex?: number | null;
     onCitePaper: CitePaper;
     onGuestUpgrade: () => void;
+    /** The report tab showing this view, for the reader's "Your report" link. */
+    reportView?: string;
+    /** Back from the reader: the gap it was opened from (1-based). */
+    initialGap?: number | null;
 }) {
     const { sections } = report;
     const { refresh } = useSession();
     const [highlightedGap, setHighlightedGap] = useState<number | null>(null);
     // The gap shown large on the gap board (1-based).
-    const [selectedGap, setSelectedGap] = useState(1);
+    const [selectedGap, setSelectedGap] = useState(() =>
+        initialGap && initialGap <= sections.gaps.length ? initialGap : 1,
+    );
+    const returnScrolledRef = useRef(false);
     const [action, setAction] = useState<ProjectActionState>({
         key: null,
         status: "idle",
@@ -328,6 +337,17 @@ export default function OpportunityReportView({
         const timer = window.setTimeout(() => setHighlightedGap(null), 2_200);
         return () => window.clearTimeout(timer);
     }, [highlightedGap]);
+
+    // Back from the reader: bring the gap it was opened from into view.
+    useEffect(() => {
+        if (returnScrolledRef.current || !initialGap || !only?.includes("gaps")) return;
+        returnScrolledRef.current = true;
+        window.requestAnimationFrame(() => {
+            document
+                .getElementById("discover-gap-focus")
+                ?.scrollIntoView({ block: "center" });
+        });
+    }, [initialGap, only]);
 
     const scrollToGap = useCallback((gapIndex: number) => {
         setSelectedGap(gapIndex);
@@ -610,6 +630,10 @@ export default function OpportunityReportView({
                                                 focusPaper.href,
                                                 index,
                                                 focusNumber,
+                                                {
+                                                    report: sourceDiscoveryId,
+                                                    view: reportView,
+                                                },
                                             )}
                                             className={styles.gapOpenPaper}
                                         >

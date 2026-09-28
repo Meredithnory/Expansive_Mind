@@ -20,6 +20,8 @@ import {
 import {
     buildPaperPath,
     getSourceByDatabase,
+    reportReturnHref,
+    type ReportViewId,
 } from "../../../lib/paper-sources";
 import {
     citationFromLineRange,
@@ -127,6 +129,10 @@ type PaperChatClientProps = {
     reportPaper?: number | null;
     /** The report gap the paper was opened from (`?gap=1`). */
     reportGap?: number | null;
+    /** The saved report it came from (`?report=<id>`). */
+    reportId?: string | null;
+    /** The report tab it was opened from (`?view=gaps`). */
+    reportView?: ReportViewId | null;
 };
 
 const PaperChatClient = ({
@@ -141,6 +147,8 @@ const PaperChatClient = ({
     fromReport = false,
     reportPaper = null,
     reportGap = null,
+    reportId = null,
+    reportView = null,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -433,10 +441,18 @@ const PaperChatClient = ({
         setPendingInsert(citation);
     };
 
-    // A report link opened in a new tab has no page to go back to.
+    // Reopen the report on the tab and gap the paper came from. A plain
+    // history back lost both, and a new tab has no history at all.
     const handleBack = () => {
-        if (fromReport && window.history.length <= 1) {
-            router.push("/discover");
+        if (fromReport && (reportId || reportView || window.history.length <= 1)) {
+            router.push(
+                reportReturnHref({
+                    report: reportId,
+                    view: reportView,
+                    gap: reportGap,
+                    paper: reportPaper,
+                }),
+            );
             return;
         }
         router.back();
