@@ -12,12 +12,6 @@
     width: 100%;
     padding: 64px 0 88px;
     overflow-x: clip;
-
-    // The Research ring, pinned behind the card instead of the viewport.
-    :global([data-research-orbit]) {
-        position: absolute;
-        top: 58px;
-    }
 }
 
 .card {
@@ -518,10 +512,6 @@
 @media (max-width: 720px) {
     .page {
         padding: 12px 0 24px;
-
-        :global([data-research-orbit]) {
-            top: 0;
-        }
     }
 
     .card {

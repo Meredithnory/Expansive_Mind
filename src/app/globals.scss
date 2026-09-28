@@ -76,8 +76,7 @@ html {
         sans-serif;
 }
 body {
-    /* html paints the black; a transparent body lets the site ring show. */
-    background-color: transparent;
+    background-color: #000;
     color: white;
     margin: 0;
     width: min(80%, 1440px);
@@ -157,7 +156,7 @@ body:has([data-research-workspace]) {
 
 /* Research landing: parent fills the viewport row; the short cluster is
    vertically centered inside it (chat-home style). Tall mode content
-   (orbit, results) scrolls here — footer stays put. No footer z-index. */
+   (results) scrolls here — footer stays put. No footer z-index. */
 body:has([data-research-workspace]) .main-content {
     align-items: center;
     justify-content: center;

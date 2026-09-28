@@ -1,8 +1,6 @@
 import { Suspense } from "react";
 import RouteLoading from "../components/RouteLoading";
 import ResearchWorkspace from "./ResearchWorkspace";
-import ResearchOrbit from "../components/ResearchOrbit";
-import { parseResearchMode } from "../lib/research-mode";
 
 type DiscoverPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -19,12 +17,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
     // Route handlers still own quotas, persistence, and usage accounting separately.
     return (
         <Suspense
-            fallback={
-                <>
-                    <ResearchOrbit mode={parseResearchMode(first(query.mode))} />
-                    <RouteLoading label="Opening research workspace…" />
-                </>
-            }
+            fallback={<RouteLoading label="Opening research workspace…" />}
         >
             <ResearchWorkspace
                 modeParam={first(query.mode)}

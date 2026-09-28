@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import styles from "./about.module.scss";
-import ResearchOrbit from "../components/ResearchOrbit";
 import { DEVELOPER_NAME } from "../lib/contact";
 import { useSession } from "../lib/use-session";
 
@@ -327,7 +326,6 @@ const AboutPage = () => {
 
     return (
         <div className={styles.page}>
-            <ResearchOrbit />
 
             <header className={styles.hero}>
                 <p className={styles.kicker}>About</p>

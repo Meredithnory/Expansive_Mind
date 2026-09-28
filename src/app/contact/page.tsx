@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import ResearchOrbit from "../components/ResearchOrbit";
 import {
     CONTACT_TOPICS,
     DEVELOPER_EMAIL,
@@ -149,7 +148,6 @@ const ContactPage = () => {
 
     return (
         <div className={styles.page}>
-            <ResearchOrbit />
 
             <div className={styles.card}>
                 <aside className={styles.welcome}>
