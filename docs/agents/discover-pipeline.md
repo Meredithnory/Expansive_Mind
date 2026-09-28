@@ -10,8 +10,9 @@ Orchestration is `runDiscoverAgent` in `src/app/api/discover/agent.ts`. HTTP, qu
 4. Rank, then `selectDiscoverCandidates` in `src/app/api/discover/select-candidates.ts`. Keep papers that pass `access.canSendToAI`, plus non-Scholar papers with an abstract (`isDiscoverUsable`). Dedupe by DOI or id, cap at `TARGET_PAPER_COUNT` (10). `MIN_SPRINGER_BEFORE_NIH_FILL` is deprecated. NIH is searched on every run.
 5. `readPaperExcerpts` in `src/app/api/discover/agent.ts`. Scholar snippets are dropped. A paper that fails `canSendToAI` sends only its abstract (`selectAbstractContext`, `excerptKind: "abstract"`) and never gets a quote or `licenseUrl`. Quote text uses `evaluateQuoteEligibility` (`src/app/lib/quote-eligibility.ts`), always in strict mode. `shouldDropForOaConflict` can drop a paper. Unpaywall does not fill a null home license.
 6. `extractPaperFindings` in `src/app/api/discover/analyze.ts`. A failed extraction becomes `fallbackPaperExtraction`. The supporting excerpt comes only from `quoteExcerpt`.
-7. `synthesizeOpportunityReport` in `src/app/api/discover/synthesize.ts`.
-8. `attachClaimLedger` in `src/app/api/discover/claim-ledger.ts`.
+7. `synthesizeOpportunityReport` in `src/app/api/discover/synthesize.ts`. Each gap may carry `registryTerms` (AND-groups, sanitized in `src/app/lib/gap-activity.ts`).
+8. `attachGapActivity` in `src/app/api/discover/gap-activity.ts`. For up to 4 gaps with terms: NIH RePORTER grants (last 3 fiscal years, requests spaced 1.1 s) and active ClinicalTrials.gov studies. Model-supplied `activity` is always stripped. Failures become `status: "unavailable"`; the step never throws. Grants store no PI or institution because they render on public briefs. UI copy must not call a gap "unfunded": zero matches is not proof of absence.
+9. `attachClaimLedger` in `src/app/api/discover/claim-ledger.ts`.
 
 If the first retrieval is empty, the agent may apply one NIH spelling suggestion (`src/app/api/discover/discovery-query.ts`) and retrieve again.
 

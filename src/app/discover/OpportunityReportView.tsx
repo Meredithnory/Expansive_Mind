@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import styles from "./discover.module.scss";
+import GapActivityView from "./GapActivityView";
+import { gapActivitySummary } from "../lib/gap-activity";
 import type {
     DiscoverPaperCard,
     OpportunityReport,
@@ -633,6 +635,9 @@ export default function OpportunityReportView({
                                 )}
                             </div>
                         )}
+                        {focusGap.activity ? (
+                            <GapActivityView activity={focusGap.activity} />
+                        ) : null}
                         <StartProjectButton
                             actionKey={`gap-${focusNumber}`}
                             action={action}
@@ -656,6 +661,7 @@ export default function OpportunityReportView({
                                 const cited = gap.citations.filter(
                                     (paper) => paper >= 1 && paper <= paperCount,
                                 ).length;
+                                const activity = gapActivitySummary(gap.activity);
                                 return (
                                     <button
                                         key={`${gap.title}-${index}`}
@@ -676,6 +682,7 @@ export default function OpportunityReportView({
                                             {cited > 0
                                                 ? ` · ${pluralize(cited, "paper")}`
                                                 : ""}
+                                            {activity ? ` · ${activity}` : ""}
                                         </span>
                                     </button>
                                 );

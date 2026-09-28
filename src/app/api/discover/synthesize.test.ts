@@ -145,6 +145,23 @@ describe("parseOpportunityReport", () => {
         expect(parsed?.sections.gaps[0].confidence).toBe("suggested");
     });
 
+    it("keeps sanitized registry terms on gaps", () => {
+        const parsed = parseOpportunityReport({
+            gaps: [
+                {
+                    title: "Gap",
+                    registryTerms: [["Senolytics", "alzheimer"], "junk", ["dasatinib", "quercetin"]],
+                },
+                { title: "No terms" },
+            ],
+        });
+        expect(parsed?.sections.gaps[0].registryTerms).toEqual([
+            ["senolytics", "alzheimer"],
+            ["dasatinib", "quercetin"],
+        ]);
+        expect(parsed?.sections.gaps[1]).not.toHaveProperty("registryTerms");
+    });
+
     it("returns null when the payload has no usable sections", () => {
         expect(parseOpportunityReport({})).toBeNull();
         expect(parseOpportunityReport(null)).toBeNull();

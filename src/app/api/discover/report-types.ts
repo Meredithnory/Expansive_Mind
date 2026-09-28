@@ -124,6 +124,42 @@ export interface ReportGap {
     confidence: ReportConfidence;
     /** Why this gap is not a field-wide absence. */
     scopeNote?: string;
+    /** Registry search terms: OR of AND-groups, e.g. [["senolytics","alzheimer"]]. */
+    registryTerms?: string[][];
+    /** Set only by attachGapActivity from live registry lookups, never by the model. */
+    activity?: GapActivity;
+}
+
+/** NIH RePORTER project. No PI or institution: this renders on public briefs. */
+export interface GapGrantRef {
+    coreProjectNum: string;
+    title: string;
+    fiscalYear: number;
+    href: string;
+}
+
+export interface GapTrialRef {
+    nctId: string;
+    title: string;
+    status: string;
+    phase?: string;
+    href: string;
+}
+
+export interface GapRegistryResult<T> {
+    status: "ok" | "unavailable";
+    /** Matching records the registry reported. Grants count project-years. */
+    total: number;
+    items: T[];
+}
+
+/** Who else is working on a gap. No matches is not evidence of absence. */
+export interface GapActivity {
+    checkedAt: string;
+    query: string;
+    fiscalYears: number[];
+    grants: GapRegistryResult<GapGrantRef>;
+    trials: GapRegistryResult<GapTrialRef>;
 }
 
 export interface ReportProblem {
