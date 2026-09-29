@@ -94,7 +94,7 @@ export function parsePaperExtraction(
     const methodsEvidence =
         typeof value.methodsQuote === "string" && value.methodsQuote.trim()
             ? verifiedSentence({
-                  excerpt: paper.excerpt,
+                  excerpt: [paper.excerpt, paper.methodsExcerpt].filter(Boolean).join("\n"),
                   quotable: isQuotable(paper),
                   quote: value.methodsQuote,
               })
@@ -144,7 +144,7 @@ Return JSON only, no markdown, matching:
 {"keyFindings":[{"finding":"...","quote":"..."}],"methods":"...","methodsQuote":"...","limitations":["..."],"openQuestions":["..."],"evidenceType":"review"|"rct"|"observational"|"in-vitro"|"animal"|"computational"|"other"}
 keyFindings: 2–6 concise findings from the excerpt. For each, "quote" is the one sentence of the excerpt that supports it, copied exactly as written (at most 300 characters, no ellipses, no paraphrase). Use "" when no single sentence supports the finding.
 methods: one short sentence on study design or methods, or "".
-methodsQuote: the one sentence of the excerpt that states how the study was done (design, model, cohort, or protocol), copied exactly as written (at most 300 characters). Use "" if the excerpt has no such sentence.
+methodsQuote: the one sentence of the excerpt or methodsExcerpt that states how the study was done (design, model, cohort, or protocol), copied exactly as written (at most 300 characters). Use "" if neither has such a sentence.
 limitations: limitations the paper itself states, or [].
 openQuestions: questions or unresolved issues the paper itself flags, or [].
 evidenceType: pick the closest match.`,
@@ -161,6 +161,9 @@ evidenceType: pick the closest match.`,
                         publicationDate: paper.publicationDate || null,
                         excerptKind: paper.excerptKind || "body",
                         excerpts: excerpt,
+                        ...(paper.methodsExcerpt
+                            ? { methodsExcerpt: paper.methodsExcerpt }
+                            : {}),
                     }),
             },
         ];

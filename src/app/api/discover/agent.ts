@@ -2,6 +2,7 @@ import { rankSearchResults } from "../search/semantic-rank";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import {
     selectAbstractContext,
+    selectMethodsOpening,
     selectPaperContext,
     selectQuotableExcerpt,
 } from "../../lib/paper-context";
@@ -223,6 +224,8 @@ async function readPaperExcerpts(
             if (!excerpt) {
                 throw new Error("No usable text for this paper");
             }
+            // Only a paper the model may read in full gets its Methods opening.
+            const methodsExcerpt = abstractOnly ? "" : selectMethodsOpening(paper, excerpt);
             const quoteLicenses = quoteLicenseFromHome(paper.access, oa);
             const quote = evaluateQuoteEligibility({
                 source: paper.source || loaded.locator.database,
@@ -306,6 +309,7 @@ async function readPaperExcerpts(
                 excerpt,
                 excerptKind: abstractOnly ? "abstract" : "body",
                 ...(quoteExcerpt ? { quoteExcerpt } : {}),
+                ...(methodsExcerpt ? { methodsExcerpt } : {}),
             };
 
             return { card, synthesisPaper };

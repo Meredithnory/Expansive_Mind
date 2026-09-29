@@ -107,6 +107,23 @@ describe("parsePaperExtraction", () => {
         expect(invented?.methodsEvidence).toBeUndefined();
     });
 
+    it("accepts a methods sentence from the Methods opening sent alongside the excerpt", () => {
+        const parsed = parsePaperExtraction(
+            {
+                keyFindings: ["Events fell"],
+                methods: "",
+                methodsQuote: "Adults were randomized 1:1 to drug or placebo for 52 weeks.",
+            },
+            {
+                ...paper,
+                methodsExcerpt: "Adults were randomized 1:1 to drug or placebo for 52 weeks. Visits were monthly.",
+            },
+        );
+        expect(parsed?.methodsEvidence?.quote).toBe(
+            "Adults were randomized 1:1 to drug or placebo for 52 weeks.",
+        );
+    });
+
     it("returns null for unrelated payloads", () => {
         expect(parsePaperExtraction(null, paper)).toBeNull();
         expect(parsePaperExtraction("nope", paper)).toBeNull();
