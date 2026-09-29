@@ -61,3 +61,11 @@ describe("sender address", () => {
         expect(emailFromAddress({ CONTACT_FROM_EMAIL: "Team <hi@example.com>" })).toBe("Team <hi@example.com>");
     });
 });
+
+describe("contact email colors", () => {
+    it("keeps the sender's details and message readable on the light default", () => {
+        const mail = contactNotificationEmail(fields, { origin: "https://expansivemind.ai" });
+        expect(mail.html).not.toMatch(/color:#(?:e6eef8|f2f7ff)/i);
+        expect(mail.html).toContain('class="em-heading"');
+    });
+});

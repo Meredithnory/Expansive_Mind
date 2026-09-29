@@ -13,6 +13,7 @@ import {
     passwordResetSubject,
     passwordResetText,
 } from "./password-reset";
+import { EMAIL_THEME, EMAIL_THEME_DARK } from "./email-layout";
 
 describe("password reset tokens and copy", () => {
     it("normalizes an account email and rejects a bad one", () => {
@@ -69,6 +70,26 @@ describe("password reset tokens and copy", () => {
         const urls = html.match(/https:\/\/example\.test\/reset-password\?token=[^"<&]+/g);
         expect(urls?.length).toBeGreaterThan(0);
         expect(new Set(urls)).toEqual(new Set([link]));
+    });
+
+    it("is light by default and dark in mail apps that report dark mode", () => {
+        const html = passwordResetHtml("https://example.test/reset-password?token=once", 2026);
+
+        expect(html).toContain('<meta name="color-scheme" content="light dark">');
+        expect(html).toContain(`background:${EMAIL_THEME.card}`);
+        expect(html).toContain(`color:${EMAIL_THEME.link}`);
+        expect(html).toContain("@media (prefers-color-scheme: dark)");
+        expect(html).toContain(`.em-card { background: ${EMAIL_THEME_DARK.card} !important;`);
+        expect(html).toContain(`.em-link { color: ${EMAIL_THEME_DARK.link} !important; }`);
+        // Every inline themed color carries a class the dark rules can reach.
+        for (const tag of html.match(/<[^>]+style="[^"]*(?:color|background):#[^"]*"[^>]*>/g) ?? []) {
+            // The button is pink with white text in both modes.
+            if (tag.includes(`background:${EMAIL_THEME.pink}`)) {
+                expect(tag).toContain("color:#ffffff");
+                continue;
+            }
+            expect(tag).toMatch(/class="em-/);
+        }
     });
 
     it("uses the contact from-address, with the same Resend fallback", () => {
