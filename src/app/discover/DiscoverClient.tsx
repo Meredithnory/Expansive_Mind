@@ -45,10 +45,10 @@ import { designMixLabel, paperDesignLabel } from "../lib/claim-evidence";
 import {
     citedEvidence,
     evidenceFocusHref,
+    methodFocusHref,
     type CiteContext,
 } from "../lib/paper-evidence";
 import {
-    buildPaperFocusHref,
     parseReportPaperNumber,
     parseReportView,
     withReportOrigin,
@@ -2256,10 +2256,9 @@ function DiscoverClient({
                                     <div className={styles.paperActions}>
                                         <Link
                                             href={withReportOrigin(
-                                                buildPaperFocusHref(
+                                                methodFocusHref(
                                                     paper.href,
-                                                    extraction?.methods ||
-                                                        extraction?.supportingExcerpt,
+                                                    extraction?.methodsEvidence,
                                                 ),
                                                 paper.index,
                                                 null,

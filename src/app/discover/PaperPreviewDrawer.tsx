@@ -1,6 +1,6 @@
 "use client";
 
-import { evidenceFocusHref } from "../lib/paper-evidence";
+import { evidenceFocusHref, methodFocusHref } from "../lib/paper-evidence";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -149,10 +149,8 @@ export default function PaperPreviewDrawer({
         Boolean(extraction && extraction.keyFindings.length > 0) ||
         Boolean(extraction?.methods) ||
         Boolean(extraction && extraction.limitations.length > 0);
-    const methodExcerpt =
-        extraction?.methods || extraction?.supportingExcerpt || "";
     const methodHref = withReportOrigin(
-        buildPaperFocusHref(paper.href, methodExcerpt),
+        methodFocusHref(paper.href, extraction?.methodsEvidence),
         paper.index,
         null,
         returnTo,

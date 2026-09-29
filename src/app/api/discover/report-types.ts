@@ -111,6 +111,12 @@ export interface PaperEvidence {
     anchor?: EvidenceAnchor;
 }
 
+/** One verified sentence of a paper: its text when quotable, always its anchor. */
+export interface EvidenceSentence {
+    quote?: string;
+    anchor?: EvidenceAnchor;
+}
+
 export interface PaperExtraction {
     index: number;
     title: string;
@@ -137,6 +143,8 @@ export interface PaperExtraction {
     populationMatch?: PopulationMatch;
     claims?: ClaimEvidenceRecord[];
     evidence?: PaperEvidence[];
+    /** The paper's own sentence saying how the study was done ("Show method"). */
+    methodsEvidence?: EvidenceSentence;
 }
 
 export interface ReportGap {

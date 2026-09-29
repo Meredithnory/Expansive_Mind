@@ -7,9 +7,11 @@ import {
     findAnchoredSentence,
     gapEvidenceId,
     matchVerbatim,
+    methodFocusHref,
     paperSearchText,
     parseAnchorParam,
     verifiedPaperEvidence,
+    verifiedSentence,
 } from "./paper-evidence";
 
 const excerpt =
@@ -142,5 +144,30 @@ describe("evidence links", () => {
         expect(parseAnchorParam("1a2b3c.80")).toEqual(anchor);
         expect(parseAnchorParam("1a2b3c.5")).toBeNull();
         expect(parseAnchorParam("<script>.80")).toBeNull();
+    });
+});
+
+describe("Show method", () => {
+    it("opens at the paper's own methods sentence when one was verified", () => {
+        const anchor = { hash: "abc123", length: 60 };
+        expect(methodFocusHref("/paperchatbot/nih/1", { quote: "Mice were dosed daily for 21 days.", anchor })).toBe(
+            "/paperchatbot/nih/1?focus=Mice+were+dosed+daily+for+21+days.&intent=method",
+        );
+        expect(methodFocusHref("/paperchatbot/nih/1", { anchor })).toBe(
+            "/paperchatbot/nih/1?intent=method&anchor=abc123.60",
+        );
+    });
+
+    it("otherwise opens the Methods section, never a paraphrase", () => {
+        expect(methodFocusHref("/paperchatbot/nih/1", undefined)).toBe("/paperchatbot/nih/1?intent=method");
+    });
+
+    it("keeps a methods sentence only when it is word for word in the excerpt", () => {
+        const text = "## Methods\nMice were dosed daily for 21 days with the study drug. Results follow.";
+        expect(verifiedSentence({ excerpt: text, quotable: true, quote: "Mice were dosed daily for 21 days with the study drug." })?.quote).toBe(
+            "Mice were dosed daily for 21 days with the study drug.",
+        );
+        expect(verifiedSentence({ excerpt: text, quotable: false, quote: "Mice were dosed daily for 21 days with the study drug." })?.quote).toBeUndefined();
+        expect(verifiedSentence({ excerpt: text, quotable: true, quote: "A randomized trial of the study drug in mice." })).toBeNull();
     });
 });

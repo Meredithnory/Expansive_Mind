@@ -86,6 +86,27 @@ describe("parsePaperExtraction", () => {
         ]);
     });
 
+    it("keeps the paper's methods sentence, not the summary, for Show method", () => {
+        const parsed = parsePaperExtraction(
+            {
+                keyFindings: ["Events fell"],
+                methods: "A randomized trial.",
+                methodsQuote: "Limitations include small n.",
+            },
+            paper,
+        );
+        expect(parsed?.methods).toBe("A randomized trial.");
+        expect(parsed?.methodsEvidence).toEqual({
+            quote: "Limitations include small n.",
+            anchor: expect.objectContaining({ length: 28 }),
+        });
+        const invented = parsePaperExtraction(
+            { keyFindings: ["Events fell"], methods: "", methodsQuote: "Patients were randomized 1:1." },
+            paper,
+        );
+        expect(invented?.methodsEvidence).toBeUndefined();
+    });
+
     it("returns null for unrelated payloads", () => {
         expect(parsePaperExtraction(null, paper)).toBeNull();
         expect(parsePaperExtraction("nope", paper)).toBeNull();
