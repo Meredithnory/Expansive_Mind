@@ -186,6 +186,21 @@ export function parseStoredPaperExtraction(
               .map(parseStoredClaim)
               .filter((claim): claim is ClaimEvidenceRecord => Boolean(claim))
         : [];
+    const methodsRow =
+        raw.methodsEvidence && typeof raw.methodsEvidence === "object"
+            ? (raw.methodsEvidence as Record<string, unknown>)
+            : null;
+    const methodsQuote = asTrimmedString(methodsRow?.quote);
+    const methodsAnchor = isEvidenceAnchor(methodsRow?.anchor)
+        ? { hash: methodsRow.anchor.hash, length: methodsRow.anchor.length }
+        : undefined;
+    const methodsEvidence =
+        methodsQuote || methodsAnchor
+            ? {
+                  ...(methodsQuote ? { quote: methodsQuote } : {}),
+                  ...(methodsAnchor ? { anchor: methodsAnchor } : {}),
+              }
+            : undefined;
     const evidence = Array.isArray(raw.evidence)
         ? raw.evidence.flatMap((item) => {
               if (!item || typeof item !== "object") return [];
@@ -224,6 +239,7 @@ export function parseStoredPaperExtraction(
         ...(populationMatch ? { populationMatch } : {}),
         ...(claims.length > 0 ? { claims } : {}),
         ...(evidence.length > 0 ? { evidence } : {}),
+        ...(methodsEvidence ? { methodsEvidence } : {}),
     };
 }
 

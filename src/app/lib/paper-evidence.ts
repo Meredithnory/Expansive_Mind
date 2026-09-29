@@ -1,6 +1,10 @@
 // Evidence behind report citations: verify the model's quotes against the
 // paper, and pick the quote a clicked "Paper N" chip should highlight.
-import type { EvidenceAnchor, PaperEvidence } from "../api/discover/report-types";
+import type {
+    EvidenceAnchor,
+    EvidenceSentence,
+    PaperEvidence,
+} from "../api/discover/report-types";
 import { evidencePaper } from "./cited-text";
 import { buildPaperFocusHref } from "./paper-sources";
 
@@ -120,6 +124,23 @@ export function isEvidenceAnchor(value: unknown): value is EvidenceAnchor {
 }
 
 /**
+ * One sentence the model copied, if it is really in the excerpt: its anchor,
+ * plus its text when the paper can be quoted.
+ */
+export function verifiedSentence(input: {
+    excerpt: string;
+    quotable: boolean;
+    quote: string;
+}): EvidenceSentence | null {
+    const sentence = matchVerbatim(input.excerpt, input.quote);
+    if (!sentence || sentence.length > EVIDENCE_QUOTE_MAX_CHARS) return null;
+    return {
+        anchor: evidenceAnchor(sentence),
+        ...(input.quotable ? { quote: sentence } : {}),
+    };
+}
+
+/**
  * Keep the findings whose sentence is really in the excerpt, as E{paper}.{n}.
  * Every kept item gets an anchor so the reader can highlight it; the
  * sentence itself is stored only when the paper can be quoted.
@@ -134,15 +155,17 @@ export function verifiedPaperEvidence(input: {
     const seen = new Set<string>();
     for (const item of input.items) {
         const finding = item.finding.trim();
-        const sentence = matchVerbatim(input.excerpt, item.quote);
-        if (!finding || !sentence || sentence.length > EVIDENCE_QUOTE_MAX_CHARS) continue;
-        if (seen.has(sentence)) continue;
-        seen.add(sentence);
+        const verified = finding
+            ? verifiedSentence({ excerpt: input.excerpt, quotable: input.quotable, quote: item.quote })
+            : null;
+        if (!verified?.anchor) continue;
+        const key = `${verified.anchor.hash}.${verified.anchor.length}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         evidence.push({
             id: `E${input.paperIndex}.${evidence.length + 1}`,
             finding,
-            anchor: evidenceAnchor(sentence),
-            ...(input.quotable ? { quote: sentence } : {}),
+            ...verified,
         });
     }
     return evidence;
@@ -254,4 +277,23 @@ export function parseAnchorParam(value: string | null | undefined): EvidenceAnch
     if (!match) return null;
     const anchor = { hash: match[1], length: Number(match[2]) };
     return isEvidenceAnchor(anchor) ? anchor : null;
+}
+
+/**
+ * "Show method": the paper's own methods sentence when one was verified (its
+ * text, or its fingerprint for a paper we can't quote), else the start of the
+ * paper's Methods section. Never the model's paraphrase of the methods, which
+ * the reader could only match to a look-alike passage.
+ */
+export function methodFocusHref(
+    href: string,
+    methods: EvidenceSentence | null | undefined,
+): string {
+    if (methods?.quote) return buildPaperFocusHref(href, methods.quote);
+    const base = buildPaperFocusHref(href, null);
+    if (!methods?.anchor || !base.startsWith("/paperchatbot/")) return base;
+    const [path, query = ""] = base.split("?");
+    const params = new URLSearchParams(query);
+    params.set("anchor", `${methods.anchor.hash}.${methods.anchor.length}`);
+    return `${path}?${params}`;
 }

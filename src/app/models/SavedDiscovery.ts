@@ -155,6 +155,25 @@ const paperExtractionSchema = new Schema(
             ],
             default: undefined,
         },
+        // The paper's own methods sentence for "Show method": text only for
+        // quote-eligible papers, a fingerprint for every paper.
+        methodsEvidence: {
+            type: new Schema(
+                {
+                    quote: { type: String, maxlength: 400 },
+                    anchor: {
+                        type: new Schema(
+                            {
+                                hash: { type: String, required: true, maxlength: 16 },
+                                length: { type: Number, required: true, min: 1, max: 400 },
+                            },
+                            { _id: false, strict: "throw" },
+                        ),
+                    },
+                },
+                { _id: false, strict: "throw" },
+            ),
+        },
     },
     {
         _id: false,
