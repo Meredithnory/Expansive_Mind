@@ -10,7 +10,9 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    padding: 64px 0 88px;
+    // The header row sits 13px below the bar, so this lands the card 64px
+    // under the nav, as in the artboard.
+    padding: 51px 0 88px;
     overflow-x: clip;
 }
 
@@ -249,7 +251,7 @@
         min-height: 150px;
         padding: 14px 16px;
         line-height: 1.5;
-        resize: vertical;
+        resize: none;
     }
 }
 
