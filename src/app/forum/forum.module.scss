@@ -1,3 +1,6 @@
+// Forum: the feed, post cards, comments, and people pages.
+// Targets: "Forum & Groups" page of the design canvas (desktop and phone).
+
 .page {
     display: flex;
     flex: 1;
@@ -30,6 +33,11 @@
     a {
         color: #ff8ec4;
     }
+}
+
+// The feed: a main column and a right-hand column on desktop.
+.pageWide {
+    width: min(1056px, 100%);
 }
 
 /* Post cards and their comments also render outside the forum (the profile
@@ -65,6 +73,118 @@
     clip: rect(0 0 0 0);
 }
 
+@mixin eyebrow {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+// ---- Layout ---------------------------------------------------------------
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 28px;
+    align-items: start;
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+}
+
+.rail {
+    position: sticky;
+    top: 108px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.railCard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    background: #0a0a0f;
+    color: #c9d1dc;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-decoration: none;
+
+    ol {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 0;
+        padding-left: 18px;
+    }
+}
+
+.railTitle {
+    @include eyebrow;
+    color: #7c8594;
+}
+
+.railTopics {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.page .railTopic {
+    display: flex;
+    justify-content: space-between;
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    background: transparent;
+    color: #e6eef8;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: left;
+
+    span {
+        color: #7c8594;
+        font-weight: 600;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.04);
+    }
+}
+
+.page .railTopicActive {
+    background: rgba(255, 0, 132, 0.1);
+    color: #ff8ec4;
+}
+
+.railGroups {
+    border-color: rgba(10, 177, 255, 0.35);
+
+    .railTitle {
+        color: #7cd3ff;
+    }
+
+    strong {
+        color: #fff;
+        font-size: 0.95rem;
+    }
+
+    a {
+        color: #7cd3ff !important;
+        font-weight: 700;
+        text-decoration: none;
+    }
+}
+
+// ---- Header, feed controls -------------------------------------------------
+
 .header {
     display: flex;
     flex-direction: column;
@@ -73,29 +193,31 @@
     h1 {
         margin: 0;
         color: #fff;
-        font-size: clamp(1.6rem, 5vw, 2.2rem);
+        font-size: clamp(1.6rem, 5vw, 2.1rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
         line-height: 1.15;
-    }
-
-    @media (max-width: 720px) {
-        align-items: center;
-        text-align: center;
     }
 }
 
+.headerRow {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
 .eyebrow {
+    @include eyebrow;
     margin: 0;
-    color: #ff0084;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    color: #ff3d9a;
 }
 
 .lede {
     max-width: 52ch;
     margin: 0;
-    color: rgba(215, 235, 255, 0.62);
+    color: rgba(215, 235, 255, 0.72);
     line-height: 1.5;
 }
 
@@ -103,69 +225,96 @@
     align-self: flex-start;
     font-size: 0.85rem;
     text-decoration: none;
-
-    @media (max-width: 720px) {
-        align-self: center;
-    }
 }
 
-.createForm,
-.inviteRow,
-.replyForm {
-    display: flex;
+.cta {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
+    min-height: 46px;
+    padding: 0 20px;
+    border-radius: 999px;
+    background: #ff0084;
+    color: #fff !important;
+    font-weight: 700;
+    text-decoration: none;
 
-    input,
-    textarea {
-        flex: 1;
-        min-width: 0;
-        min-height: 44px;
-        padding: 10px 14px;
-        border: 1px solid rgba(215, 235, 255, 0.14);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.03);
-        color: #fff;
-        font: inherit;
-        font-size: 16px; // 16px stops iOS from zooming into the field
-        box-sizing: border-box;
-        resize: vertical;
-    }
-
-    button {
-        flex: none;
-        white-space: nowrap;
+    &:hover {
+        background: #ff2a96;
     }
 }
 
-/* Phone: the field gets its own full-width row; buttons share the next one.
-   Comments keep the field and a compact Post button side by side. */
-@media (max-width: 520px) {
-    .createForm,
-    .inviteRow {
-        flex-wrap: wrap;
+.ctaPost::before {
+    content: "+";
+    font-size: 1.2rem;
+    line-height: 1;
+}
 
-        input {
-            flex-basis: 100%;
-        }
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
 
-        button {
-            flex: 1;
+.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: #0d0d13;
+
+    button {
+        min-height: 38px;
+        background: transparent;
+        color: #9aa3b2;
+
+        &[aria-selected="true"] {
+            background: rgba(255, 0, 132, 0.16);
+            color: #ff5aa9;
         }
     }
 }
 
-.replyForm {
-    align-items: flex-end;
+.tagRow {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
 
-    textarea {
-        min-height: 44px;
-        max-height: 160px;
+    &::-webkit-scrollbar {
+        display: none;
     }
+}
 
-    button {
-        min-width: 64px;
-        padding: 0 14px;
-    }
+.tag,
+.tagActive,
+.page .tag,
+.page .tagActive {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: transparent;
+    color: #c9d1dc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.tagActive,
+.page .tagActive {
+    border-color: rgba(255, 90, 169, 0.6);
+    background: rgba(255, 0, 132, 0.12);
+    color: #ff8ec4;
 }
 
 .error,
@@ -182,135 +331,27 @@
     color: rgba(215, 235, 255, 0.72);
 }
 
-.list {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.card {
-    display: block;
-    min-height: 72px;
-    padding: 16px 18px;
-    border: 1px solid rgba(215, 235, 255, 0.1);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.02);
-    color: inherit !important;
-    text-decoration: none;
-
-    h2 {
-        margin: 0 0 4px;
-        color: #fff;
-        font-size: 1.05rem;
-    }
-
-    p {
-        margin: 0;
-        color: rgba(215, 235, 255, 0.55);
-        font-size: 0.85rem;
-    }
-
-    &:hover {
-        border-color: rgba(255, 0, 132, 0.35);
-    }
-}
-
 .empty {
-    padding: 28px 20px;
-    border: 1px dashed rgba(215, 235, 255, 0.16);
-    border-radius: 18px;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    background: #0a0a0f;
 
     p {
-        margin: 6px auto;
-        max-width: 44ch;
-        color: rgba(215, 235, 255, 0.6);
+        max-width: 48ch;
+        margin: 0;
+        color: #c9d1dc;
         line-height: 1.5;
     }
 }
 
 .emptyTitle {
     color: #fff !important;
-    font-weight: 700;
-}
-
-.joinCard {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8vh;
-    padding: 32px 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    background: rgba(8, 8, 10, 0.82);
-    text-align: center;
-
-    h1 {
-        margin: 0;
-        color: #fff;
-    }
-}
-
-.members {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    margin: 4px 0 0;
-    padding: 0;
-    list-style: none;
-
-    li {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.85rem;
-    }
-
-    @media (max-width: 720px) {
-        justify-content: center;
-    }
-}
-
-.linkButton,
-.page .linkButton {
-    min-height: 32px;
-    padding: 0 8px;
-    background: transparent;
-    color: rgba(215, 235, 255, 0.55);
-    font-size: 0.78rem;
-    font-weight: 600;
-
-    &:hover {
-        color: #ffb4b4;
-    }
-}
-
-.invite {
-    padding: 16px;
-    border: 1px solid rgba(215, 235, 255, 0.1);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.02);
-
-    h2 {
-        margin: 0 0 4px;
-        color: #fff;
-        font-size: 0.95rem;
-    }
-
-    p {
-        margin: 0 0 10px;
-        color: rgba(215, 235, 255, 0.55);
-        font-size: 0.82rem;
-    }
-}
-
-.secondary,
-.page .secondary {
-    border: 1px solid rgba(215, 235, 255, 0.18);
-    background: transparent;
+    font-size: 1.1rem;
+    font-weight: 800;
 }
 
 .feed {
@@ -319,296 +360,125 @@
     gap: 14px;
 }
 
+.skeleton {
+    min-height: 200px;
+}
+
+.more,
+.page .more {
+    align-self: center;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: transparent;
+    color: #e6eef8;
+}
+
+.secondary,
+.page .secondary {
+    border: 1px solid rgba(215, 235, 255, 0.18);
+    background: transparent;
+}
+
+// ---- Post card -------------------------------------------------------------
+
 .post {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 16px;
-    border: 1px solid rgba(215, 235, 255, 0.1);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.02);
+    gap: 12px;
+    padding: 20px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    background: #0a0a0f;
 }
 
 .postHead {
     display: flex;
     align-items: center;
     gap: 10px;
-
-    p {
-        flex: 1;
-        margin: 0;
-        font-size: 0.88rem;
-
-        span {
-            color: rgba(215, 235, 255, 0.5);
-        }
-    }
-}
-
-.paperTitle {
-    color: #fff !important;
-    font-size: 1.02rem;
-    font-weight: 700;
-    line-height: 1.35;
-    text-decoration: none;
-
-    &:hover {
-        text-decoration: underline;
-    }
-}
-
-.note {
-    margin: 0;
-    line-height: 1.55;
-    white-space: pre-wrap;
-}
-
-.highlight {
-    --hl: #ff4fa8;
-    padding: 10px 12px;
-    border-left: 3px solid var(--hl);
-    border-radius: 4px 12px 12px 4px;
-    background: rgba(255, 255, 255, 0.025);
-
-    &[data-color="blue"] {
-        --hl: #3ab8ff;
-    }
-
-    &[data-color="yellow"] {
-        --hl: #ffd23f;
-    }
-
-    blockquote {
-        margin: 0 0 6px;
-        color: rgba(255, 255, 255, 0.9);
-        line-height: 1.55;
-        white-space: pre-wrap;
-    }
-}
-
-.hiddenQuote {
-    margin: 0 0 6px;
-    color: rgba(215, 235, 255, 0.6);
-    font-size: 0.85rem;
-    font-style: italic;
-}
-
-.openPassage {
-    font-size: 0.82rem;
-    font-weight: 650;
-    text-decoration: none;
-}
-
-.replyToggle,
-.page .replyToggle {
-    align-self: flex-start;
-    min-height: 32px;
-    margin-top: 4px;
-    padding: 0 10px;
-    border: 1px solid rgba(215, 235, 255, 0.14);
-    background: transparent;
-    color: rgba(215, 235, 255, 0.72);
-    font-size: 0.8rem;
-}
-
-.thread {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.comment {
-    display: flex;
-    gap: 8px;
-}
-
-.commentBody {
-    flex: 1;
     min-width: 0;
-}
-
-.commentMeta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 8px;
-    margin: 0;
-    color: rgba(215, 235, 255, 0.5);
-    font-size: 0.78rem;
-
-    strong {
-        color: #fff;
-    }
-
-    button {
-        min-height: 24px !important;
-        padding: 0 4px !important;
-        background: transparent !important;
-        color: rgba(215, 235, 255, 0.5) !important;
-        font-size: 0.74rem !important;
-        font-weight: 600;
-    }
-}
-
-.commentText {
-    margin: 2px 0 0;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-.groupFooter {
-    display: flex;
-    justify-content: center;
-    margin-top: 12px;
-}
-
-.danger,
-.page .danger {
-    border: 1px solid rgba(255, 120, 140, 0.35);
-    background: transparent;
-    color: #ffb4b4;
-}
-
-
-/* Forum additions */
-.cta {
-    display: inline-flex;
-    align-self: flex-start;
-    align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    margin-top: 6px;
-    padding: 0 18px 0 14px;
-    border-radius: 999px;
-    background: #ff0084;
-    color: #fff !important;
-    font-size: 0.9rem;
-    font-weight: 700;
-    text-decoration: none;
-    box-shadow: 0 8px 24px rgba(255, 0, 132, 0.22);
-    transition:
-        background-color 160ms ease,
-        transform 160ms ease,
-        box-shadow 160ms ease;
-
-    &:hover {
-        background: #e60077;
-        box-shadow: 0 10px 28px rgba(255, 0, 132, 0.3);
-        transform: translateY(-1px);
-    }
-}
-
-@media (max-width: 720px) {
-    .cta {
-        align-self: center;
-    }
-}
-
-.ctaPost::before {
-    content: "+";
-    font-size: 1.1rem;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.tabs {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-
-    button {
-        border: 1px solid rgba(215, 235, 255, 0.14) !important;
-        background: transparent !important;
-        color: rgba(215, 235, 255, 0.72) !important;
-
-        &[aria-selected="true"] {
-            border-color: rgba(255, 0, 132, 0.55) !important;
-            background: rgba(255, 0, 132, 0.12) !important;
-            color: #fff !important;
-        }
-    }
-}
-
-.tagRow {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-}
-
-.tag,
-.tagActive,
-.page .tag,
-.page .tagActive {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid rgba(10, 177, 255, 0.28);
-    border-radius: 999px;
-    background: rgba(10, 177, 255, 0.06);
-    color: #7fd3ff !important;
-    font-size: 0.78rem;
-    font-weight: 650;
-    text-decoration: none;
-}
-
-.page .tagActive {
-    border-color: rgba(10, 177, 255, 0.7);
-    background: rgba(10, 177, 255, 0.18);
-    color: #fff !important;
-}
-
-.skeleton {
-    min-height: 180px;
 }
 
 .authorLink {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    min-width: 0;
     color: #fff !important;
-    text-decoration: none;
     font-size: 0.9rem;
+    text-decoration: none;
 }
 
 .authorText {
     display: flex;
     flex-direction: column;
+    gap: 2px;
     min-width: 0;
     line-height: 1.2;
 }
 
 .authorTag {
     overflow: hidden;
-    color: rgba(215, 235, 255, 0.55);
-    font-size: 0.78rem;
+    color: #9aa3b2;
+    font-size: 0.76rem;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .meta {
-    color: rgba(215, 235, 255, 0.5);
-    font-size: 0.82rem;
+    color: #7c8594;
+    font-size: 0.78rem;
 }
 
 .headActions {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
     margin-left: auto;
 }
 
+.page .menuButton,
+.post .menuButton {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #9aa3b2;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+
+    &:hover,
+    &[aria-expanded="true"] {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+    }
+}
+
+.menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 220px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    background: #111118;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
 .quiet,
-.page .quiet {
+.page .quiet,
+.post .quiet {
     min-height: 32px;
     padding: 0 8px;
     border: 0;
     background: transparent;
-    color: rgba(215, 235, 255, 0.5);
+    color: #9aa3b2;
     font-size: 0.78rem;
     font-weight: 600;
 
@@ -617,8 +487,26 @@
     }
 }
 
+.menu .quiet,
+.menu .reportWrap > button {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    color: #e6eef8;
+    font-size: 0.86rem;
+    text-align: left;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+}
+
 .reportWrap {
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .reportMenu {
@@ -651,9 +539,20 @@
     }
 }
 
+// Inside the post menu, report reasons open in place instead of as another popover.
+.menu .reportMenu {
+    position: static;
+    min-width: 0;
+    padding: 2px 0 0 8px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 .reported {
-    color: rgba(215, 235, 255, 0.6);
-    font-size: 0.76rem;
+    padding: 8px 12px;
+    color: #9aa3b2;
+    font-size: 0.78rem;
 }
 
 .statusNote {
@@ -665,11 +564,85 @@
     font-size: 0.82rem;
 }
 
+.paperTitle {
+    color: #fff !important;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-decoration: none;
+
+    &:hover {
+        color: #ffb3d6 !important;
+    }
+}
+
 .body {
     margin: 0;
-    line-height: 1.55;
+    color: #c9d1dc;
+    font-size: 0.95rem;
+    line-height: 1.6;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.highlight {
+    --hl: #ff5aa9;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 12px 16px;
+    border-left: 3px solid var(--hl);
+    border-radius: 0 14px 14px 0;
+    background: #111118;
+
+    &[data-color="blue"] {
+        --hl: #0ab1ff;
+    }
+
+    &[data-color="yellow"] {
+        --hl: #f5c542;
+    }
+
+    &[data-color="green"] {
+        --hl: #3fbf6f;
+    }
+
+    blockquote {
+        margin: 0;
+        color: #f2f6fb;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+}
+
+// A highlight whose paper's license doesn't allow sharing its text.
+.highlightHidden {
+    --hl: #f5a524;
+    background: rgba(245, 165, 36, 0.06);
+}
+
+.hiddenQuote {
+    margin: 0;
+    color: #e6d3b0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.highlightFoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #7c8594;
+    font-size: 0.76rem;
+}
+
+.openPassage {
+    flex: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
 }
 
 .postFoot {
@@ -680,127 +653,56 @@
 }
 
 .discuss,
-.page .discuss {
+.page .discuss,
+.post .discuss {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-height: 40px;
+    gap: 8px;
     margin-left: auto;
-    padding: 0 4px 0 8px;
-    border: 0;
-    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     background: transparent;
-    color: #ff8ec4;
-    font-size: 0.85rem;
-    font-weight: 650;
-    cursor: pointer;
+    color: #fff;
+    font-size: 0.82rem;
 
-    &:focus-visible {
-        outline: 2px solid rgba(255, 90, 169, 0.7);
-        outline-offset: 2px;
+    &[aria-expanded="true"] {
+        border-color: rgba(255, 90, 169, 0.6);
+        background: rgba(255, 0, 132, 0.14);
+    }
+
+    svg {
+        flex: none;
     }
 }
 
-.discussChevron {
-    width: 7px;
-    height: 7px;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: translateY(-2px) rotate(45deg);
-    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.discussChevronOpen {
-    transform: translateY(2px) rotate(-135deg);
-}
-
-// The comments panel floats over the page instead of pushing it down. It
-// unrolls from its top edge (clip-path), drifts into place, and rolls back up.
+// Comments open under the post, pushing the feed down (not floating over it).
 .commentAnchor {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .commentPanel {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: -8px;
-    right: -8px;
-    z-index: 20;
-    max-height: min(60vh, 520px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 14px 16px 16px;
-    border: 1px solid rgba(215, 235, 255, 0.12);
-    border-radius: 16px;
-    background: rgba(12, 12, 16, 0.97);
-    box-shadow:
-        0 22px 60px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.02) inset;
-    backdrop-filter: blur(18px);
-    clip-path: inset(0 0 100% 0 round 16px);
+    display: grid;
+    grid-template-rows: 0fr;
     opacity: 0;
-    transform: translateY(-6px);
-    visibility: hidden;
     transition:
-        clip-path 320ms cubic-bezier(0.4, 0, 0.2, 1),
-        transform 320ms cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 200ms ease 100ms,
-        visibility 0s linear 320ms;
+        grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 200ms ease;
 
-    > .comments {
-        opacity: 0;
-        transform: translateY(-8px);
-        transition:
-            opacity 160ms ease,
-            transform 320ms ease;
+    > * {
+        min-height: 0;
+        overflow: hidden;
     }
 }
 
 .commentPanelOpen {
-    clip-path: inset(0 0 0 0 round 16px);
+    grid-template-rows: 1fr;
     opacity: 1;
-    transform: none;
-    visibility: visible;
-    transition:
-        clip-path 460ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 460ms cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 160ms ease,
-        visibility 0s;
 
     > .comments {
-        opacity: 1;
-        transform: none;
-        transition:
-            opacity 260ms ease 120ms,
-            transform 420ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
-}
-
-@media (max-width: 520px) {
-    .commentPanel {
-        left: -12px;
-        right: -12px;
-        max-height: min(65vh, 520px);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .commentPanel,
-    .commentPanelOpen,
-    .commentPanel > .comments,
-    .commentPanelOpen > .comments,
-    .discussChevron {
-        clip-path: none;
-        transform: none;
-        transition: opacity 150ms ease, visibility 0s linear 150ms;
-    }
-}
-
-.more,
-.page .more {
-    align-self: center;
-    border: 1px solid rgba(215, 235, 255, 0.18);
-    background: transparent;
 }
 
 .comments {
@@ -813,40 +715,111 @@
         color: #fff;
         font-size: 1rem;
     }
+}
 
-    .replyForm {
-        flex-direction: column;
-        align-items: stretch;
+.comment {
+    display: flex;
+    gap: 10px;
+}
 
-        select {
-            min-height: 40px;
-            padding: 0 44px 0 14px;
-            border: 1px solid rgba(215, 235, 255, 0.14);
-            border-radius: 12px;
-            /* Custom chevron with room from the edge; the native arrow sits flush right. */
-            appearance: none;
-            -webkit-appearance: none;
-            background:
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d7ebff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-                    no-repeat right 16px center / 12px 8px,
-                rgba(0, 0, 0, 0.4);
-            color: #fff;
-            font: inherit;
-            font-size: 16px;
-            cursor: pointer;
-            transition: border-color 160ms ease;
+.commentBody {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
 
-            &:hover,
-            &:focus-visible {
-                border-color: rgba(255, 0, 132, 0.45);
-            }
-        }
+.commentMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 6px;
+    margin: 0;
+    color: #9aa3b2;
+    font-size: 0.78rem;
 
-        button {
-            align-self: flex-end;
+    strong {
+        color: #fff;
+    }
+
+    a {
+        color: inherit !important;
+        text-decoration: none;
+    }
+}
+
+.commentText {
+    margin: 0;
+    color: #e6eef8;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+// The comment box: text first, then what it's about and the Post button.
+.replyForm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 10px 10px 14px;
+    border: 1px solid rgba(255, 90, 169, 0.4);
+    border-radius: 16px;
+    background: #111118;
+
+    textarea {
+        min-height: 48px;
+        max-height: 180px;
+        padding: 4px 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font: inherit;
+        font-size: 16px; // 16px stops iOS from zooming into the field
+        resize: vertical;
+
+        &:focus {
+            outline: none;
         }
     }
 }
+
+.replyActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    select {
+        min-height: 36px;
+        padding: 0 34px 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        /* Custom chevron with room from the edge; the native arrow sits flush right. */
+        appearance: none;
+        -webkit-appearance: none;
+        background:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d7ebff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+                no-repeat right 12px center / 10px 7px,
+            #0a0a0f;
+        color: #c9d1dc;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            border-color: rgba(255, 0, 132, 0.45);
+        }
+    }
+
+    button {
+        margin-left: auto;
+    }
+}
+
+// ---- People pages ----------------------------------------------------------
 
 .personHeader {
     display: flex;
@@ -897,7 +870,76 @@
     margin-top: 4px;
 }
 
-.commentMeta a {
-    color: inherit !important;
-    text-decoration: none;
+// ---- Tablet and phone ------------------------------------------------------
+
+@media (max-width: 960px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rail {
+        position: static;
+    }
+
+    // On narrower screens the topics live in the chip row; keep the groups card.
+    .railTopicsCard,
+    .railSteps {
+        display: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .headerRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cta {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 14px;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .tagRow {
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+
+    .post {
+        padding: 16px;
+    }
+
+    .paperTitle {
+        font-size: 1.05rem;
+    }
+
+    .discuss,
+    .page .discuss,
+    .post .discuss {
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
+        margin-left: 0;
+        border-radius: 14px;
+    }
+
+    .personHeader {
+        align-items: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .commentPanel {
+        transition: none;
+    }
 }

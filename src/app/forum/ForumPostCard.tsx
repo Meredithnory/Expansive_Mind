@@ -22,40 +22,47 @@ export default function ForumPostCard({
     full?: boolean;
 }) {
     const shown = full ? post.highlights : post.highlights.slice(0, 2);
-    // Feed cards open comments in place. They load on first open and stay
-    // mounted after, so closing slides them away instead of cutting them off.
+    // Feed cards open comments under the post. They load on first open and
+    // stay mounted after, so closing folds them away instead of cutting off.
     const [commentsOpen, setCommentsOpen] = useState(false);
     const [commentsLoaded, setCommentsLoaded] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount);
-    const anchor = useRef<HTMLDivElement>(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLSpanElement>(null);
     const panel = useRef<HTMLDivElement>(null);
     const toggleComments = () => {
         setCommentsLoaded(true);
         setCommentsOpen((open) => !open);
     };
     const onCountChange = useCallback((count: number) => setCommentCount(count), []);
+    const canReport = signedIn && !post.canDelete;
+    const canDelete = post.canDelete && Boolean(onDelete);
 
-    // The panel floats over the page, so it closes like a menu: tap outside or Escape.
+    // Bring the thread into view once it has unrolled, if it opened below the fold.
     useEffect(() => {
         if (!commentsOpen) return;
+        const timer = window.setTimeout(() => {
+            panel.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }, 260);
+        return () => window.clearTimeout(timer);
+    }, [commentsOpen]);
+
+    // The post menu closes like a menu: tap outside or Escape.
+    useEffect(() => {
+        if (!menuOpen) return;
         const onPointerDown = (event: PointerEvent) => {
-            if (!anchor.current?.contains(event.target as Node)) setCommentsOpen(false);
+            if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setCommentsOpen(false);
+            if (event.key === "Escape") setMenuOpen(false);
         };
         document.addEventListener("pointerdown", onPointerDown);
         document.addEventListener("keydown", onKeyDown);
-        // If the panel would open below the fold, bring it into view once it has unrolled.
-        const timer = window.setTimeout(() => {
-            panel.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        }, 200);
         return () => {
             document.removeEventListener("pointerdown", onPointerDown);
             document.removeEventListener("keydown", onKeyDown);
-            window.clearTimeout(timer);
         };
-    }, [commentsOpen]);
+    }, [menuOpen]);
     return (
         <article className={styles.post}>
             <div className={styles.postHead}>
@@ -69,14 +76,40 @@ export default function ForumPostCard({
                     </span>
                 </Link>
                 <span className={styles.meta}>· {when(post.createdAt)}</span>
-                <span className={styles.headActions}>
-                    <ReportButton targetType="post" targetId={post.id} signedIn={signedIn && !post.canDelete} />
-                    {post.canDelete && onDelete && (
-                        <button type="button" className={styles.quiet} onClick={onDelete}>
-                            Delete
+                {(canReport || canDelete) && (
+                    <span className={styles.headActions} ref={menuRef}>
+                        <button
+                            type="button"
+                            className={styles.menuButton}
+                            aria-label="Post options"
+                            aria-haspopup="menu"
+                            aria-expanded={menuOpen}
+                            onClick={() => setMenuOpen((open) => !open)}
+                        >
+                            ⋯
                         </button>
-                    )}
-                </span>
+                        {menuOpen && (
+                            <span className={styles.menu} role="menu">
+                                {canReport && (
+                                    <ReportButton targetType="post" targetId={post.id} signedIn />
+                                )}
+                                {canDelete && (
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className={styles.quiet}
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDelete?.();
+                                        }}
+                                    >
+                                        Delete post
+                                    </button>
+                                )}
+                            </span>
+                        )}
+                    </span>
+                )}
             </div>
             {post.status && post.status !== "visible" && (
                 <p className={styles.statusNote}>
@@ -89,8 +122,12 @@ export default function ForumPostCard({
                 {post.paper.title}
             </Link>
             {post.body && <p className={styles.body}>{post.body}</p>}
-            {shown.map((highlight) => (
-                <div key={highlight.id} className={styles.highlight} data-color={highlight.color}>
+            {shown.map((highlight, index) => (
+                <div
+                    key={highlight.id}
+                    className={clsx(styles.highlight, !highlight.excerpt && styles.highlightHidden)}
+                    data-color={highlight.excerpt ? highlight.color : undefined}
+                >
                     {highlight.excerpt ? (
                         <blockquote>{highlight.excerpt}</blockquote>
                     ) : (
@@ -99,15 +136,22 @@ export default function ForumPostCard({
                             doesn&apos;t allow sharing its text, so open it to read.
                         </p>
                     )}
-                    <Link href={highlight.href} className={styles.openPassage}>
-                        Open in paper →
-                    </Link>
+                    <span className={styles.highlightFoot}>
+                        <span>
+                            {highlight.excerpt
+                                ? `Highlight ${index + 1} · ${highlight.sectionTitle}`
+                                : ""}
+                        </span>
+                        <Link href={highlight.href} className={styles.openPassage}>
+                            Open in paper →
+                        </Link>
+                    </span>
                 </div>
             ))}
             {!full && post.highlights.length > shown.length && (
                 <p className={styles.meta}>+{post.highlights.length - shown.length} more highlights</p>
             )}
-            <div ref={anchor} className={styles.commentAnchor}>
+            <div className={styles.commentAnchor}>
             <div className={styles.postFoot}>
                 {post.tags.map((tag) => (
                     <Link key={tag} href={`/forum?tag=${tag}`} className={styles.tag}>
@@ -122,13 +166,12 @@ export default function ForumPostCard({
                         aria-controls={`comments-${post.id}`}
                         onClick={toggleComments}
                     >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 5h14v10H10l-4 4v-4H5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                        </svg>
                         {commentCount > 0
                             ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`
                             : "Discuss"}
-                        <span
-                            className={clsx(styles.discussChevron, commentsOpen && styles.discussChevronOpen)}
-                            aria-hidden="true"
-                        />
                     </button>
                 )}
             </div>
