@@ -48,7 +48,7 @@ Override the origin with `EM_VERIFY_BASE_URL` or a single argument. Default is `
 
 Anonymous doctor expects:
 
-- `GET /discover` 200, body contains `Discover across papers` and `id="discover-question"`
+- `GET /discover` 200, body contains `What do you want to find out?` and `id="discover-question"`
 - `GET /api/session` 401 and `Please login`
 - `GET /api/paper` 400 and `A valid paper reference is required.`
 - `GET /brief/x` 404 (`x` fails `isValidShareSlug`)
@@ -66,11 +66,11 @@ Stable handles (from source, not guesses):
 - Nav: open `#main-navigation` via the button `Open navigation`, then the `Discover` link.
 - Discover question: `#discover-question` (`<textarea>`, label **Research question** or **Ask another research question**).
 - Discover submit: button **Run discovery** (disabled while empty or **Working…**).
-- Discover running: `aria-live="polite"` region, copy **Your answer is taking shape**, steps **Expanding your question** through **Composing report**.
-- Discover report: **Topic synthesis**, then **Gaps, problems, and potential** (structured) or **Evidence synthesis**. Cards **Claim ledger** (`#claim-ledger`), **State of the science**, and **Gaps in the science**. Paper nodes `id="discover-paper-{index}"`. Clicking a complete ledger row opens the same paper preview as a citation chip.
-- Discover share: **Share synthesis** (signed-in only, `result.id` is a 24-char hex ObjectId). Visible and enabled for a saved discovery; claim-excerpt completeness does not disable it. Success label **Link copied!**.
+- Discover running: `aria-live="polite"` region, eyebrow **Discovery in progress**, the question as the `h1`, steps **Turning your question into searches** through **Writing your cited report**, and **Cancel**.
+- Discover report: eyebrow **Your discovery · {date} · {N} papers**, the question as the `h1`, then tabs **State of the science**, **Gaps · N**, **Papers · N**, **Claim ledger** (`#claim-ledger`), and **Opportunity report** when present. **Gaps** opens first: the chosen gap large, the rest beside it; **Paper N · open paper chat →** opens the reader from the gap. Paper nodes `id="discover-paper-{index}"` live in the **Papers** tab. Clicking a complete ledger row opens the same paper preview as a citation chip.
+- Discover share: **Share brief** (signed-in only, `result.id` is a 24-char hex ObjectId). Visible for a saved discovery; claim-excerpt completeness does not disable it. It opens the **Share your brief** dialog with the link and **Copy link**; success label **Link copied!**.
 - Brief page: `/brief/{slug}`. Eyebrow **Topic Synthesis** or **Paper Summary**. Heading is the question or paper title. Topic briefs also show **Claim ledger** (`#claim-ledger`) as structured rows (quote + DOI or paper link), not markdown-only. Source list heading **Papers behind this synthesis**. Primary CTA **Try Discover** or **Open this paper**.
-- Paper reader: `/paperchatbot/{nih|springer|scholar}/{id}` from `buildPaperPath`. OpenAlex and Europe PMC home onto `nih` when they carry a PMCID; they do not add a fourth path slug. Title is an `h1`. Back control **Back to research**. Signed-in toolbar `aria-label="Paper tools"`: **Highlight**, **Share summary**. Summary dialog `aria-label="Paper summary"`, generate **Generate summary**, copy **Copy share link**. Chat placeholder **Ask this paper…**, send `aria-label="Send message"`.
+- Paper reader: `/paperchatbot/{nih|springer|scholar}/{id}` from `buildPaperPath`. OpenAlex and Europe PMC home onto `nih` when they carry a PMCID; they do not add a fourth path slug. Title is an `h1`. Back control **Back** (aria-label `Back`), or **Your report** (aria-label `Back to your report`) when opened from a report. Signed-in toolbar `aria-label="Paper tools"`: **Highlight**, **Share** (a menu when there is more than one way to share). Summary dialog `aria-label="Paper summary"`, generate **Generate summary**, copy **Copy share link**. Chat placeholder **Ask about this paper…**, send `aria-label="Send message"`.
 - Login: `/login`, heading **Login**, email `name="email"`, password `name="password"`, submit **Login**.
 
 API fallback when the UI is blocked (missing keys, no browser). Send `Origin` matching the request origin on every mutating POST (`hasValidMutationOrigin`).
@@ -82,7 +82,7 @@ curl -sS -X POST "$EM_VERIFY_BASE_URL/api/discover" \
   -d '{"question":"How does GLP-1 receptor agonism affect cardiovascular outcomes in type 2 diabetes?"}'
 ```
 
-Guest share is impossible. `POST /api/discover/share` and `POST /api/brief` use `withAuth`. Cookie `auth_token` is required. Guest `result.id` is `guest-{timestamp}`, not a Mongo id, so **Share synthesis** stays hidden.
+Guest share is impossible. `POST /api/discover/share` and `POST /api/brief` use `withAuth`. Cookie `auth_token` is required. Guest `result.id` is `guest-{timestamp}`, not a Mongo id, so **Share brief** stays hidden.
 
 Do not POST Discover or brief as a substitute for the UI path when the browser is available. Curl is the fallback, not the proof of record.
 

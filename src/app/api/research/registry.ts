@@ -15,6 +15,7 @@ import type { DiscoverCandidate } from "../discover/select-candidates";
 import { dedupeDiscoverCandidates } from "../discover/select-candidates";
 import type { FormattedPaper } from "../general-interfaces";
 import type { PaperFallback } from "../paper/load-paper";
+import type { PublicationDateRange } from "../../lib/search-filters";
 import { nihSource } from "./adapters/nih";
 import { springerSource } from "./adapters/springer";
 import { scholarSource } from "./adapters/scholar";
@@ -105,6 +106,7 @@ async function searchHome(
     query: string,
     page: number,
     hydrate: boolean,
+    dateRange?: PublicationDateRange,
 ): Promise<SourcePage<DiscoverCandidate>> {
     const home = HOMES[database];
     if (!home.isConfigured()) {
@@ -117,7 +119,7 @@ async function searchHome(
         };
     }
     try {
-        return await home.search({ query, page, hydrate });
+        return await home.search({ query, page, hydrate, dateRange });
     } catch {
         return {
             hits: [],
@@ -125,6 +127,7 @@ async function searchHome(
             totalPages: 0,
             warnings: [],
             callCount: 0,
+            unavailable: true,
         };
     }
 }
@@ -293,12 +296,15 @@ export async function searchHomed(input: {
     page: number;
     databases: SourceDatabase[];
     hydrate: boolean;
+    dateRange?: PublicationDateRange;
 }): Promise<{
     byDatabase: { database: SourceDatabase; hits: SearchRow[] }[];
     totalCount: number;
     totalPages: number;
     warnings: string[];
     callCount: number;
+    /** Sources that errored or timed out. */
+    unavailable: SourceDatabase[];
 }> {
     const settled = await Promise.all(
         input.databases.map(async (database) => {
@@ -307,6 +313,7 @@ export async function searchHomed(input: {
                 input.query,
                 input.page,
                 input.hydrate,
+                input.dateRange,
             );
             return { database, page };
         }),
@@ -316,7 +323,9 @@ export async function searchHomed(input: {
     let totalPages = 0;
     let callCount = 0;
     const warnings: string[] = [];
+    const unavailable: SourceDatabase[] = [];
     const byDatabase = settled.map(({ database, page }) => {
+        if (page.unavailable) unavailable.push(database);
         totalCount += page.totalCount;
         totalPages = Math.max(totalPages, page.totalPages);
         callCount += page.callCount;
@@ -327,7 +336,7 @@ export async function searchHomed(input: {
         };
     });
 
-    return { byDatabase, totalCount, totalPages, warnings, callCount };
+    return { byDatabase, totalCount, totalPages, warnings, callCount, unavailable };
 }
 
 export async function loadDocument(input: {

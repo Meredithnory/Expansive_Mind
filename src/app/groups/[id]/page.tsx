@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import ProfileMark from "../../components/ProfileMark";
 import styles from "../groups.module.scss";
 
-type Person = { id: string; name: string; profileColor: string | null };
+type Person = {
+    id: string;
+    name: string;
+    profileColor: string | null;
+    badge?: import("../../lib/lab-badge").Badge;
+};
 type Member = Person & { role: string; isMe: boolean };
 type Comment = {
     id: string;
@@ -93,7 +98,7 @@ function Thread({
         <div className={styles.thread}>
             {comments.map((comment) => (
                 <div key={comment.id} className={styles.comment}>
-                    <ProfileMark color={comment.author.profileColor} size={26} />
+                    <ProfileMark color={comment.author.profileColor} badge={comment.author.badge} size={26} />
                     <div className={styles.commentBody}>
                         <p className={styles.commentMeta}>
                             <strong>{comment.author.name}</strong> · {when(comment.createdAt)}
@@ -172,6 +177,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     const { group, members, posts } = data;
     const isOwner = group.role === "owner";
     const me = members.find((member) => member.isMe);
+    const ownerIds = new Set(
+        members.filter((member) => member.role === "owner").map((member) => member.id),
+    );
     const inviteUrl =
         group.inviteCode && typeof window !== "undefined"
             ? `${window.location.origin}/groups/join/${group.inviteCode}`
@@ -191,7 +199,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 <ul className={styles.members} aria-label="Members">
                     {members.map((member) => (
                         <li key={member.id} title={member.name}>
-                            <ProfileMark color={member.profileColor} size={30} label={member.name} />
+                            <ProfileMark color={member.profileColor} badge={member.badge} size={30} label={member.name} />
                             <span>
                                 {member.isMe ? "You" : member.name}
                                 {member.role === "owner" ? " (owner)" : ""}
@@ -259,7 +267,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                     posts.map((post) => (
                         <article key={post.id} className={styles.post}>
                             <div className={styles.postHead}>
-                                <ProfileMark color={post.author.profileColor} size={34} />
+                                <ProfileMark color={post.author.profileColor} badge={post.author.badge} size={34} />
                                 <p>
                                     <strong>{post.author.name}</strong>
                                     <span> shared · {when(post.createdAt)}</span>
@@ -277,7 +285,20 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                             <Link href={post.paper.href} className={styles.paperTitle}>
                                 {post.paper.title}
                             </Link>
-                            {post.note && <p className={styles.note}>{post.note}</p>}
+                            {post.note && (
+                                <div className={styles.note}>
+                                    <ProfileMark color={post.author.profileColor} badge={post.author.badge} size={26} />
+                                    <div className={styles.commentBody}>
+                                        <p className={styles.commentMeta}>
+                                            <strong>{post.author.name}</strong>
+                                            <span className={styles.authorBadge}>
+                                                {ownerIds.has(post.author.id) ? "Owner" : "Author"}
+                                            </span>
+                                        </p>
+                                        <p className={styles.noteText}>{post.note}</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {post.highlights.map((highlight) => (
                                 <div key={highlight.id} className={styles.highlight} data-color={highlight.color}>

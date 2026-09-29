@@ -8,6 +8,7 @@ const MAX_CONTEXT_CHARS = 6_000;
 const MAX_ABSTRACT_CHARS = 1_500;
 const MAX_SECTION_CHARS = 2_250;
 const MAX_FIGURE_CHARS = 1_200;
+const MAX_ABSTRACT_ONLY_CHARS = 3_000;
 const EXCLUDED_SECTION_TITLES =
     /references|bibliography|acknowledg|author information|conflict of interest/i;
 
@@ -22,6 +23,10 @@ export const truncateAtSentence = (text: string, limit: number) => {
     );
     return `${slice.slice(0, sentenceEnd > limit * 0.6 ? sentenceEnd + 1 : limit).trim()}…`;
 };
+
+/** Model context for a paper whose license keeps its body out of the model. */
+export const selectAbstractContext = (abstract: string | null | undefined) =>
+    truncateAtSentence(abstract || "", MAX_ABSTRACT_ONLY_CHARS);
 
 const collectFigures = (sections: Section[]): PaperFigure[] => {
     const figures: PaperFigure[] = [];

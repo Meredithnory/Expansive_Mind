@@ -22,10 +22,22 @@ export interface DiscoverCandidate extends PaperImpact {
     access: ContentAccessPolicy;
 }
 
-export function filterAiEligible(
+/**
+ * Discover can use licensed full text, or the abstract of any non-Scholar
+ * paper whose license keeps its body away from the model.
+ */
+export function isDiscoverUsable(candidate: DiscoverCandidate): boolean {
+    if (candidate.access?.canSendToAI) return true;
+    return (
+        candidate.database !== "scholar" &&
+        Boolean(candidate.abstract?.trim())
+    );
+}
+
+export function filterDiscoverUsable(
     candidates: DiscoverCandidate[],
 ): DiscoverCandidate[] {
-    return candidates.filter((candidate) => candidate.access?.canSendToAI);
+    return candidates.filter(isDiscoverUsable);
 }
 
 export function candidateKey(candidate: DiscoverCandidate): string {
@@ -45,7 +57,10 @@ export function dedupeDiscoverCandidates(
         if (!matches.length) { groups.push({ candidate: { ...candidate }, keys }); continue; }
         // A DOI-bearing record can bridge two earlier records that shared no identifiers.
         const group = [...matches.map(entry => entry.candidate), candidate];
-        const preferred = group.find(entry => entry.access.canSendToAI) || group[0];
+        const preferred =
+            group.find(entry => entry.access.canSendToAI) ||
+            group.find(entry => entry.database !== "scholar") ||
+            group[0];
         const indexedBy = [...new Set(group.flatMap(entry => entry.indexedBy || []))];
         const doi = preferred.doi || group.find(entry => entry.doi)?.doi;
         const scholarCitesId =
@@ -67,7 +82,7 @@ export function dedupeDiscoverCandidates(
 }
 
 /**
- * Take the top AI-eligible papers from a ranked pool spanning Springer,
+ * Take the top usable papers from a ranked pool spanning Springer,
  * NIH, and Google Scholar. Callers should pass already-ranked candidates;
  * source arrays are concatenated in order when `ranked` is omitted.
  */
@@ -87,7 +102,7 @@ export function selectDiscoverCandidates(options: {
             ...(options.scholar ?? []),
         ];
 
-    return filterAiEligible(dedupeDiscoverCandidates(ranked)).slice(
+    return filterDiscoverUsable(dedupeDiscoverCandidates(ranked)).slice(
         0,
         targetCount,
     );

@@ -1,21 +1,16 @@
 .mark {
-    display: inline-grid;
+    display: inline-block;
     flex: none;
-    place-items: center;
     width: var(--mark-size);
     height: var(--mark-size);
-    border: 1.5px solid color-mix(in srgb, var(--mark-color) 70%, transparent);
+    overflow: hidden;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--mark-color) 16%, #07070a);
-    box-shadow: 0 0 calc(var(--mark-size) * 0.35)
-        color-mix(in srgb, var(--mark-color) 28%, transparent);
-}
+    background: #15151c;
+    box-shadow:
+        0 0 0 1.5px color-mix(in srgb, var(--mark-color) 75%, transparent),
+        0 0 calc(var(--mark-size) * 0.3) color-mix(in srgb, var(--mark-color) 22%, transparent);
 
-/* The logo's shape, filled with the chosen color. */
-.brain {
-    width: 64%;
-    height: 64%;
-    background: var(--mark-color);
-    -webkit-mask: url("/brainlogo.svg") center / contain no-repeat;
-    mask: url("/brainlogo.svg") center / contain no-repeat;
+    svg {
+        display: block;
+    }
 }

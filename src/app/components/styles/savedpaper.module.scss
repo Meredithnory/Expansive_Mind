@@ -1,222 +1,240 @@
-@use "../../variables" as *;
+/* One saved paper row in the Research Library (see the Library mockup). */
 
-.card {
+.row {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 18px 20px 16px;
-    border: 1px solid rgba(215, 235, 255, 0.09);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.018);
+    align-items: center;
+    gap: 24px;
+    min-width: 0;
+    padding: 16px 16px 16px 22px;
+    background: #0a0a0f;
     transition:
-        border-color 180ms ease,
-        background-color 180ms ease,
-        transform 180ms ease,
+        background-color 160ms ease,
         opacity 180ms ease;
 
     &:hover,
     &:focus-within {
-        transform: translateY(-1px);
-        border-color: rgba(255, 0, 132, 0.28);
-        background: rgba(255, 255, 255, 0.03);
-
-        .title a {
-            color: #ff8ec4;
-        }
-
-        .deleteAction {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-        }
+        background: #101016;
     }
 
     /* Non-blocking hint while Link navigates; does not delay the route change. */
-    &.exiting,
-    &.exiting:hover,
-    &.exiting:focus-within {
+    &.exiting {
         opacity: 0.45;
-        transform: translateY(-3px);
         pointer-events: none;
     }
 }
 
-.springerCard:hover {
-    border-color: rgba(255, 78, 78, 0.32);
-
-    .title a {
-        color: #ff7b7b;
-    }
-}
-
-.scholarCard:hover {
-    border-color: rgba(10, 177, 255, 0.32);
-
-    .title a {
-        color: #7ad4ff;
-    }
+.main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
 }
 
 .meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.sourceTag,
-.contentLabel {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 4px 9px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 0.68rem;
+    display: block;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #9aa3b2;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.springerTag {
-    border-color: rgba(255, 78, 78, 0.35);
-    background: rgba(255, 78, 78, 0.08);
-}
-
-.scholarTag {
-    border-color: rgba(10, 177, 255, 0.35);
-    background: rgba(10, 177, 255, 0.08);
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .sourceDot {
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: 1px;
     width: 7px;
     height: 7px;
-    border-radius: 50%;
-    background: $main-pink;
-    box-shadow: 0 0 0 3px rgba(255, 0, 132, 0.14);
+    border-radius: 999px;
+    background: #0ab1ff;
 }
 
 .springerDot {
-    background: #ff4e4e;
-    box-shadow: 0 0 0 3px rgba(255, 78, 78, 0.16);
+    background: #ff5aa9;
 }
 
 .scholarDot {
-    background: $highlight-blue;
-    box-shadow: 0 0 0 3px rgba(10, 177, 255, 0.16);
+    background: #8b5cf6;
 }
 
 .title {
-    margin: 2px 0 0;
-    font-size: 1.05rem;
-    font-weight: 600;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
     line-height: 1.4;
 
     a {
         color: #fff;
         text-decoration: none;
         transition: color 160ms ease;
+
+        &:hover,
+        &:focus-visible {
+            color: #ff8ec4;
+        }
     }
 }
 
 .authors {
     margin: 0;
-    color: rgba(215, 235, 255, 0.55);
-    font-size: 0.82rem;
-    font-style: italic;
-    line-height: 1.45;
-}
-
-.description {
-    display: -webkit-box;
-    margin: 2px 0 0;
     overflow: hidden;
-    color: rgba(215, 235, 255, 0.72);
-    font-size: 0.9rem;
-    line-height: 1.55;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    color: #9aa3b2;
+    font-size: 12px;
+    font-style: italic;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .actions {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
-    gap: 16px;
-    margin-top: 8px;
+    gap: 8px;
 }
 
-.primaryAction,
-.deleteAction {
-    appearance: none;
+.access {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #15151c;
+    color: #c9d1dc;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.fullText {
+    background: rgba(34, 160, 107, 0.14);
+    color: #6ee7a8;
+}
+
+.iconButton {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
     padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 0.82rem;
-    font-weight: 650;
-    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: transparent;
+    color: #9aa3b2;
     cursor: pointer;
-}
-
-.primaryAction {
-    color: $main-pink;
-
-    &:hover {
-        color: #fff;
-    }
-}
-
-.deleteAction {
-    opacity: 0;
-    color: rgba(215, 235, 255, 0.42);
-    transform: translateY(4px) scale(0.96);
-    pointer-events: none;
     transition:
-        opacity 180ms ease,
-        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 160ms ease,
         color 160ms ease;
 
     &:hover,
     &:focus-visible {
-        color: #ffb4b4;
+        border-color: rgba(255, 255, 255, 0.28);
+        color: #fff;
     }
 }
 
+.openAction {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 90, 169, 0.6);
+    border-radius: 999px;
+    background: rgba(255, 0, 132, 0.1);
+    color: #ff8ec4;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background: rgba(255, 0, 132, 0.18);
+        color: #ffb3d6;
+    }
+}
+
+.openArrow {
+    display: inline-grid;
+    place-items: center;
+}
+
+/* Phone: a card with the source and actions along the bottom. */
 @media (max-width: 720px) {
-    .card {
-        padding: 16px;
+    .row {
+        display: grid;
+        grid-template-areas:
+            "title title"
+            "authors authors"
+            "meta actions";
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 6px;
+        padding: 14px 12px 8px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
     }
 
-    .deleteAction {
-        opacity: 1;
-        transform: none;
-        pointer-events: auto;
+    .main {
+        display: contents;
     }
 
     .title {
-        font-size: 0.98rem;
+        grid-area: title;
     }
-}
 
-@media (prefers-reduced-motion: reduce) {
-    .card {
-        transition: none;
+    .authors {
+        grid-area: authors;
+    }
 
-        &:hover,
-        &:focus-within {
-            transform: none;
-        }
+    .meta {
+        grid-area: meta;
+        color: #c9d1dc;
+        font-size: 11px;
+    }
 
-        &.exiting,
-        &.exiting:hover,
-        &.exiting:focus-within {
-            opacity: 1;
-            transform: none;
-        }
+    .topic {
+        display: none;
+    }
+
+    .actions {
+        grid-area: actions;
+        gap: 0;
+    }
+
+    /* The access chip sits next to the source on a phone. */
+    .access {
+        height: 24px;
+        margin-right: 2px;
+        padding: 0 8px;
+    }
+
+    .iconButton {
+        width: 44px;
+        height: 44px;
+        border: 0;
+    }
+
+    .openAction {
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+    }
+
+    .openText {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
     }
 }

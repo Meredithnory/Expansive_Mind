@@ -22,8 +22,18 @@ import {
 } from "../../lib/usage-meter";
 import { isAdminUser } from "../../lib/admin";
 import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
+import {
+    isDateFilter,
+    isSourceFilter,
+    publicationDateRange,
+    type PublicationDateRange,
+} from "../../lib/search-filters";
 
-type SourceFilter = "all" | "nih" | "springer" | "scholar" | "europe-pmc" | "crossref";
+const SOURCE_NAME: Record<SourceDatabase, string> = {
+    nih: "NIH PubMed Central",
+    springer: "Springer Nature",
+    scholar: "Google Scholar",
+};
 
 const getSourceFlags = (sourceFilter: string) => ({
     includeNih: sourceFilter === "all" || sourceFilter === "nih",
@@ -35,13 +45,18 @@ async function runSearch(
     searchValue: string,
     page: number,
     sourceFilter: string,
-    options?: { lightweight?: boolean; usageContext?: UsageContext },
+    options?: {
+        lightweight?: boolean;
+        usageContext?: UsageContext;
+        dateRange?: PublicationDateRange;
+    },
 ) {
     const lightweight = options?.lightweight ?? false;
+    const dateRange = options?.dateRange;
 
     // Explicit index sources from the research UX branch.
     if (sourceFilter === "europe-pmc") {
-        const europe = await searchEuropePmcPapers(searchValue, page);
+        const europe = await searchEuropePmcPapers(searchValue, page, dateRange);
         const europeResults = europe.results.filter(
             (result: (typeof europe.results)[number]): result is NonNullable<
                 (typeof europe.results)[number]
@@ -63,10 +78,11 @@ async function runSearch(
             totalPages: europe.totalPages,
             warnings: [] as string[],
             callCount: 1,
+            unavailable: europe.unavailable ? ["Europe PMC"] : [],
         };
     }
     if (sourceFilter === "crossref") {
-        const crossref = await searchCrossrefPapers(searchValue, page);
+        const crossref = await searchCrossrefPapers(searchValue, page, dateRange);
         const crossrefResults = crossref.results.filter(
             (result: (typeof crossref.results)[number]): result is NonNullable<
                 (typeof crossref.results)[number]
@@ -88,6 +104,7 @@ async function runSearch(
             totalPages: crossref.totalPages,
             warnings: [] as string[],
             callCount: 1,
+            unavailable: crossref.unavailable ? ["Crossref"] : [],
         };
     }
 
@@ -104,6 +121,7 @@ async function runSearch(
         page,
         databases,
         hydrate: !lightweight,
+        dateRange,
     });
 
     let groups = found.byDatabase.map((group) => group.hits);
@@ -111,12 +129,13 @@ async function runSearch(
     let totalPages = found.totalPages;
     let warnings = found.warnings;
     let callCount = found.callCount;
+    const unavailable = found.unavailable.map((database) => SOURCE_NAME[database]);
 
     // On "all", also fold Europe PMC + Crossref index hits into the workspace.
     if (sourceFilter === "all") {
         const [europe, crossref] = await Promise.all([
-            searchEuropePmcPapers(searchValue, page),
-            searchCrossrefPapers(searchValue, page),
+            searchEuropePmcPapers(searchValue, page, dateRange),
+            searchCrossrefPapers(searchValue, page, dateRange),
         ]);
         const europeResults = europe.results.filter(
             (result: (typeof europe.results)[number]): result is NonNullable<
@@ -129,6 +148,8 @@ async function runSearch(
             > => result != null,
         );
         groups = [...groups, europeResults, crossrefResults];
+        if (europe.unavailable) unavailable.push("Europe PMC");
+        if (crossref.unavailable) unavailable.push("Crossref");
         totalCount += europe.totalCount + crossref.totalCount;
         totalPages = Math.max(totalPages, europe.totalPages, crossref.totalPages);
         callCount += 2;
@@ -153,6 +174,7 @@ async function runSearch(
         totalPages,
         warnings,
         callCount,
+        unavailable,
     };
 }
 
@@ -181,15 +203,16 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         }
         const searchValue = req.nextUrl.searchParams.get("q");
         const page = parseInt(req.nextUrl.searchParams.get("page") || "0", 10);
-        const sourceFilter =
-            (req.nextUrl.searchParams.get("source") as SourceFilter) || "all";
+        const sourceFilter = req.nextUrl.searchParams.get("source") || "all";
+        const dateFilter = req.nextUrl.searchParams.get("date") || "any";
 
         if (!searchValue || searchValue.trim().length > 300) {
             throw Error("Invalid search value.");
         }
 
         if (
-            !["all", "nih", "springer", "scholar", "europe-pmc", "crossref"].includes(sourceFilter) ||
+            !isSourceFilter(sourceFilter) ||
+            !isDateFilter(dateFilter) ||
             page < 0 ||
             page > 100
         ) {
@@ -276,6 +299,12 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         }
 
         const normalizedQuery = searchValue.trim().toLowerCase();
+        const dateRange = publicationDateRange(dateFilter);
+        // The resolved years, not "this-year", so a cached page never
+        // outlives the calendar year it was filtered to.
+        const dateKey = dateRange
+            ? `:${dateRange.fromYear}-${dateRange.toYear}`
+            : "";
         const usageContext: UsageContext = {
             feature:
                 sourceFilter === "scholar" ? "scholar_search" : "search",
@@ -285,13 +314,16 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         };
         const cachedSearch = await cached({
             namespace: "paper-search-v1",
-            key: `${normalizedQuery}:${page}:${sourceFilter}:${plan === "guest" ? "lexical" : "semantic"}`,
+            key: `${normalizedQuery}:${page}:${sourceFilter}${dateKey}:${plan === "guest" ? "lexical" : "semantic"}`,
             ttlSeconds: sourceFilter === "scholar" ? 3_600 : 6 * 60 * 60,
             load: () =>
                 runSearch(searchValue, page, sourceFilter, {
                     lightweight: plan === "guest",
                     usageContext,
+                    dateRange,
                 }),
+            // A source that timed out today shouldn't hide its papers for 6 hours.
+            shouldCache: (value) => value.unavailable.length === 0,
         });
         const search = cachedSearch.value;
         if (!cachedSearch.cacheHit) {
@@ -314,8 +346,11 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                 totalPages: search.totalPages,
                 page,
                 source: sourceFilter,
+                date: dateFilter,
                 query: searchValue,
                 warnings: search.warnings,
+                // Older cached pages predate this field.
+                unavailable: search.unavailable ?? [],
                 plan,
                 quota,
                 cacheHit: cachedSearch.cacheHit,

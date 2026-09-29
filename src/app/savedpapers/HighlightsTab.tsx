@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { HighlightNotesPaper } from "../lib/highlight-notes";
 import type { HighlightColor } from "../lib/paper-highlights";
 import { buildPaperFocusHref } from "../lib/paper-sources";
+import { CopyIcon, GroupIcon, TrashIcon } from "../components/LibraryIcons";
+import { matchesLibraryQuery } from "./library-view";
 import ShareToGroup from "./ShareToGroup";
 import styles from "./savedpage.module.scss";
 
@@ -28,59 +30,52 @@ function passageHref(href: string, excerpt?: string) {
 
 function formatDate(value?: string) {
     if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
-        year: "numeric",
-    }).format(new Date(value));
+    }).format(date);
 }
 
+/** Highlights grouped by paper. The library loads them so the tab can show a count. */
 export default function HighlightsTab({
-    onCount,
+    papers,
+    error,
+    query,
+    onRetry,
+    onRemove,
 }: {
-    onCount: (count: number) => void;
+    papers: HighlightNotesPaper[] | null;
+    error: string;
+    query: string;
+    onRetry: () => void;
+    onRemove: (highlightId: string) => void;
 }) {
-    const [papers, setPapers] = useState<HighlightNotesPaper[] | null>(null);
-    const [error, setError] = useState("");
     const [color, setColor] = useState<HighlightColor | "all">("all");
     const [copiedId, setCopiedId] = useState("");
-    const [sharingKey, setSharingKey] = useState<string | null>(null);
+    const [sharing, setSharing] = useState<{ key: string; highlightId: string } | null>(
+        null,
+    );
 
-    const load = useCallback(async () => {
-        setError("");
-        try {
-            const response = await fetch("/api/highlights/all", {
-                cache: "no-store",
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || "Highlights could not be loaded.");
-            }
-            setPapers(Array.isArray(data.papers) ? data.papers : []);
-            onCount(typeof data.total === "number" ? data.total : 0);
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : "Highlights could not be loaded.",
-            );
-        }
-    }, [onCount]);
-
-    useEffect(() => {
-        void load();
-    }, [load]);
+    const all = useMemo(
+        () => (papers ?? []).flatMap((paper) => paper.highlights),
+        [papers],
+    );
 
     const visible = useMemo(
         () =>
             (papers ?? [])
                 .map((paper) => ({
                     ...paper,
-                    highlights:
-                        color === "all"
-                            ? paper.highlights
-                            : paper.highlights.filter((h) => h.color === color),
+                    highlights: paper.highlights.filter(
+                        (highlight) =>
+                            (color === "all" || highlight.color === color) &&
+                            matchesLibraryQuery(query, paper.title, highlight.excerpt),
+                    ),
                 }))
                 .filter((paper) => paper.highlights.length > 0),
-        [papers, color],
+        [papers, color, query],
     );
 
     async function copy(id: string, text: string) {
@@ -93,33 +88,12 @@ export default function HighlightsTab({
         }
     }
 
-    async function remove(id: string) {
-        const previous = papers;
-        const next = (papers ?? [])
-            .map((paper) => ({
-                ...paper,
-                highlights: paper.highlights.filter((h) => h.id !== id),
-            }))
-            .filter((paper) => paper.highlights.length > 0);
-        setPapers(next);
-        onCount(next.reduce((sum, paper) => sum + paper.highlights.length, 0));
-        const response = await fetch("/api/highlights", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ highlightId: id }),
-        });
-        if (!response.ok) {
-            setPapers(previous);
-            void load();
-        }
-    }
-
     if (error) {
         return (
             <div className={styles.emptyState}>
                 <p className={styles.emptyTitle}>Highlights unavailable</p>
                 <p className={styles.emptyMessage}>{error}</p>
-                <button className={styles.searchButton} onClick={() => void load()}>
+                <button type="button" className={styles.primaryButton} onClick={onRetry}>
                     Try again
                 </button>
             </div>
@@ -128,12 +102,9 @@ export default function HighlightsTab({
 
     if (papers === null) {
         return (
-            <div className={styles.savedPapersSkeleton} aria-hidden="true">
-                {[0, 1, 2].map((item) => (
-                    <div
-                        key={item}
-                        className={`${styles.savedPaperSkeletonCard} loading-skeleton`}
-                    />
+            <div className={styles.skeletonList} aria-hidden="true">
+                {[0, 1].map((item) => (
+                    <div key={item} className={`${styles.skeletonCard} loading-skeleton`} />
                 ))}
             </div>
         );
@@ -147,7 +118,7 @@ export default function HighlightsTab({
                     Open a paper, tap Highlight, and select the lines you want
                     to keep. They collect here, grouped by paper.
                 </p>
-                <Link href="/searchpaper" className={styles.searchButton}>
+                <Link href="/searchpaper" className={styles.primaryButton}>
                     Find a paper
                 </Link>
             </div>
@@ -155,14 +126,14 @@ export default function HighlightsTab({
     }
 
     return (
-        <>
-            <div className={styles.noteFilters} role="group" aria-label="Filter by color">
+        <div className={styles.tabPanel}>
+            <div className={styles.chipRow} role="group" aria-label="Filter by color">
                 {COLORS.map((option) => (
                     <button
                         key={option.id}
                         type="button"
                         aria-pressed={color === option.id}
-                        className={color === option.id ? styles.noteFilterActive : ""}
+                        className={styles.chip}
                         onClick={() => setColor(option.id)}
                     >
                         {option.id !== "all" && (
@@ -172,90 +143,123 @@ export default function HighlightsTab({
                             />
                         )}
                         {option.label}
+                        <span className={styles.chipCount}>
+                            {option.id === "all"
+                                ? all.length
+                                : all.filter((h) => h.color === option.id).length}
+                        </span>
                     </button>
                 ))}
             </div>
             {visible.length === 0 ? (
-                <p className={styles.emptyMessage}>No {color} highlights yet.</p>
+                <p className={styles.noMatch}>
+                    {query ? "No highlights match that search." : `No ${color} highlights yet.`}
+                </p>
             ) : (
-                <div className={`${styles.libraryList} ${styles.noteColumns}`}>
-                    {visible.map((paper) => (
-                        <article key={paper.key} className={styles.libraryCard}>
-                            <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
-                                <span className={styles.cardKicker}>
+                visible.map((paper) => (
+                    <article key={paper.key} className={styles.noteCard}>
+                        <div className={styles.noteCardHead}>
+                            <div>
+                                <span className={styles.kicker}>
                                     {paper.primarySource} · {paper.highlights.length}{" "}
                                     {paper.highlights.length === 1 ? "highlight" : "highlights"}
                                 </span>
-                                <h2>{paper.title}</h2>
+                                <h2>
+                                    <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
+                                        {paper.title}
+                                    </Link>
+                                </h2>
+                            </div>
+                            <Link
+                                href={passageHref(paper.href, paper.highlights[0]?.excerpt)}
+                                className={styles.ghostButton}
+                            >
+                                Open paper <span aria-hidden="true">→</span>
                             </Link>
-                            <ol className={styles.noteList}>
-                                {paper.highlights.map((highlight) => (
-                                    <li
-                                        key={highlight.id}
-                                        className={`${styles.note} ${COLOR_CLASS[highlight.color]}`}
-                                    >
+                        </div>
+                        <ol className={styles.noteList} aria-label={`Highlights from ${paper.title}`}>
+                            {paper.highlights.map((highlight) => (
+                                <li key={highlight.id} className={styles.note}>
+                                    <blockquote>
                                         <Link
                                             href={passageHref(paper.href, highlight.excerpt)}
-                                            className={styles.noteLink}
                                             aria-label="Open this highlight in the paper"
                                         >
-                                            <blockquote>{highlight.excerpt}</blockquote>
+                                            <mark className={COLOR_CLASS[highlight.color]}>
+                                                {highlight.excerpt}
+                                            </mark>
                                         </Link>
-                                        <div className={styles.noteMeta}>
-                                            <span>
-                                                {highlight.citation.sectionTitle}
-                                                {highlight.createdAt
-                                                    ? ` · ${formatDate(highlight.createdAt)}`
-                                                    : ""}
-                                            </span>
-                                            <span className={styles.noteActions}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        void copy(highlight.id, highlight.excerpt)
-                                                    }
-                                                >
-                                                    {copiedId === highlight.id ? "Copied" : "Copy"}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void remove(highlight.id)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ol>
-                            <div className={styles.cardActions}>
-                                <Link href={passageHref(paper.href, paper.highlights[0]?.excerpt)}>
-                                    Open paper <span aria-hidden="true">→</span>
-                                </Link>
-                                <button
-                                    type="button"
-                                    className={styles.shareToggle}
-                                    aria-expanded={sharingKey === paper.key}
-                                    onClick={() =>
-                                        setSharingKey((current) =>
-                                            current === paper.key ? null : paper.key,
-                                        )
-                                    }
-                                >
-                                    Share to group
-                                </button>
-                            </div>
-                            {sharingKey === paper.key && (
-                                <ShareToGroup
-                                    // Share from the full paper, not a color-filtered view.
-                                    paper={papers?.find((item) => item.key === paper.key) ?? paper}
-                                    onClose={() => setSharingKey(null)}
-                                />
-                            )}
-                        </article>
-                    ))}
-                </div>
+                                    </blockquote>
+                                    <div className={styles.noteMeta}>
+                                        <span>
+                                            {[
+                                                highlight.citation.sectionTitle,
+                                                formatDate(highlight.createdAt),
+                                            ]
+                                                .filter(Boolean)
+                                                .join(" · ")}
+                                        </span>
+                                        <span className={styles.noteActions}>
+                                            <button
+                                                type="button"
+                                                className={
+                                                    copiedId === highlight.id
+                                                        ? styles.noteCopied
+                                                        : undefined
+                                                }
+                                                onClick={() =>
+                                                    void copy(highlight.id, highlight.excerpt)
+                                                }
+                                            >
+                                                <CopyIcon />
+                                                {copiedId === highlight.id ? "Copied" : "Copy"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-expanded={
+                                                    sharing?.highlightId === highlight.id
+                                                }
+                                                onClick={() =>
+                                                    setSharing((current) =>
+                                                        current?.highlightId === highlight.id
+                                                            ? null
+                                                            : {
+                                                                  key: paper.key,
+                                                                  highlightId: highlight.id,
+                                                              },
+                                                    )
+                                                }
+                                            >
+                                                <GroupIcon />
+                                                <span className={styles.noteActionText}>
+                                                    Send to a group
+                                                </span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={styles.noteDelete}
+                                                aria-label="Delete this highlight"
+                                                onClick={() => onRemove(highlight.id)}
+                                            >
+                                                <TrashIcon size={14} />
+                                            </button>
+                                        </span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                        {sharing?.key === paper.key && (
+                            <ShareToGroup
+                                key={sharing.highlightId}
+                                // Share from the full paper, not a filtered view.
+                                paper={papers.find((item) => item.key === paper.key) ?? paper}
+                                initialHighlightIds={[sharing.highlightId]}
+                                onClose={() => setSharing(null)}
+                            />
+                        )}
+                    </article>
+                ))
             )}
-        </>
+        </div>
     );
 }

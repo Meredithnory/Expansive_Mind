@@ -61,7 +61,7 @@ function mapSpringerResults(results: Array<Record<string, unknown>>): DiscoverCa
 export const springerSource: ResearchSource = {
     id: "springer",
     isConfigured: () => Boolean(process.env.SPRINGER_API_KEY),
-    async search({ query, page }) {
+    async search({ query, page, dateRange }) {
         if (!process.env.SPRINGER_API_KEY) {
             return {
                 hits: [],
@@ -71,7 +71,7 @@ export const springerSource: ResearchSource = {
                 callCount: 0,
             };
         }
-        const search = await searchSpringerNaturePapers(query, page);
+        const search = await searchSpringerNaturePapers(query, page, dateRange);
         return {
             hits: mapSpringerResults(
                 (search.results as Array<Record<string, unknown>>) || [],
@@ -80,6 +80,7 @@ export const springerSource: ResearchSource = {
             totalPages: search.totalPages,
             warnings: [],
             callCount: 1,
+            unavailable: search.unavailable,
         };
     },
     fetchFullText(locator: PaperLocator, fallback) {

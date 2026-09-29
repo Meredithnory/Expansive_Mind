@@ -97,6 +97,18 @@ body:has([data-search-paper-page]) {
     width: min(calc(100% - 32px), 1500px);
 }
 
+/* Paper reader on tablets (721–960px) scrolls as one page. overflow-x: hidden
+   makes <body> a scroll container that never scrolls, which silently breaks
+   every position: sticky inside it (site nav, reader toolbar, Contents bar).
+   clip trims sideways overflow without that side effect, as phones do. */
+@media (min-width: 721px) and (max-width: 960px) {
+    body:has([data-paper-reader]),
+    body:has([data-paper-reader]) .main-content {
+        overflow-x: clip;
+        overflow-y: visible;
+    }
+}
+
 /* Combined Research page: full viewport width so the page frame is not a
    left-shifted 80% column. The 720px research cluster centers inside it.
    Lock the body to the viewport so Discovery ↔ Search height differences
@@ -144,7 +156,7 @@ body:has([data-research-workspace]) {
 
 /* Research landing: parent fills the viewport row; the short cluster is
    vertically centered inside it (chat-home style). Tall mode content
-   (orbit, results) scrolls here — footer stays put. No footer z-index. */
+   (results) scrolls here — footer stays put. No footer z-index. */
 body:has([data-research-workspace]) .main-content {
     align-items: center;
     justify-content: center;

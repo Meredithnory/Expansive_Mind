@@ -16,7 +16,9 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
     // Discovery and Search share this route; mode lives in ?mode=discover|search.
     // Route handlers still own quotas, persistence, and usage accounting separately.
     return (
-        <Suspense fallback={<RouteLoading label="Opening research workspace…" />}>
+        <Suspense
+            fallback={<RouteLoading label="Opening research workspace…" />}
+        >
             <ResearchWorkspace
                 modeParam={first(query.mode)}
                 qParam={first(query.q)}

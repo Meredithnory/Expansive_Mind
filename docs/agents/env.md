@@ -9,7 +9,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in. OAuth web client in Google Cloud. Redirect URI is `{APP_URL}/api/auth/google/callback` (`http://localhost:3000/api/auth/google/callback` locally, `https://expansivemind.ai/api/auth/google/callback` in production) |
 | `RATE_LIMIT_SECRET` | Rate-limit hashing |
 | `API_KEY` | NIH E-Utilities |
-| `NCBI_EMAIL`, `NCBI_TOOL` | NCBI request identity (`NCBI_TOOL` defaults to `ExpansiveMind`) |
+| `NCBI_EMAIL`, `NCBI_TOOL` | NCBI request identity (`NCBI_TOOL` defaults to `ExpansiveMind`). `NCBI_EMAIL` is also the Crossref `mailto` and the contact in the User-Agent for SEC and other agency pages |
 | `SPRINGER_API_KEY` | Springer Nature |
 | `SERPAPI_KEY` | Google Scholar via SerpApi (Pro) |
 | `OPENALEX_API_KEY` | Optional OpenAlex key. Unset + no mailto skips the adapter |
@@ -17,7 +17,7 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `UNPAYWALL_EMAIL` | Unpaywall DOI OA lookup (URL / conflict check). Unset skips the locator. Does not authorize Share quotes |
 | `EUROPEPMC_EMAIL` | Enables Europe PMC search + NIH full-text XML fallback |
 | `AI_API_KEY` | OpenRouter |
-| `FIGURE_VISION_MODEL` | Figure chat model (default `openai/gpt-4.1-mini`) |
+| `FIGURE_VISION_MODEL` | Figure chat model (default `anthropic/claude-haiku-4.5`, same as paper chat; leave unset in Vercel unless you mean to override it; see `src/app/api/paper-assistant-model.ts`) |
 | `APP_URL` | Public origin; **required https in production** |
 | `CONTENT_ACCESS_MODE` | `legacy` (default, reader/AI live access) or `strict`. Share / claim-ledger quotes always use the strict commercial-friendly gate |
 | `STRIPE_SECRET_KEY` | Stripe SDK |
@@ -25,6 +25,6 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` | Initial Researcher Pro prices |
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client analytics |
 | `ADMIN_EMAILS` | Comma-separated owner allowlist (unlimited quota + `/admin`) |
-| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email |
+| `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email and password-reset email. Without `RESEND_API_KEY`, `/forgot-password` says reset is unavailable. `CONTACT_FROM_EMAIL` defaults to `Expansive Mind <support@expansivemind.ai>`; the sending domain must be verified in Resend or mail is rejected. Contact sends Meredith the message and the sender a short reply (max 2 a day per address) |
 
 Never commit secrets. New vars need a blank key in `.env.example` and a row here.

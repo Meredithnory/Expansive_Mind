@@ -24,17 +24,56 @@ function request(body: unknown, origin = "https://example.test") {
 describe("PATCH /api/account/profile", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it("saves a known color for the signed-in user", async () => {
+    it("saves a known coat color for the signed-in user", async () => {
         const response = await PATCH(request({ profileColor: "green" }));
         expect(response.status).toBe(200);
         expect(mocks.updateOne).toHaveBeenCalledWith(
             { _id: "user-1" },
             { $set: { profileColor: "green" } },
+            { runValidators: true },
         );
     });
 
-    it("rejects an unknown color", async () => {
-        const response = await PATCH(request({ profileColor: "#123456" }));
+    it("saves only the badge fields sent, cleaned, plus the bio", async () => {
+        const response = await PATCH(
+            request({
+                profileColor: "white",
+                badge: { role: "Enthusiast", field: "  Immuno\u0000logy  ", head: "gradcap", sidekick: "mouse" },
+                bio: "Line one\r\n\r\n\r\nLine two",
+            }),
+        );
+        expect(response.status).toBe(200);
+        expect(mocks.updateOne).toHaveBeenCalledWith(
+            { _id: "user-1" },
+            {
+                $set: {
+                    profileColor: "white",
+                    "badge.role": "Enthusiast",
+                    "badge.field": "Immuno logy",
+                    "badge.head": "gradcap",
+                    "badge.sidekick": "mouse",
+                    bio: "Line one\n\nLine two",
+                },
+            },
+            { runValidators: true },
+        );
+    });
+
+    it("lets a reader clear their role", async () => {
+        const response = await PATCH(request({ badge: { role: null } }));
+        expect(response.status).toBe(200);
+        expect(mocks.updateOne.mock.calls[0][1]).toEqual({ $set: { "badge.role": null } });
+    });
+
+    it.each([
+        [{ profileColor: "#123456" }],
+        [{ badge: { role: "Wizard" } }],
+        [{ badge: { head: "crown" } }],
+        [{ badge: "goggles" }],
+        [{ bio: 42 }],
+        [{}],
+    ])("rejects %j without writing", async (body) => {
+        const response = await PATCH(request(body));
         expect(response.status).toBe(400);
         expect(mocks.updateOne).not.toHaveBeenCalled();
     });

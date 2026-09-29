@@ -19,7 +19,14 @@ async function readPrimaryPage(raw: string): Promise<{ url: string; text: string
     const signal = AbortSignal.timeout(8_000);
     for (let redirect = 0; redirect < 3; redirect++) {
         if (!isFounderPrimaryUrl(url)) return null;
-        const response = await fetch(url, { redirect: "manual", signal });
+        // SEC and other agencies require automated clients to identify
+        // themselves with a contact address.
+        const contact = process.env.NCBI_EMAIL?.trim();
+        const response = await fetch(url, {
+            redirect: "manual",
+            signal,
+            headers: { "User-Agent": contact ? `ExpansiveMind ${contact}` : "ExpansiveMind" },
+        });
         if (response.status >= 300 && response.status < 400) {
             const location = response.headers.get("location");
             if (!location) return null;

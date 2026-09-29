@@ -79,6 +79,15 @@ const paper = {
     source: "nih",
     paper: [],
     access: {
+        canSendToAI: true,
+        canPersistContent: true,
+        policyReason: "Allowed",
+    },
+};
+
+const unlicensedPaper = {
+    ...paper,
+    access: {
         canSendToAI: false,
         canPersistContent: false,
         policyReason: "Restricted",
@@ -190,6 +199,18 @@ describe("figure analysis route", () => {
             );
         },
     );
+
+    it("refuses screenshots of a paper whose license keeps it from the model", async () => {
+        mocks.loadCachedPaperBySource.mockResolvedValue({
+            value: unlicensedPaper,
+        });
+        const response = await POST(
+            requestWithForm(uploadedFigureForm("page_region")),
+        );
+        expect(response.status).toBe(403);
+        expect(mocks.consumeQuota).not.toHaveBeenCalled();
+        expect(mocks.respondToFigure).not.toHaveBeenCalled();
+    });
 
     it("requires rights confirmation for user-supplied images", async () => {
         const response = await POST(

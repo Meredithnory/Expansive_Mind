@@ -1,137 +1,45 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import SavedPaper from "../components/SavedPaper";
-import { Paper } from "../components/SavedPaper";
-import styles from "./savedpage.module.scss";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import SavedPaper, { type Paper } from "../components/SavedPaper";
 import { LoadingOverlay } from "../components/Loading";
+import SharePaperModal from "../components/paperchatbot/SharePaperModal";
+import ShareBriefDialog from "../discover/ShareBriefDialog";
 import type { SerializedProject } from "../lib/project-types";
+import type { HighlightNotesPaper } from "../lib/highlight-notes";
 import {
   classifyPaperTopic,
   PAPER_TOPICS,
   type PaperTopic,
 } from "../lib/paper-topics";
+import {
+  PlanIcon,
+  PlusIcon,
+  SearchIcon,
+  ShareIcon,
+  TrashIcon,
+} from "../components/LibraryIcons";
 import HighlightsTab from "./HighlightsTab";
+import {
+  matchesLibraryQuery,
+  nextProjectStep,
+  normalizeLibraryQuery,
+  plansPerSynthesis,
+  projectProgress,
+  synthesisGapTitles,
+  type LibraryTab,
+} from "./library-view";
+import styles from "./savedpage.module.scss";
 
-const PAPERS_PER_PAGE = 6;
-type LibraryTab = "papers" | "syntheses" | "projects" | "highlights";
 type TopicFilter = "all" | PaperTopic;
-
-function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
-/** Desktop: horizontal snap carousel. Mobile CSS restores a vertical stack. */
-function PaperGroupCarousel({
-  topic,
-  papers,
-  deletePaper,
-}: {
-  topic: string;
-  papers: Paper[];
-  deletePaper: (paper: Paper) => void;
-}) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(false);
-
-  const updateOverflow = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    const overflowing = max > 4;
-    setCanPrev(overflowing && el.scrollLeft > 4);
-    setCanNext(overflowing && el.scrollLeft < max - 4);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    updateOverflow();
-    el.addEventListener("scroll", updateOverflow, { passive: true });
-    const ro = new ResizeObserver(updateOverflow);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", updateOverflow);
-      ro.disconnect();
-    };
-  }, [papers.length, updateOverflow]);
-
-  const scrollByCard = (direction: -1 | 1) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const slide = el.querySelector<HTMLElement>(`.${styles.carouselSlide}`);
-    const amount = slide ? slide.offsetWidth + 12 : Math.max(280, el.clientWidth * 0.75);
-    el.scrollBy({
-      left: direction * amount,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
-  };
-
-  const showArrows = canPrev || canNext;
-
-  return (
-    <div
-      className={styles.paperCarousel}
-      data-single={papers.length === 1 ? "true" : undefined}
-    >
-      {showArrows ? (
-        <button
-          type="button"
-          className={styles.carouselPrev}
-          aria-label={`Previous ${topic} papers`}
-          disabled={!canPrev}
-          onClick={() => scrollByCard(-1)}
-        >
-          <span aria-hidden="true">‹</span>
-        </button>
-      ) : null}
-      <div
-        ref={scrollerRef}
-        className={styles.paperGroupList}
-        role="list"
-        aria-label={`${topic} papers`}
-      >
-        {papers.map((page) => (
-          <div
-            className={styles.carouselSlide}
-            role="listitem"
-            key={`${page.primarySource}-${page.idName}-${page.paperId}`}
-          >
-            <SavedPaper page={page} isLink={true} deletePaper={deletePaper} />
-          </div>
-        ))}
-      </div>
-      {showArrows ? (
-        <button
-          type="button"
-          className={styles.carouselNext}
-          aria-label={`Next ${topic} papers`}
-          disabled={!canNext}
-          onClick={() => scrollByCard(1)}
-        >
-          <span aria-hidden="true">›</span>
-        </button>
-      ) : null}
-    </div>
-  );
-}
 
 type SavedSynthesis = {
   id: string;
   question: string;
   createdAt: string;
+  shared?: boolean;
+  report?: unknown;
   papers?: unknown[];
   meta?: { papersUsed?: number };
 };
@@ -140,37 +48,56 @@ function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown date";
   return date.toLocaleDateString(undefined, {
-    year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
-function projectProgress(project: SerializedProject) {
-  return {
-    done: project.plan.filter((step) => step.status === "done").length,
-    total: project.plan.length,
-  };
+function paperCount(synthesis: SavedSynthesis) {
+  const count = synthesis.meta?.papersUsed ?? synthesis.papers?.length ?? 0;
+  return `${count} ${count === 1 ? "paper" : "papers"}`;
+}
+
+function SharedBadge() {
+  return <span className={styles.sharedBadge}>Shared</span>;
 }
 
 type SavedLibraryClientProps = {
   initialTab: LibraryTab;
-  header: ReactNode;
 };
 
-const SavedLibraryClient = ({
-  initialTab,
-  header,
-}: SavedLibraryClientProps) => {
+const SavedLibraryClient = ({ initialTab }: SavedLibraryClientProps) => {
   const [allPapers, setAllPapers] = useState<Paper[]>([]);
   const [syntheses, setSyntheses] = useState<SavedSynthesis[]>([]);
   const [projects, setProjects] = useState<SerializedProject[]>([]);
+  const [highlights, setHighlights] = useState<HighlightNotesPaper[] | null>(null);
+  const [highlightError, setHighlightError] = useState("");
   const [activeTab, setActiveTab] = useState<LibraryTab>(initialTab);
-  const [highlightCount, setHighlightCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState<TopicFilter>("all");
+  const [sharingPaper, setSharingPaper] = useState<Paper | null>(null);
+  const [sharingBriefId, setSharingBriefId] = useState<string | null>(null);
+  const closePaperShare = useCallback(() => setSharingPaper(null), []);
+  const closeBriefShare = useCallback(() => setSharingBriefId(null), []);
+  const query = normalizeLibraryQuery(search);
+
+  const fetchHighlights = useCallback(async () => {
+    setHighlightError("");
+    try {
+      const response = await fetch("/api/highlights/all", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Highlights could not be loaded.");
+      }
+      setHighlights(Array.isArray(data.papers) ? data.papers : []);
+    } catch (err) {
+      setHighlightError(
+        err instanceof Error ? err.message : "Highlights could not be loaded.",
+      );
+    }
+  }, []);
 
   const fetchLibrary = useCallback(async () => {
     setLoading(true);
@@ -211,7 +138,8 @@ const SavedLibraryClient = ({
 
   useEffect(() => {
     void fetchLibrary();
-  }, [fetchLibrary]);
+    void fetchHighlights();
+  }, [fetchLibrary, fetchHighlights]);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -235,43 +163,33 @@ const SavedLibraryClient = ({
     [categorizedPapers],
   );
 
-  const filteredPapers = useMemo(
-    () =>
-      activeTopic === "all"
-        ? categorizedPapers
-        : categorizedPapers.filter((item) => item.topic === activeTopic),
-    [activeTopic, categorizedPapers],
+  const visiblePapers = categorizedPapers.filter(
+    (item) =>
+      (activeTopic === "all" || item.topic === activeTopic) &&
+      matchesLibraryQuery(query, item.paper.title, item.paper.authors),
+  );
+  const visibleSyntheses = syntheses.filter((synthesis) =>
+    matchesLibraryQuery(query, synthesis.question),
+  );
+  const visibleProjects = projects.filter((project) =>
+    matchesLibraryQuery(query, project.title),
+  );
+  const planCounts = useMemo(() => plansPerSynthesis(projects), [projects]);
+  const questionsById = useMemo(
+    () => new Map(syntheses.map((synthesis) => [synthesis.id, synthesis.question])),
+    [syntheses],
+  );
+  const highlightCount = highlights?.reduce(
+    (sum, paper) => sum + paper.highlights.length,
+    0,
   );
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredPapers.length / PAPERS_PER_PAGE),
-  );
-
-  useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  const startIndex = (currentPage - 1) * PAPERS_PER_PAGE;
-  const visiblePapers = filteredPapers.slice(
-    startIndex,
-    startIndex + PAPERS_PER_PAGE,
-  );
-  const visiblePaperGroups = PAPER_TOPICS.map((topic) => ({
-    topic,
-    papers: visiblePapers
-      .filter((item) => item.topic === topic)
-      .map((item) => item.paper),
-  })).filter((group) => group.papers.length > 0);
-  const counts = useMemo(
-    () => ({
-      papers: allPapers.length,
-      syntheses: syntheses.length,
-      projects: projects.length,
-      highlights: highlightCount,
-    }),
-    [allPapers.length, projects.length, syntheses.length, highlightCount],
-  );
+  const tabs: Array<{ id: LibraryTab; label: string; short?: string; count?: number }> = [
+    { id: "syntheses", label: "Syntheses", count: syntheses.length },
+    { id: "papers", label: "Papers", count: allPapers.length },
+    { id: "projects", label: "Research plans", short: "Plans", count: projects.length },
+    { id: "highlights", label: "Highlights", count: highlightCount },
+  ];
 
   async function deletePaper(paper: Paper) {
     setAllPapers((prev) =>
@@ -315,6 +233,14 @@ const SavedLibraryClient = ({
     if (!response.ok) void fetchLibrary();
   }
 
+  const markShared = useCallback(() => {
+    setSyntheses((current) =>
+      current.map((item) =>
+        item.id === sharingBriefId ? { ...item, shared: true } : item,
+      ),
+    );
+  }, [sharingBriefId]);
+
   async function deleteProject(project: SerializedProject) {
     if (!window.confirm(`Delete “${project.title}”?`)) return;
     setProjects((current) => current.filter((item) => item.id !== project.id));
@@ -324,17 +250,383 @@ const SavedLibraryClient = ({
     if (!response.ok) void fetchLibrary();
   }
 
-  const tabs: Array<{ id: LibraryTab; label: string }> = [
-    { id: "papers", label: "Papers" },
-    { id: "syntheses", label: "Syntheses" },
-    { id: "projects", label: "Research plans" },
-    { id: "highlights", label: "Highlights" },
-  ];
+  async function removeHighlight(id: string) {
+    const previous = highlights;
+    setHighlights((current) =>
+      (current ?? [])
+        .map((paper) => ({
+          ...paper,
+          highlights: paper.highlights.filter((h) => h.id !== id),
+        }))
+        .filter((paper) => paper.highlights.length > 0),
+    );
+    const response = await fetch("/api/highlights", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ highlightId: id }),
+    });
+    if (!response.ok) {
+      setHighlights(previous);
+      void fetchHighlights();
+    }
+  }
+
+  function showPlans() {
+    setSearch("");
+    setActiveTab("projects");
+  }
+
+  const noMatch = (what: string) => (
+    <p className={styles.noMatch}>No {what} match that search.</p>
+  );
+
+  function renderSyntheses() {
+    if (syntheses.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <p className={styles.emptyTitle}>No topic syntheses yet</p>
+          <p className={styles.emptyMessage}>
+            Discover analyzes evidence across papers and saves the result here
+            automatically.
+          </p>
+          <Link href="/discover" className={styles.primaryButton}>
+            Discover a question
+          </Link>
+        </div>
+      );
+    }
+    if (visibleSyntheses.length === 0) return noMatch("syntheses");
+
+    const [lead, ...rest] = visibleSyntheses;
+    const isNewest = lead.id === syntheses[0]?.id;
+    const gaps = synthesisGapTitles(lead.report);
+    const plans = planCounts.get(lead.id) ?? 0;
+
+    return (
+      <div className={styles.synthesesGrid}>
+        <article className={styles.leadCard}>
+          <div className={styles.cardTop}>
+            <span className={`${styles.kicker} ${styles.kickerPink}`}>
+              {isNewest ? "Latest · " : ""}
+              {formatDate(lead.createdAt)} · {paperCount(lead)}
+            </span>
+            {lead.shared ? <SharedBadge /> : null}
+          </div>
+          <h2 className={styles.leadTitle}>
+            <Link href={`/discover?saved=${lead.id}`}>{lead.question}</Link>
+          </h2>
+          {gaps.length > 0 ? (
+            <div className={styles.gapList}>
+              <span className={styles.label}>Gaps it found</span>
+              {gaps.map((gap, index) => (
+                <Link
+                  key={`${index}-${gap}`}
+                  href={`/discover?saved=${lead.id}`}
+                  className={styles.gapRow}
+                >
+                  <strong className={index === 0 ? styles.gapFirst : undefined}>
+                    Gap {index + 1}
+                  </strong>
+                  {gap}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          {plans > 0 ? (
+            <button type="button" className={styles.planLink} onClick={showPlans}>
+              <span className={styles.planLinkText}>
+                <span className={styles.planIcon}>
+                  <PlanIcon />
+                </span>
+                <span>
+                  {plans} research {plans === 1 ? "plan" : "plans"}
+                  <span className={styles.desktopOnly}>
+                    {" "}
+                    started from this synthesis
+                  </span>
+                </span>
+              </span>
+              <span className={styles.planLinkCta}>See plans →</span>
+            </button>
+          ) : null}
+          <div className={styles.leadActions}>
+            <Link href={`/discover?saved=${lead.id}`} className={styles.ghostButton}>
+              <span>
+                Open<span className={styles.desktopOnly}> synthesis</span>
+              </span>
+            </Link>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setSharingBriefId(lead.id)}
+            >
+              <ShareIcon />
+              Share brief
+            </button>
+            <button
+              type="button"
+              className={styles.iconButton}
+              aria-label={`Delete “${lead.question}”`}
+              onClick={() => void deleteSynthesis(lead)}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </article>
+        {rest.length > 0 ? (
+          <div className={styles.synthesisList}>
+            {rest.map((synthesis) => (
+              <article key={synthesis.id} className={styles.synthesisCard}>
+                <div className={styles.cardTop}>
+                  <span className={styles.kicker}>
+                    {formatDate(synthesis.createdAt)} · {paperCount(synthesis)}
+                  </span>
+                  {synthesis.shared ? <SharedBadge /> : null}
+                </div>
+                <h2>
+                  <Link href={`/discover?saved=${synthesis.id}`}>
+                    {synthesis.question}
+                  </Link>
+                </h2>
+                <div className={styles.inlineActions}>
+                  <Link href={`/discover?saved=${synthesis.id}`}>
+                    <span>
+                      Open<span className={styles.desktopOnly}> synthesis</span>
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setSharingBriefId(synthesis.id)}
+                  >
+                    Share brief
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quietIcon}
+                    aria-label={`Delete “${synthesis.question}”`}
+                    onClick={() => void deleteSynthesis(synthesis)}
+                  >
+                    <TrashIcon size={15} />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderPapers() {
+    if (allPapers.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <p className={styles.emptyTitle}>No saved papers yet</p>
+          <p className={styles.emptyMessage}>
+            Open a paper from a synthesis or quick search and save it here for
+            later.
+          </p>
+          <Link href="/discover?mode=search" className={styles.primaryButton}>
+            Search papers
+          </Link>
+        </div>
+      );
+    }
+    return (
+      <div className={styles.tabPanel}>
+        <div
+          className={styles.chipRow}
+          role="group"
+          aria-label="Filter papers by research area"
+        >
+          <span className={styles.chipLabel}>Research areas</span>
+          <button
+            type="button"
+            aria-pressed={activeTopic === "all"}
+            className={styles.chip}
+            onClick={() => setActiveTopic("all")}
+          >
+            All <span className={styles.chipCount}>{allPapers.length}</span>
+          </button>
+          {topicCounts.map(({ topic, count }) => (
+            <button
+              key={topic}
+              type="button"
+              aria-pressed={activeTopic === topic}
+              className={styles.chip}
+              onClick={() => setActiveTopic(topic)}
+            >
+              {topic} <span className={styles.chipCount}>{count}</span>
+            </button>
+          ))}
+        </div>
+        {visiblePapers.length === 0 ? (
+          noMatch("saved papers")
+        ) : (
+          <ul className={styles.paperList} aria-label="Saved papers">
+            {visiblePapers.map(({ paper, topic }) => (
+              <li key={`${paper.primarySource}-${paper.idName}-${paper.paperId}`}>
+                <SavedPaper
+                  page={paper}
+                  topic={topic}
+                  deletePaper={deletePaper}
+                  onShare={setSharingPaper}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  function renderProjects() {
+    if (projects.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <p className={styles.emptyTitle}>No research plans yet</p>
+          <p className={styles.emptyMessage}>
+            Start with Discover, then turn a promising evidence gap into a
+            step-by-step plan.
+          </p>
+          <Link href="/discover" className={styles.primaryButton}>
+            Find a research gap
+          </Link>
+        </div>
+      );
+    }
+    if (visibleProjects.length === 0) return noMatch("research plans");
+    return (
+      <div className={styles.planGrid}>
+        {visibleProjects.map((project) => {
+          const progress = projectProgress(project);
+          const next = nextProjectStep(project);
+          const source = project.sourceDiscoveryID
+            ? questionsById.get(project.sourceDiscoveryID)
+            : undefined;
+          const percent =
+            progress.total > 0
+              ? Math.round((progress.done / progress.total) * 100)
+              : 0;
+          return (
+            <article key={project.id} className={styles.planCard}>
+              <span className={`${styles.kicker} ${styles.kickerAmber}`}>
+                Research plan · {formatDate(project.createdAt)}
+              </span>
+              <h2>
+                <Link href={`/projects/${project.id}`}>{project.title}</Link>
+              </h2>
+              {source && project.sourceDiscoveryID ? (
+                <p className={styles.planSource}>
+                  From{" "}
+                  <Link href={`/discover?saved=${project.sourceDiscoveryID}`}>
+                    {source}
+                  </Link>
+                </p>
+              ) : null}
+              {progress.total > 0 ? (
+                <div className={styles.progress}>
+                  <span>
+                    {progress.done} of {progress.total} steps done
+                  </span>
+                  <span className={styles.progressTrack} aria-hidden="true">
+                    <span style={{ width: `${percent}%` }} />
+                  </span>
+                </div>
+              ) : null}
+              {next ? (
+                <div className={styles.nextStep}>
+                  <span className={styles.label}>Next step</span>
+                  <span>{next}</span>
+                </div>
+              ) : null}
+              <div className={styles.leadActions}>
+                <Link href={`/projects/${project.id}`} className={styles.ghostButton}>
+                  Open plan <span aria-hidden="true">→</span>
+                </Link>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  aria-label={`Delete “${project.title}”`}
+                  onClick={() => void deleteProject(project)}
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  let content: React.ReactNode;
+  if (activeTab === "highlights") {
+    content = (
+      <HighlightsTab
+        papers={highlights}
+        error={highlightError}
+        query={query}
+        onRetry={() => void fetchHighlights()}
+        onRemove={(id) => void removeHighlight(id)}
+      />
+    );
+  } else if (loading) {
+    content = (
+      <div className={styles.skeletonList} aria-hidden="true">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className={`${styles.skeletonCard} loading-skeleton`} />
+        ))}
+      </div>
+    );
+  } else if (error) {
+    content = (
+      <div className={styles.emptyState}>
+        <p className={styles.emptyTitle}>Library unavailable</p>
+        <p className={styles.emptyMessage}>{error}</p>
+        <button type="button" className={styles.primaryButton} onClick={fetchLibrary}>
+          Try again
+        </button>
+      </div>
+    );
+  } else if (activeTab === "syntheses") {
+    content = renderSyntheses();
+  } else if (activeTab === "papers") {
+    content = renderPapers();
+  } else {
+    content = renderProjects();
+  }
 
   return (
     <>
       <LoadingOverlay visible={loading} label="Loading your library…" />
-      {header}
+      <header className={styles.libraryHeader}>
+        <div className={styles.headerText}>
+          <p className={styles.eyebrow}>Your workspace</p>
+          <h1>Research Library</h1>
+          <p>
+            Papers you read, topic syntheses you generated, and research plans
+            you are moving forward.
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          <label className={styles.search}>
+            <SearchIcon />
+            <input
+              type="search"
+              aria-label="Search your library"
+              placeholder="Search your library"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <Link href="/discover" className={styles.primaryButton}>
+            <PlusIcon />
+            Start a discovery
+          </Link>
+        </div>
+      </header>
       <div className={styles.tabs} role="tablist" aria-label="Library">
         {tabs.map((tab) => (
           <button
@@ -342,214 +634,42 @@ const SavedLibraryClient = ({
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            className={activeTab === tab.id ? styles.activeTab : ""}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}{" "}
-            {counts[tab.id] != null ? <span>{counts[tab.id]}</span> : null}
+            {tab.short ? (
+              <>
+                <span className={styles.desktopOnly}>{tab.label}</span>
+                <span className={styles.phoneOnly}>{tab.short}</span>
+              </>
+            ) : (
+              tab.label
+            )}
+            {tab.count != null ? ` · ${tab.count}` : null}
           </button>
         ))}
       </div>
-      {activeTab === "highlights" ? (
-        <HighlightsTab onCount={setHighlightCount} />
-      ) : loading ? (
-        <div className={styles.savedPapersSkeleton} aria-hidden="true">
-          {[0, 1, 2, 3, 4, 5].map((item) => (
-            <div
-              key={item}
-              className={`${styles.savedPaperSkeletonCard} loading-skeleton`}
-            />
-          ))}
-        </div>
-      ) : error ? (
-        <div className={styles.emptyState}>
-          <p className={styles.emptyTitle}>Library unavailable</p>
-          <p className={styles.emptyMessage}>{error}</p>
-          <button className={styles.searchButton} onClick={fetchLibrary}>
-            Try again
-          </button>
-        </div>
-      ) : activeTab === "papers" ? (
-        allPapers.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No saved papers yet</p>
-            <p className={styles.emptyMessage}>
-              Open a paper from a synthesis or quick search and save it here for
-              later.
-            </p>
-            <Link href="/discover?mode=search" className={styles.searchButton}>
-              Search papers
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div
-              className={styles.topicFilters}
-              aria-label="Filter papers by research area"
-            >
-              <span className={styles.topicFilterLabel}>Research areas</span>
-              <div className={styles.topicFilterScroller}>
-                <button
-                  type="button"
-                  aria-pressed={activeTopic === "all"}
-                  className={
-                    activeTopic === "all" ? styles.activeTopicFilter : ""
-                  }
-                  onClick={() => {
-                    setActiveTopic("all");
-                    setCurrentPage(1);
-                  }}
-                >
-                  All <span>{allPapers.length}</span>
-                </button>
-                {topicCounts.map(({ topic, count }) => (
-                  <button
-                    key={topic}
-                    type="button"
-                    aria-pressed={activeTopic === topic}
-                    className={
-                      activeTopic === topic ? styles.activeTopicFilter : ""
-                    }
-                    onClick={() => {
-                      setActiveTopic(topic);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {topic} <span>{count}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className={styles.allpapers}>
-              {visiblePaperGroups.map(({ topic, papers }) => (
-                <section className={styles.paperGroup} key={topic}>
-                  <header className={styles.paperGroupHeader}>
-                    <span aria-hidden="true" />
-                    <h2>{topic}</h2>
-                    <span>{papers.length}</span>
-                  </header>
-                  <PaperGroupCarousel
-                    topic={topic}
-                    papers={papers}
-                    deletePaper={deletePaper}
-                  />
-                </section>
-              ))}
-            </div>
-            {totalPages > 1 ? (
-              <div className={styles.pagination}>
-                <button
-                  className={styles.pagebutton}
-                  type="button"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  }
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-
-                <span className={styles.pagenumber}>
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                <button
-                  className={styles.pagebutton}
-                  type="button"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
-          </>
-        )
-      ) : activeTab === "syntheses" ? (
-        syntheses.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No topic syntheses yet</p>
-            <p className={styles.emptyMessage}>
-              Discover analyzes evidence across papers and saves the result here
-              automatically.
-            </p>
-            <Link href="/discover" className={styles.searchButton}>
-              Discover a question
-            </Link>
-          </div>
-        ) : (
-          <div className={styles.libraryList}>
-            {syntheses.map((synthesis) => (
-              <article key={synthesis.id} className={styles.libraryCard}>
-                <Link href={`/discover?saved=${synthesis.id}`}>
-                  <span className={styles.cardKicker}>Topic synthesis</span>
-                  <h2>{synthesis.question}</h2>
-                  <p>
-                    {formatDate(synthesis.createdAt)} ·{" "}
-                    {synthesis.meta?.papersUsed ??
-                      synthesis.papers?.length ??
-                      0}{" "}
-                    papers
-                  </p>
-                </Link>
-                <div className={styles.cardActions}>
-                  <Link href={`/discover?saved=${synthesis.id}`}>
-                    Open synthesis <span aria-hidden="true">→</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void deleteSynthesis(synthesis)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )
-      ) : projects.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p className={styles.emptyTitle}>No research plans yet</p>
-          <p className={styles.emptyMessage}>
-            Start with Discover, then turn a promising evidence gap into a
-            step-by-step plan.
-          </p>
-          <Link href="/discover" className={styles.searchButton}>
-            Find a research gap
-          </Link>
-        </div>
-      ) : (
-        <div className={styles.libraryList}>
-          {projects.map((project) => {
-            const progress = projectProgress(project);
-            return (
-              <article key={project.id} className={styles.libraryCard}>
-                <Link href={`/projects/${project.id}`}>
-                  <span className={styles.cardKicker}>Research plan</span>
-                  <h2>{project.title}</h2>
-                  <p>
-                    {formatDate(project.createdAt)} · {progress.done}/
-                    {progress.total} steps done
-                  </p>
-                </Link>
-                <div className={styles.cardActions}>
-                  <Link href={`/projects/${project.id}`}>
-                    Open plan <span aria-hidden="true">→</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void deleteProject(project)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+      <div key={activeTab} className={styles.tabContent}>
+        {content}
+      </div>
+      {sharingPaper ? (
+        <SharePaperModal
+          open
+          onClose={closePaperShare}
+          paper={{
+            source: sharingPaper.database,
+            paperId: sharingPaper.paperId,
+            idName: sharingPaper.idName,
+            title: sharingPaper.title,
+          }}
+        />
+      ) : null}
+      {sharingBriefId ? (
+        <ShareBriefDialog
+          discoveryId={sharingBriefId}
+          onClose={closeBriefShare}
+          onShared={markShared}
+        />
+      ) : null}
     </>
   );
 };

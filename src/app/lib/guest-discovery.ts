@@ -1,3 +1,4 @@
+import { parseCitationEvidence } from "./cited-text";
 import type {
     OpportunityReport,
     PaperExtraction,
@@ -10,6 +11,7 @@ import type {
 import { parseJsonFromLlm } from "../api/discover/parse-llm-json";
 import { parseStoredPaperExtractions } from "./evidence-type";
 import { parseFounderReport } from "./founder-report";
+import { parseGapRegistryFields } from "./gap-activity";
 
 export const GUEST_DISCOVERY_STORAGE_KEY = "guest-discovery-last-result";
 
@@ -77,6 +79,7 @@ function parseGap(value: unknown): ReportGap | null {
         ...(asTrimmedString(gap.scopeNote)
             ? { scopeNote: asTrimmedString(gap.scopeNote) }
             : {}),
+        ...parseGapRegistryFields(gap),
     };
 }
 
@@ -178,6 +181,7 @@ export function parseGuestOpportunityReport(
         return undefined;
     }
 
+    const citationEvidence = parseCitationEvidence(nested.citationEvidence);
     return {
         ...(parseFounderReport(raw.founder) ? { founder: parseFounderReport(raw.founder) } : {}),
         sections: {
@@ -187,6 +191,7 @@ export function parseGuestOpportunityReport(
             venturePotential,
             couldNotVerify,
             projectSeeds,
+            ...(citationEvidence ? { citationEvidence } : {}),
         },
     };
 }

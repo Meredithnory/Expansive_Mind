@@ -151,3 +151,141 @@
     align-items: center;
     gap: 8px;
 }
+
+/* "More" menu. One copy of each link: wide screens and the phone sheet
+   flatten the group (display: contents) so its links sit inline; mid-width
+   screens show a More button with a dropdown that unrolls from the top. */
+.moreGroup,
+.moreMenu {
+    display: contents;
+}
+
+.moreButton,
+.moreOnly {
+    display: none !important;
+}
+
+.moreChevron {
+    width: 6px;
+    height: 6px;
+    margin-left: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.moreChevronOpen {
+    transform: translateY(1px) rotate(-135deg);
+}
+
+@mixin more-mode {
+    & {
+        gap: 2px;
+
+        .link {
+            padding: 8px 11px;
+            font-size: 0.92rem;
+        }
+
+        .moreGroup {
+            position: relative;
+            display: flex;
+        }
+
+        .moreButton {
+            display: inline-flex !important;
+        }
+
+        .moreMenu {
+            position: absolute;
+            top: calc(100% + 14px);
+            right: 0;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 180px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            background: rgba(13, 14, 14, 0.98);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(14px);
+            clip-path: inset(0 0 100% 0 round 18px);
+            opacity: 0;
+            transform: translateY(-6px);
+            visibility: hidden;
+            transition:
+                clip-path 260ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 160ms ease 80ms,
+                visibility 0s linear 260ms;
+
+            .link {
+                justify-content: flex-start;
+                width: 100%;
+                min-height: 40px;
+                padding: 8px 12px;
+            }
+
+            .logout {
+                margin: 4px 0 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 0 0 12px 12px;
+            }
+        }
+
+        .moreMenuOpen {
+            clip-path: inset(0 0 0 0 round 18px);
+            opacity: 1;
+            transform: none;
+            visibility: visible;
+            transition:
+                clip-path 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 140ms ease,
+                visibility 0s;
+        }
+
+        /* Icon-only profile keeps the row short; the link keeps its aria-label. */
+        .profileText {
+            display: none;
+        }
+    }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+    .menubar {
+        @include more-mode;
+    }
+}
+
+/* Signed-in rows are longer (Library, Groups, Profile, Admin, Logout), so they
+   fold into More below 1440px; the signed-out row keeps its links to 1180px. */
+@media (min-width: 1181px) and (max-width: 1439px) {
+    .menubar.dense {
+        @include more-mode;
+    }
+}
+
+/* Narrow laptops and tablets: Groups joins the More menu too. */
+@media (min-width: 721px) and (max-width: 900px) {
+    .inlineOnly {
+        display: none !important;
+    }
+
+    .moreOnly {
+        display: inline-flex !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .moreMenu,
+    .moreMenuOpen,
+    .moreChevron {
+        clip-path: none !important;
+        transform: none !important;
+        transition: opacity 120ms ease, visibility 0s linear 120ms !important;
+    }
+}

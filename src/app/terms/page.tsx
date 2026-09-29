@@ -95,6 +95,41 @@ export default function TermsPage() {
                     ),
                 },
                 {
+                    heading: "The public forum and groups",
+                    body: (
+                        <>
+                            <p>
+                                Posts and comments in the public forum can be
+                                read by anyone, including people without an
+                                account. Group posts are seen only by that
+                                group&apos;s members. In both, please:
+                            </p>
+                            <ul>
+                                <li>Be respectful. No harassment, hate, or personal attacks.</li>
+                                <li>No spam, advertising, or self-promotion unrelated to the research.</li>
+                                <li>
+                                    Represent research honestly. Don&apos;t misstate
+                                    what a paper found.
+                                </li>
+                                <li>
+                                    Don&apos;t post text you don&apos;t have the right to
+                                    share. Expansive Mind only shows quoted paper
+                                    text when the paper&apos;s license allows it.
+                                </li>
+                                <li>No private information about other people.</li>
+                            </ul>
+                            <p>
+                                You keep ownership of what you post and give us
+                                permission to display it on Expansive Mind. We may
+                                hide or remove posts and suspend accounts that
+                                break these rules. Anyone can report a post; items
+                                reported by several people are hidden until we
+                                review them.
+                            </p>
+                        </>
+                    ),
+                },
+                {
                     heading: "Paid plans",
                     body: (
                         <p>
@@ -133,13 +168,45 @@ export default function TermsPage() {
                 {
                     heading: "Copyright complaints",
                     body: (
-                        <p>
-                            If you believe something on Expansive Mind
-                            infringes your copyright, email {email} with the
-                            work, where it appears on the site, and your
-                            contact details. We will review it and remove
-                            content that infringes.
-                        </p>
+                        <>
+                            <p>
+                                We respond to notices of copyright infringement
+                                under the Digital Millennium Copyright Act
+                                (DMCA). Our designated agent is {DEVELOPER_NAME},
+                                reachable at {email}. A notice should include:
+                            </p>
+                            <ul>
+                                <li>the copyrighted work you believe was infringed;</li>
+                                <li>
+                                    the link to the post or comment on
+                                    Expansive Mind where it appears;
+                                </li>
+                                <li>your name, address, phone number, and email;</li>
+                                <li>
+                                    a statement that you believe in good faith
+                                    the use isn&apos;t authorized by the owner,
+                                    its agent, or the law;
+                                </li>
+                                <li>
+                                    a statement, under penalty of perjury, that
+                                    your notice is accurate and that you are the
+                                    owner or authorized to act for them; and
+                                </li>
+                                <li>your physical or electronic signature.</li>
+                            </ul>
+                            <p>
+                                We remove material identified in a valid notice
+                                promptly. If your post was removed and you
+                                believe that was a mistake, you can send a
+                                counter-notice to the same address; we may then
+                                restore it as the law allows.
+                            </p>
+                            <p>
+                                We close the accounts of people who repeatedly
+                                post material that infringes others&apos;
+                                copyrights.
+                            </p>
+                        </>
                     ),
                 },
                 {

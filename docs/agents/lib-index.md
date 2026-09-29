@@ -11,30 +11,41 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
 | `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
+| `browser-paper.ts` | client | Load an unlicensed PMC body in the reader's browser from NIH / Europe PMC. Read-only figures |
 | `canvas-image.ts` | client | Canvas → file, size cap |
+| `chat-access.ts` | both | `paperChatMode`: body excerpts, abstract only, or no chat |
 | `chat-messages.ts` | both | Chat message shape + welcome copy |
+| `cited-text.ts` | both | Report citation parsing: `[Paper 3]`, `[Papers 2, 5]`, `[10]` to chips; evidence ids `[E3.2]` to plain citations plus a per-chip evidence map |
 | `claim-evidence.ts` | both | Study-design labels in Discover. Not the claim ledger |
 | `contact.ts` | both | Contact form parse / mailto |
+| `contact-mail.ts` | both | Contact emails: the message to Meredith and the "we got your message" reply (never echoes the message) |
+| `email-layout.ts` | both | Branded HTML email shell, escaping, and the default sender (`support@expansivemind.ai`) |
+| `send-email.ts` | server | Sends one email through Resend; never throws |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
 | `quote-eligibility.ts` | both | Strict quote gate. Does not decide whether a share slug can be created |
+| `quote-citation.ts` | both | "Copy with citation": quote + byline, DOI link, license |
 | `entitlements.ts` | server | Quota consume / refund / snapshot |
 | `evidence-type.ts` | both | Evidence labels on extractions |
 | `figure-capture.ts` | both | Crop + rights attestation |
 | `figure-context.ts` | both | Build figure prompt context |
 | `figure-image.ts` | server | Validate / fetch figure bytes |
 | `founder-report.ts` | both | Founder diligence markdown merged onto a Discover brief |
+| `gap-activity.ts` | both | Sanitize gap registry terms, build RePORTER / ClinicalTrials.gov query, parse stored gap activity |
 | `google-auth-messages.ts` | client | Google sign-in error copy |
 | `google-oauth.ts` | server | Google authorize URL, state cookie, and verified email |
 | `guest-cost-cap.ts` | server | Daily guest provider caps |
 | `guest-discovery.ts` | client | localStorage last guest result |
 | `guest-usage.ts` | both | Summarize guest counters |
 | `highlight-search.tsx` | client | Highlight search UI helper |
+| `lab-badge.ts` | both | Lab badge roles, extras slots, validation, tag line |
 | `license-extract.ts` | both | JATS license / DOI extract |
 | `openrouter-policy.ts` | both | ZDR + deny data collection |
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
+| `paper-evidence.ts` | both | Verify a finding's quote is verbatim in the excerpt; pick the evidence sentence a clicked citation opens |
 | `paper-highlights.ts` | server | Highlight CRUD |
 | `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
+| `profile-colors.ts` | both | Coat colors (profileColor) with shade and ink |
 | `research-citation.ts` | both | DOI/PMCID normalize + citation merge keys for the source registry |
 | `plan-config.ts` | server | Default + DB plan/price config |
 | `pmc-media.ts` | both | PMC figure URL resolve |
@@ -47,6 +58,9 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `request-ip.ts` | server | Client IP from headers |
 | `request-security.ts` | server | Origin check + limited JSON body |
 | `saved-paper-utils.ts` | server | Find / migrate saved papers |
+| `scroll-to-range.ts` | client | Scroll a focused passage to the reading line by its own position |
+| `search-filters.ts` | both | Search source/date filters; date filter → publication-year range for `/api/search` |
+| `search-result-view.ts` | both | Search result row labels: source, year, access chip, open action, counts, searches left |
 | `search-suggest.ts` | client | Ghost suggest + fetch helpers |
 | `session-types.ts` | both | Session / quota snapshot types |
 | `session-version.ts` | both | Revocable JWT `tokenVersion` |

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         for (const post of postDocs) userIds.add(post.authorID.toString());
         for (const comment of comments) userIds.add(comment.authorID.toString());
         const users = await User.find({ _id: { $in: [...userIds] } })
-            .select("firstName lastName profileColor")
+            .select("firstName lastName profileColor badge")
             .lean();
         const userById = new Map(
             (users as unknown as Array<{ _id: Id }>).map((user) => [

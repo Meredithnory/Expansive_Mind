@@ -1,5 +1,6 @@
 "use client";
 
+import { evidenceFocusHref } from "../lib/paper-evidence";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -14,7 +15,11 @@ import {
     paperDesignLabel,
     supportRelationLabel,
 } from "../lib/claim-evidence";
-import { buildPaperFocusHref } from "../lib/paper-sources";
+import {
+    buildPaperFocusHref,
+    withReportOrigin,
+    type ReportReturn,
+} from "../lib/paper-sources";
 import { visiblePaperQuote } from "../lib/quote-eligibility";
 import QuoteWithAttribution from "./QuoteWithAttribution";
 import { resolveScholarCitesId } from "../lib/citing-works";
@@ -46,6 +51,10 @@ type PaperPreviewDrawerProps = {
     onClose: () => void;
     onSelectPaper: (index: number) => void;
     onSeeInSources?: (index: number) => void;
+    /** The report and tab, for the reader's "Your report" link. */
+    returnTo?: ReportReturn;
+    /** The evidence sentence the clicked citation stands on. */
+    citedQuote?: string | null;
 };
 
 function sourceBadgeClass(database: PreviewPaper["database"]) {
@@ -94,6 +103,8 @@ export default function PaperPreviewDrawer({
     onClose,
     onSelectPaper,
     onSeeInSources,
+    returnTo,
+    citedQuote = null,
 }: PaperPreviewDrawerProps) {
     const panelRef = useRef<HTMLElement>(null);
     const titleId = useId();
@@ -140,9 +151,14 @@ export default function PaperPreviewDrawer({
         Boolean(extraction && extraction.limitations.length > 0);
     const methodExcerpt =
         extraction?.methods || extraction?.supportingExcerpt || "";
-    const methodHref = buildPaperFocusHref(paper.href, methodExcerpt);
+    const methodHref = withReportOrigin(
+        buildPaperFocusHref(paper.href, methodExcerpt),
+        paper.index,
+        null,
+        returnTo,
+    );
     // The passage the report cites; the reader scrolls to it and marks it.
-    const citedExcerpt = extraction?.supportingExcerpt || "";
+    const citedExcerpt = citedQuote || extraction?.supportingExcerpt || "";
     const renderQuote = (text: string) => {
         const shown = visiblePaperQuote({
             quote: text,
@@ -163,8 +179,13 @@ export default function PaperPreviewDrawer({
         );
     };
     const citedHref = citedExcerpt
-        ? buildPaperFocusHref(paper.href, citedExcerpt, { method: false })
-        : paper.href;
+        ? withReportOrigin(
+              buildPaperFocusHref(paper.href, citedExcerpt, { method: false }),
+              paper.index,
+              null,
+              returnTo,
+          )
+        : withReportOrigin(paper.href, paper.index, null, returnTo);
 
     return createPortal(
         <div className={styles.overlay}>
@@ -298,21 +319,42 @@ export default function PaperPreviewDrawer({
                                         ))}
                                     </ul>
                                 </div>
-                            ) : extraction?.supportingExcerpt ? (
-                                renderQuote(extraction.supportingExcerpt)
+                            ) : citedExcerpt ? (
+                                renderQuote(citedExcerpt)
                             ) : null}
                             {extraction && extraction.keyFindings.length > 0 ? (
                                 <div className={styles.evidenceBlock}>
                                     <h3>Findings used</h3>
                                     <ul>
                                         {extraction.keyFindings.map(
-                                            (finding, index) => (
-                                                <li
-                                                    key={`${paper.index}-finding-${index}`}
-                                                >
-                                                    {finding}
-                                                </li>
-                                            ),
+                                            (finding, index) => {
+                                                const evidence = extraction.evidence?.find(
+                                                    (item) => item.finding === finding,
+                                                );
+                                                return (
+                                                    <li
+                                                        key={`${paper.index}-finding-${index}`}
+                                                    >
+                                                        {finding}
+                                                        {evidence ? (
+                                                            <>
+                                                                {" "}
+                                                                <a
+                                                                    href={withReportOrigin(
+                                                                        evidenceFocusHref(paper.href, evidence),
+                                                                        paper.index,
+                                                                        null,
+                                                                        returnTo,
+                                                                    )}
+                                                                    className={styles.findingLink}
+                                                                >
+                                                                    See it in the paper →
+                                                                </a>
+                                                            </>
+                                                        ) : null}
+                                                    </li>
+                                                );
+                                            },
                                         )}
                                     </ul>
                                 </div>

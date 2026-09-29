@@ -1,15 +1,16 @@
 .popup {
     position: fixed;
+    // From under the nav (DiscoveryPaperChat measures it) to the bottom of
+    // the screen. The question box is inside the panel.
+    top: var(--paper-chat-top, 112px);
     left: 50%;
-    bottom: 156px;
+    bottom: 16px;
     z-index: 29;
     display: flex;
     flex-direction: column;
     gap: 10px;
     box-sizing: border-box;
     width: min(1240px, calc(100vw - 32px));
-    height: min(78dvh, calc(100dvh - 188px));
-    max-height: calc(100dvh - 188px);
     overflow: hidden;
     padding: 14px 16px 12px;
     border: 1px solid rgba(215, 235, 255, 0.12);
@@ -20,10 +21,35 @@
         0 0 0 1px rgba(255, 255, 255, 0.025) inset;
     color: #e2ebf7;
     backdrop-filter: blur(22px);
-    transform: translateX(-50%);
+    // Closed state. The panel grows out of the citation that opened it
+    // (--paper-chat-origin, set in DiscoveryPaperChat) into place.
+    opacity: 0;
+    transform: translateX(-50%) scale(0.18);
+    transform-origin: var(--paper-chat-origin, 50% 100%);
+    pointer-events: none;
+    transition:
+        transform 280ms cubic-bezier(0.4, 0, 1, 1),
+        opacity 200ms ease 80ms;
+
+    &.popupShown {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+        pointer-events: auto;
+        transition:
+            transform 460ms cubic-bezier(0.16, 1, 0.3, 1),
+            opacity 220ms ease;
+    }
 
     &[hidden] {
         display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &,
+        &.popupShown {
+            transform: translateX(-50%);
+            transition: opacity 160ms ease;
+        }
     }
 
     header {
@@ -32,6 +58,49 @@
         justify-content: space-between;
         gap: 12px;
         flex-shrink: 0;
+    }
+
+    .headerLead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .paperSwitch {
+        min-width: 0;
+
+        select {
+            max-width: min(520px, 52vw);
+            height: 38px;
+            padding: 0 32px 0 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            background: #111118;
+            color: #e6eef8;
+            font: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid #ff8ec4;
+                outline-offset: 2px;
+            }
+        }
+    }
+
+    .srOnly {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     h2 {
@@ -55,6 +124,48 @@
         line-height: 1;
         cursor: pointer;
     }
+}
+
+.citedFor {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 90, 169, 0.35);
+    border-radius: 14px;
+    background: rgba(255, 0, 132, 0.06);
+
+    p {
+        margin: 0;
+        color: #fff;
+        font-size: 0.86rem;
+        line-height: 1.45;
+    }
+}
+
+.citedForLabel {
+    color: #ff5aa9;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.citedForNote {
+    color: #9aa3b2;
+    font-size: 0.74rem;
+}
+
+.noPassage {
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 196, 120, 0.22);
+    border-radius: 10px;
+    background: rgba(255, 176, 80, 0.06);
+    color: rgba(255, 214, 160, 0.92);
+    font-size: 0.8rem;
+    line-height: 1.45;
 }
 
 .openFullPaper {
@@ -201,10 +312,9 @@
 @media (max-width: 800px) {
     .popup {
         right: auto;
-        bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+        // Clear the phone's bottom nav (0 above phone widths).
+        bottom: calc(var(--mobile-bottom-nav-clearance, 0px) + 8px);
         width: calc(100vw - 16px);
-        height: min(72dvh, calc(100dvh - 156px - env(safe-area-inset-bottom, 0px)));
-        max-height: calc(100dvh - 156px - env(safe-area-inset-bottom, 0px));
         padding: 10px;
     }
 
@@ -239,9 +349,7 @@
     /* Phone: fill the space between the top of the screen and the ask bar,
        keep the paper preview short, and don't repeat the title in huge type. */
     .popup {
-        top: max(8px, env(safe-area-inset-top, 0px));
-        height: auto;
-        max-height: none;
+        top: var(--paper-chat-top, max(8px, env(safe-area-inset-top, 0px)));
         border-radius: 20px;
     }
 

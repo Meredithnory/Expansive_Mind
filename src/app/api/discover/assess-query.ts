@@ -120,6 +120,21 @@ Examples:
     );
 }
 
+const termTokens = (text: string) =>
+    text
+        .toLowerCase()
+        .split(/\s+/)
+        .map((token) => token.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, ""))
+        .filter(Boolean);
+
+/** A spelling fix must keep every term with a digit (GLP-1, p53, type 2). */
+function keepsNumberedTerms(original: string, suggestion: string) {
+    const kept = new Set(termTokens(suggestion));
+    return termTokens(original)
+        .filter((token) => /\d/.test(token))
+        .every((token) => kept.has(token));
+}
+
 export async function assessDiscoveryQuestion(
     question: string,
 ): Promise<DiscoveryQueryAssessment> {
@@ -145,7 +160,16 @@ export async function assessDiscoveryQuestion(
         }
     }
 
-    if (nihSuggestion && !queriesMatch(nihSuggestion, trimmed)) {
+    // The model already read the question. NIH ESpell mangles numbered and
+    // hyphenated terms ("GLP-1 … type 2" -> "cgrp … type"), so it is only a
+    // fallback for when the model gave no answer.
+    if (modelResult) return emptyAssessment();
+
+    if (
+        nihSuggestion &&
+        !queriesMatch(nihSuggestion, trimmed) &&
+        keepsNumberedTerms(trimmed, nihSuggestion)
+    ) {
         const suggestion = applyDiscoveryQuestionCorrection(
             trimmed,
             nihSuggestion,

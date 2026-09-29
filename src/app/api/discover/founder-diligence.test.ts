@@ -28,6 +28,18 @@ describe("founder retrieval safety and failure handling", () => {
         expect(result.sources).toEqual([]);
         expect(fetch.mock.calls.every(([url]) => !url.includes("127.0.0.1"))).toBe(true);
     });
+    it("identifies itself to agency sites with a contact address", async () => {
+        vi.stubEnv("SERPAPI_KEY", "test");
+        vi.stubEnv("NCBI_EMAIL", "contact@example.com");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const fetch = vi.fn(async (raw: string, _init?: RequestInit) => raw.startsWith("https://serpapi.com/")
+            ? Response.json({ organic_results: [{ title: "Filing", link: "https://www.sec.gov/example" }] })
+            : new Response("<main>" + "Filing text. ".repeat(30) + "</main>", { headers: { "content-type": "text/html" } }));
+        vi.stubGlobal("fetch", fetch);
+        await retrieveFounderSources("assay", "US");
+        const agencyCall = fetch.mock.calls.find(([url]) => String(url).startsWith("https://www.sec.gov/"));
+        expect(agencyCall?.[1]).toMatchObject({ headers: { "User-Agent": "ExpansiveMind contact@example.com" } });
+    });
     it("does not let generated JSON replace the trusted source register", async () => {
         const source = { id: "Source 1", title: "Source", url: "https://www.fda.gov/example", retrievedAt: "2026-09-07", text: "The application remains under review by the agency." };
         completion.mockResolvedValue({ choices: [{ message: { content: JSON.stringify({ version: 1, status: "invest", sources: [{ ...source, text: "The agency approved this product." }], areas: [{ id: "regulatory", findings: [{ claim: "Approved", sourceId: source.id, quote: "The agency approved this product." }] }] }) } }] });

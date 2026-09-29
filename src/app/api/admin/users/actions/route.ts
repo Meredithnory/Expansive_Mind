@@ -5,6 +5,11 @@ import { recordAdminAction } from "../../../../lib/admin-audit";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
 import { getStripe } from "../../../../lib/stripe";
 import type { QuotaFeature } from "../../../../lib/plan-config";
+import Block from "../../../../models/Block";
+import Follow from "../../../../models/Follow";
+import ForumComment from "../../../../models/ForumComment";
+import ForumPost from "../../../../models/ForumPost";
+import ForumReport from "../../../../models/ForumReport";
 import Group from "../../../../models/Group";
 import GroupComment from "../../../../models/GroupComment";
 import GroupMember from "../../../../models/GroupMember";
@@ -226,6 +231,14 @@ export const POST = withAdmin(async (request: NextRequest) => {
         ]);
         const groups = await Group.deleteMany({ _id: { $in: ownedGroupIds } });
 
+        const [forumPosts, forumComments] = await Promise.all([
+            ForumPost.deleteMany({ authorID: user._id }),
+            ForumComment.deleteMany({ authorID: user._id }),
+            Follow.deleteMany({ $or: [{ followerID: user._id }, { followeeID: user._id }] }),
+            Block.deleteMany({ $or: [{ blockerID: user._id }, { blockedID: user._id }] }),
+            ForumReport.deleteMany({ reporterID: user._id }),
+        ]);
+
         const savedPapers = await SavedPaper.find({ userID: user._id })
             .select("_id")
             .lean();
@@ -286,6 +299,8 @@ export const POST = withAdmin(async (request: NextRequest) => {
                 groupPosts: groupPosts.deletedCount,
                 groupComments: groupComments.deletedCount,
                 groupMemberships: groupMemberships.deletedCount,
+                forumPosts: forumPosts.deletedCount,
+                forumComments: forumComments.deletedCount,
                 user: 1,
             },
         };

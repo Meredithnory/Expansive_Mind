@@ -4,6 +4,8 @@ export interface SessionUser {
     lastName: string;
     email: string;
     profileColor?: import("./profile-colors").ProfileColor;
+    badge?: import("./lab-badge").Badge;
+    bio?: string;
     plan: "free" | "pro";
     isAdmin: boolean;
     subscriptionStatus: string;

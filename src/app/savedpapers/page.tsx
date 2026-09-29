@@ -1,21 +1,12 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import RouteLoading from "../components/RouteLoading";
 import SavedLibraryClient from "./SavedLibraryClient";
-import PaperStack from "../components/PaperStack";
+import { parseLibraryTab } from "./library-view";
 import styles from "./savedpage.module.scss";
 
-type LibraryTab = "papers" | "syntheses" | "projects" | "highlights";
 type SavedPapersPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function initialTab(value: string | string[] | undefined): LibraryTab {
-    const tab = Array.isArray(value) ? value[0] : value;
-    return tab === "syntheses" || tab === "projects" || tab === "highlights"
-        ? tab
-        : "papers";
-}
 
 export default async function SavedPapersPage({ searchParams }: SavedPapersPageProps) {
     const query = await searchParams;
@@ -26,27 +17,7 @@ export default async function SavedPapersPage({ searchParams }: SavedPapersPageP
         <div className={styles.pagecontainer}>
             <div className={styles.pagecontent}>
                 <Suspense fallback={<RouteLoading label="Loading your research library…" />}>
-                    <SavedLibraryClient
-                        initialTab={initialTab(query.tab)}
-                        header={
-                            <header className={styles.libraryHeader}>
-                                <div>
-                                    <p className={styles.eyebrow}>Your workspace</p>
-                                    <h1>
-                                        <PaperStack size="large" />
-                                        Research Library
-                                    </h1>
-                                    <p>
-                                        Papers you read, topic syntheses you generated, and research
-                                        plans you are moving forward.
-                                    </p>
-                                </div>
-                                <Link href="/discover" className={styles.searchButton}>
-                                    Start a discovery
-                                </Link>
-                            </header>
-                        }
-                    />
+                    <SavedLibraryClient initialTab={parseLibraryTab(query.tab)} />
                 </Suspense>
             </div>
         </div>

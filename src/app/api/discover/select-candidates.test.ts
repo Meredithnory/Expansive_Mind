@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ContentAccessPolicy } from "../../lib/content-access-policy";
 import {
-    filterAiEligible,
+    filterDiscoverUsable,
     selectDiscoverCandidates,
     dedupeDiscoverCandidates,
     type DiscoverCandidate,
@@ -109,18 +109,26 @@ const scholarCandidate = (
     access,
 });
 
-describe("filterAiEligible", () => {
-    it("keeps only papers approved for AI processing", () => {
+describe("filterDiscoverUsable", () => {
+    it("keeps licensed papers and abstracts of blocked non-Scholar papers", () => {
         const candidates = [
             springerCandidate("10.1/a"),
             springerCandidate("10.1/b", blockedAccess()),
             nihCandidate("111"),
             scholarCandidate("abc", blockedAccess()),
         ];
-        expect(filterAiEligible(candidates).map((c) => c.paperId)).toEqual([
+        expect(filterDiscoverUsable(candidates).map((c) => c.paperId)).toEqual([
             "10.1/a",
+            "10.1/b",
             "111",
         ]);
+    });
+
+    it("drops a blocked paper that has no abstract", () => {
+        const candidates = [
+            { ...nihCandidate("222", blockedAccess()), abstract: "  " },
+        ];
+        expect(filterDiscoverUsable(candidates)).toEqual([]);
     });
 });
 
@@ -189,7 +197,7 @@ describe("selectDiscoverCandidates", () => {
         );
     });
 
-    it("skips blocked licenses and dedupes by DOI across sources", () => {
+    it("skips blocked Scholar snippets and dedupes by DOI across sources", () => {
         const sharedDoi = "10.1/shared";
         const selected = selectDiscoverCandidates({
             springer: [springerCandidate(sharedDoi)],
@@ -207,13 +215,23 @@ describe("selectDiscoverCandidates", () => {
         expect(selected).toHaveLength(2);
     });
 
-    it("returns empty when no AI-eligible papers exist", () => {
+    it("keeps blocked papers for abstract-only use but never blocked Scholar", () => {
         const selected = selectDiscoverCandidates({
             springer: [springerCandidate("10.1/a", blockedAccess())],
             nih: [nihCandidate("1", blockedAccess())],
             scholar: [scholarCandidate("s1", blockedAccess())],
         });
-        expect(selected).toEqual([]);
+        expect(selected.map((c) => c.paperId)).toEqual(["10.1/a", "1"]);
+    });
+
+    it("prefers a non-Scholar record when no merged record is licensed", () => {
+        const selected = selectDiscoverCandidates({
+            ranked: [
+                { ...scholarCandidate("s1", blockedAccess()), doi: "10.1/x" },
+                { ...nihCandidate("5", blockedAccess()), doi: "10.1/x" },
+            ],
+        });
+        expect(selected.map((c) => c.database)).toEqual(["nih"]);
     });
 });
 

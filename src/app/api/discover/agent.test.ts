@@ -62,7 +62,12 @@ vi.mock("../paper/utils", () => ({
     getSpringerPaperDetails: vi.fn(),
     getScholarPaperDetails: vi.fn(),
 }));
+// Impact lookup reads Mongo and Crossref/OpenAlex; keep tests offline and fast.
+vi.mock("../../lib/paper-impact-lookup", () => ({
+    attachPaperImpact: vi.fn(async (papers: unknown[]) => papers),
+}));
 vi.mock("../../lib/paper-context", () => ({
+    selectAbstractContext: vi.fn((abstract: string) => abstract),
     selectPaperContext: vi.fn(() => "Licensed excerpt from the paper."),
     selectQuotableExcerpt: vi.fn(() => "Licensed excerpt from the paper."),
 }));
@@ -217,6 +222,59 @@ describe("runDiscoverAgent", () => {
         expect(loadCachedPaperBySource).toHaveBeenCalled();
         expect(synthesizeOpportunityReport).toHaveBeenCalled();
         expect(suggestSearchQueryNihOnly).not.toHaveBeenCalled();
+    });
+
+    it("uses only the abstract for a paper whose license blocks its body", async () => {
+        judgeResearchQuestion.mockResolvedValue("research");
+        mockPaperHit();
+        const blockedAccess = {
+            canSendToAI: false,
+            canDisplayFullText: false,
+            canPersistContent: false,
+            rawLicense: "CC BY-NC 4.0",
+            licenseUrl: "https://creativecommons.org/licenses/by-nc/4.0/",
+            canonicalUrl: "https://doi.org/10.1000/glp1",
+        };
+        searchSpringerNaturePapers.mockResolvedValue({
+            results: [
+                {
+                    doi: "10.1000/glp1",
+                    title: "GLP-1 and cardiovascular outcomes",
+                    authors: ["A. Author"],
+                    date: "2024",
+                    abstract: "A trial of GLP-1 receptor agonists.",
+                    sourceUrl: "https://doi.org/10.1000/glp1",
+                    access: blockedAccess,
+                },
+            ],
+        });
+        loadCachedPaperBySource.mockResolvedValue({
+            value: {
+                paperId: "10.1000/glp1",
+                idName: "doi",
+                title: "GLP-1 and cardiovascular outcomes",
+                authors: ["A. Author"],
+                publicationDate: "2024",
+                primarySource: "Springer Nature",
+                abstract: "Abstract from the publisher record.",
+                paper: [],
+                access: blockedAccess,
+            },
+        });
+
+        const result = await runDiscoverAgent(
+            "How does GLP-1 receptor agonism affect cardiovascular outcomes?",
+        );
+
+        expect(result.papers).toHaveLength(1);
+        expect(result.papers[0]?.licenseUrl).toBeUndefined();
+        expect(selectPaperContext).not.toHaveBeenCalled();
+        const sent = extractPaperFindings.mock.calls[0]?.[0];
+        expect(sent).toMatchObject({
+            excerpt: "Abstract from the publisher record.",
+            excerptKind: "abstract",
+        });
+        expect(sent).not.toHaveProperty("quoteExcerpt");
     });
 
     it("keeps the spelling retry for a real question with no first-pass papers", async () => {

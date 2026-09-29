@@ -32,7 +32,9 @@ const getNihSpellSuggestion = async (query: string): Promise<string | null> => {
         windowMs: 1_000,
     });
     if (!rateLimit.allowed) return null;
-    const res = await fetch(`${NIH_ESPELL_URL}?${params.toString()}`);
+    const res = await fetch(`${NIH_ESPELL_URL}?${params.toString()}`, {
+        signal: AbortSignal.timeout(5_000),
+    });
     if (!res.ok) {
         return null;
     }

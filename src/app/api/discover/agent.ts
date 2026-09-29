@@ -1,6 +1,7 @@
 import { rankSearchResults } from "../search/semantic-rank";
 import { loadCachedPaperBySource } from "../paper/load-paper";
 import {
+    selectAbstractContext,
     selectPaperContext,
     selectQuotableExcerpt,
 } from "../../lib/paper-context";
@@ -32,6 +33,7 @@ import {
     shouldDropForOaConflict,
 } from "../research/registry";
 import { attachClaimLedger } from "./claim-ledger";
+import { attachGapActivity } from "./gap-activity";
 import { synthesizeOpportunityReport } from "./synthesize";
 import {
     extractPaperFindings,
@@ -204,9 +206,9 @@ async function readPaperExcerpts(
             ) {
                 throw new Error("Scholar snippets are discovery-only");
             }
-            if (!paper.access.canSendToAI) {
-                throw new Error("Paper not approved for AI processing");
-            }
+            // A license that keeps the body out of the model still lets
+            // Discover read the abstract, as abstract-first research tools do.
+            const abstractOnly = !paper.access.canSendToAI;
 
             const oaDoi =
                 paper.access?.attribution?.doi || candidate.doi;
@@ -215,7 +217,12 @@ async function readPaperExcerpts(
                 throw new Error("Conflicting license records");
             }
 
-            const excerpt = selectPaperContext(paper, question);
+            const excerpt = abstractOnly
+                ? selectAbstractContext(paper.abstract || candidate.abstract)
+                : selectPaperContext(paper, question);
+            if (!excerpt) {
+                throw new Error("No usable text for this paper");
+            }
             const quoteLicenses = quoteLicenseFromHome(paper.access, oa);
             const quote = evaluateQuoteEligibility({
                 source: paper.source || loaded.locator.database,
@@ -239,8 +246,10 @@ async function readPaperExcerpts(
             });
             const titlePresent = title.length > 0;
             const linkPresent = Boolean(quoteLink);
+            // Quote only licensed full text, and only with a title and a
+            // working link to credit it.
             const quoteExcerpt =
-                quote.allowed && titlePresent && linkPresent
+                quote.allowed && !abstractOnly && titlePresent && linkPresent
                     ? selectQuotableExcerpt(paper, question)
                     : "";
             logQuoteDecision({
@@ -295,6 +304,7 @@ async function readPaperExcerpts(
                 authors: card.authors,
                 publicationDate: card.date || undefined,
                 excerpt,
+                excerptKind: abstractOnly ? "abstract" : "body",
                 ...(quoteExcerpt ? { quoteExcerpt } : {}),
             };
 
@@ -473,6 +483,10 @@ export async function runDiscoverAgent(
         );
     }
 
+    const report = synthesis.report
+        ? await attachGapActivity(synthesis.report)
+        : undefined;
+
     const nihFillCount = cards.filter(
         (paper) => paper.database === PAPER_SOURCES.nih.database,
     ).length;
@@ -485,8 +499,8 @@ export async function runDiscoverAgent(
         question,
         papers: cards,
         brief: synthesis.brief,
-        report: synthesis.report
-            ? attachClaimLedger(synthesis.report, cards, extractions)
+        report: report
+            ? attachClaimLedger(report, cards, extractions)
             : undefined,
         extractions,
         meta: {

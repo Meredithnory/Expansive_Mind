@@ -30,6 +30,8 @@ vi.mock("../../../../models/GroupComment", () => ({ default: { deleteMany: vi.fn
 vi.mock("../../../paper/load-paper", () => ({ loadCachedPaperBySource: mocks.loadPaper }));
 vi.mock("../../../../lib/quote-eligibility", () => ({
     evaluateQuoteEligibility: mocks.quote,
+    // shared-highlights asks this wrapper; route it through the same gate mock.
+    isPaperQuotable: () => mocks.quote().allowed,
     paperHasFullTextBody: () => true,
     quoteLicenseFromHome: () => ({ rawLicense: null, licenseUrl: null }),
 }));

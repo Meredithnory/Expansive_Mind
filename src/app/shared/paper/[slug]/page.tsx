@@ -14,7 +14,8 @@ interface SharedPaper {
     publicationDate: string;
     paperPath: string;
     highlights: Array<{
-        excerpt: string;
+        excerpt: string | null;
+        href: string;
         citation: {
             sectionTitle: string;
             startLine: number;
@@ -165,7 +166,11 @@ export default function SharedPaperPage() {
                             >
                                 <Link
                                     className={styles.annotationLocation}
-                                    href={`${share.paperPath}?focus=${encodeURIComponent(highlight.excerpt)}`}
+                                    href={
+                                        highlight.excerpt
+                                            ? `${share.paperPath}?focus=${encodeURIComponent(highlight.excerpt)}`
+                                            : highlight.href
+                                    }
                                 >
                                     {highlight.citation.sectionTitle} · lines{" "}
                                     {highlight.citation.startLine}
@@ -175,7 +180,15 @@ export default function SharedPaperPage() {
                                         : `–${highlight.citation.endLine}`}
                                     <span>Open in paper →</span>
                                 </Link>
-                                <blockquote>{highlight.excerpt}</blockquote>
+                                {highlight.excerpt ? (
+                                    <blockquote>{highlight.excerpt}</blockquote>
+                                ) : (
+                                    <p className={styles.hiddenQuote}>
+                                        This paper&apos;s license doesn&apos;t
+                                        allow sharing its text, so open it to
+                                        read this passage.
+                                    </p>
+                                )}
                             </li>
                         ))}
                     </ol>

@@ -105,6 +105,9 @@ export default function ResearchWorkspace({
                     <DiscoverClient
                         qParam={liveQ}
                         savedParam={liveSaved}
+                        returnView={searchParams.get("view") ?? ""}
+                        returnGap={searchParams.get("gap") ?? ""}
+                        returnPaper={searchParams.get("paper") ?? ""}
                     />
                 )}
             </div>

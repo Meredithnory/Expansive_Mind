@@ -91,6 +91,8 @@ export interface PaperFigure {
     licenseUrl?: string;
     hasSeparateRights: boolean;
     canAnalyzeSourceImage: boolean;
+    /** Shown from NIH in the reader's browser; never sent for analysis. */
+    displayOnly?: boolean;
 }
 
 export interface SubSection {
@@ -145,4 +147,18 @@ export interface FormattedPaper {
     contentNotice?: string;
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
+    /**
+     * Set when the license keeps the body off our servers but NIH serves it
+     * publicly: the reader's browser loads the body from PMC itself.
+     */
+    browserFullText?: BrowserFullTextSource;
+    /** Client-only: body sections were loaded by the reader's browser. */
+    bodyLoadedInBrowser?: boolean;
+}
+
+export interface BrowserFullTextSource {
+    provider: "pmc";
+    pmcid: string;
+    /** PMC Cloud figure filename to https URL. URLs only, never content. */
+    mediaUrls: Record<string, string>;
 }

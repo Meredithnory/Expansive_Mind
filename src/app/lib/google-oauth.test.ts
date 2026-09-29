@@ -181,7 +181,8 @@ describe("google auth helpers", () => {
 
     it("exchanges the code through a stub fetch", async () => {
         const fetchImpl = vi.fn(
-            async () =>
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            async (_input: RequestInfo | URL, _init?: RequestInit) =>
                 new Response(JSON.stringify({ id_token: "header.payload.sig" }), {
                     status: 200,
                     headers: { "Content-Type": "application/json" },

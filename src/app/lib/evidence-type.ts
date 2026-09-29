@@ -1,3 +1,4 @@
+import { isEvidenceAnchor } from "./paper-evidence";
 import type {
     ClaimEvidenceRecord,
     ClaimKind,
@@ -185,6 +186,21 @@ export function parseStoredPaperExtraction(
               .map(parseStoredClaim)
               .filter((claim): claim is ClaimEvidenceRecord => Boolean(claim))
         : [];
+    const evidence = Array.isArray(raw.evidence)
+        ? raw.evidence.flatMap((item) => {
+              if (!item || typeof item !== "object") return [];
+              const row = item as Record<string, unknown>;
+              const id = asTrimmedString(row.id);
+              const finding = asTrimmedString(row.finding);
+              const quote = asTrimmedString(row.quote);
+              const anchor = isEvidenceAnchor(row.anchor)
+                  ? { hash: row.anchor.hash, length: row.anchor.length }
+                  : undefined;
+              return /^E\d{1,3}\.\d{1,2}$/.test(id) && finding && (quote || anchor)
+                  ? [{ id, finding, ...(quote ? { quote } : {}), ...(anchor ? { anchor } : {}) }]
+                  : [];
+          })
+        : [];
     return {
         index,
         title,
@@ -207,6 +223,7 @@ export function parseStoredPaperExtraction(
         ...(includedStudyDesign ? { includedStudyDesign } : {}),
         ...(populationMatch ? { populationMatch } : {}),
         ...(claims.length > 0 ? { claims } : {}),
+        ...(evidence.length > 0 ? { evidence } : {}),
     };
 }
 

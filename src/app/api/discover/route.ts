@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
+import { getContentAccessMode } from "../../lib/content-access-policy";
 import {
     hasValidMutationOrigin,
     readLimitedJsonBody,
@@ -74,6 +75,8 @@ export const GET = withOptionalAuth(async (request: NextRequest) => {
                     extractions: discovery.extractions,
                     meta: discovery.meta,
                     createdAt: discovery.createdAt,
+                    // Owner-only list: say whether a brief link exists, never the slug.
+                    shared: Boolean(discovery.shareSlug),
                 })),
                 plan,
                 quota: quotas.discover,
@@ -220,7 +223,9 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             ],
         }));
         const discovery = await cached({
-            namespace: "discovery-v6-claim-passages",
+            // v8: every evidence sentence has a fingerprint, so citations of
+            // papers we can't quote highlight too.
+            namespace: `discovery-v8-evidence-anchors-${getContentAccessMode()}`,
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),

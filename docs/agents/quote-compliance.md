@@ -6,6 +6,15 @@ Engineering record of what the quote code does. This is not legal advice, and it
 
 `selectQuotableExcerpt` in `src/app/lib/paper-context.ts` stops at 600 characters. `SUPPORTING_EXCERPT_CHAR_BUDGET` in `src/app/api/discover/analyze.ts` is also 600. The supporting excerpt is taken from `quoteExcerpt` only.
 
+## Per-citation evidence
+
+`PaperExtraction.evidence` records, per key finding, where the supporting sentence sits in the paper. An item exists only when the sentence was found word for word in the excerpt the model read and is at most 300 characters (`EVIDENCE_QUOTE_MAX_CHARS` in `src/app/lib/paper-evidence.ts`, under the 600 cap).
+
+- `quote`, the sentence text, is stored only when the paper has a `quoteExcerpt` (the same strict license gate as the supporting excerpt, never abstract-only or Scholar). The paper preview shows it through `visiblePaperQuote`, like any other quote.
+- `anchor` is stored for every item: a 53-bit hash of the folded sentence and its length. It holds no paper text. The reader finds the sentence again in the text it already displays under its own access rules and highlights it; if the reader shows no such text, nothing is highlighted.
+
+Meredith approved this split on 2026-09-28: keep the sentence for quotable papers, fingerprints only for the rest.
+
 ## License gate
 
 `evaluateQuoteEligibility` in `src/app/lib/quote-eligibility.ts` runs in strict mode even when `CONTENT_ACCESS_MODE` is legacy. A quote is allowed only for a commercial-friendly home license: `CC0`, `CC-BY`, `CC-BY-SA`, or `CC-BY-ND`. Scholar snippets, abstract-only bodies, and `license_conflict` are blocked. `quoteLicenseFromHome` does not take an OA license.

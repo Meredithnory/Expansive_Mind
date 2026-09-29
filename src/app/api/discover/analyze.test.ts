@@ -51,6 +51,41 @@ describe("parsePaperExtraction", () => {
         });
     });
 
+    it("keeps each finding's sentence only when it is word for word in the excerpt", () => {
+        const parsed = parsePaperExtraction(
+            {
+                keyFindings: [
+                    { finding: "Events fell", quote: "The trial found a 12% reduction in events." },
+                    { finding: "Made up", quote: "The drug cured every patient in the trial." },
+                ],
+                methods: "",
+            },
+            paper,
+        );
+        expect(parsed?.keyFindings).toEqual(["Events fell", "Made up"]);
+        expect(parsed?.evidence).toEqual([
+            {
+                id: "E1.1",
+                finding: "Events fell",
+                quote: "The trial found a 12% reduction in events.",
+                anchor: expect.objectContaining({ length: 42 }),
+            },
+        ]);
+    });
+
+    it("stores only a fingerprint for a paper that can't be quoted", () => {
+        const parsed = parsePaperExtraction(
+            {
+                keyFindings: [{ finding: "Events fell", quote: "The trial found a 12% reduction in events." }],
+                methods: "",
+            },
+            { ...paper, quoteExcerpt: undefined },
+        );
+        expect(parsed?.evidence).toEqual([
+            { id: "E1.1", finding: "Events fell", anchor: expect.objectContaining({ length: 42 }) },
+        ]);
+    });
+
     it("returns null for unrelated payloads", () => {
         expect(parsePaperExtraction(null, paper)).toBeNull();
         expect(parsePaperExtraction("nope", paper)).toBeNull();

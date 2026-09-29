@@ -4,7 +4,7 @@ A shareable brief is a public `/brief/{slug}` page. Anyone with the link can rea
 
 ## Sub-features
 
-- `brief-discover-share` copies a topic-synthesis link from Discover **Share synthesis**.
+- `brief-discover-share` copies a topic-synthesis link from Discover **Share brief**.
 - `brief-discover-public` opens `/brief/{slug}` logged out and shows **Topic Synthesis**, the question as `h1`, **Claim ledger** (`#claim-ledger`) with quote and DOI or paper link on each row, and **Papers behind this synthesis**.
 - `brief-paper-generate` opens **Share summary** on a licensed paper and runs **Generate summary**.
 - `brief-paper-copy` copies the paper link with **Copy share link**.
@@ -13,7 +13,7 @@ A shareable brief is a public `/brief/{slug}` page. Anyone with the link can rea
 
 ## How to get to it (user POV)
 
-- On a signed-in Discover report whose claim ledger is complete, choose **Share synthesis**. The clipboard gets `{origin}/brief/{slug}`. Incomplete ledgers keep the button disabled.
+- On a signed-in Discover report whose claim ledger is complete, choose **Share brief**, then **Copy link** in **Share your brief**. The clipboard gets `{origin}/brief/{slug}`. Claim-excerpt completeness does not disable it.
 - On a signed-in paper reader, choose **Share summary**, then **Generate summary** or **Copy share link**.
 - Open a slug someone already shared.
 - Choose **Try Discover** or **Open this paper** from the brief footer.
@@ -28,7 +28,7 @@ Preconditions:
 - Production POST is forbidden. Public GET of an existing slug is allowed.
 
 - **Invalid slug.** Open `/brief/x`. The app 404s. `scripts/doctor` already checks this.
-- **Discover share.** After a signed-in Discover pass with a saved Mongo id, click **Share synthesis**. The button reads **Sharing…**, then **Link copied!** (or **Share failed**). Read the clipboard. It must match `{origin}/brief/{slug}` where slug matches `^[A-Za-z0-9_-]{10,24}$`.
+- **Discover share.** After a signed-in Discover pass with a saved Mongo id, click **Share brief**. The dialog shows **Making your link…**, then the link; **Copy link** reads **Link copied!** (a failure shows the error in the link field). Read the clipboard. It must match `{origin}/brief/{slug}` where slug matches `^[A-Za-z0-9_-]{10,24}$`.
 - **API fallback for Discover share.** `POST /api/discover/share` with `{"id":"<mongoObjectId>"}`, cookie `auth_token`, and matching `Origin`. Expect `{ "slug": "..." }`. 401 without a cookie. 404 if the id is not this user's.
 - **Public topic brief.** Open the slug in a fresh profile (no cookie). Eyebrow **Topic Synthesis**. `h1` equals the Discover question. `#claim-ledger` lists the same claims with excerpts (not markdown-only). Section **Papers behind this synthesis** lists the same titles. Disclaimer includes **not medical advice**. Primary button **Try Discover** goes to `/discover`.
 - **Paper summary.** On a loaded paper with **Share summary** visible, click it. Dialog `aria-label="Paper summary"`, eyebrow **Paper Summary**, title is the paper title. If empty, click **Generate summary** and wait for markdown. Then **Copy share link**.

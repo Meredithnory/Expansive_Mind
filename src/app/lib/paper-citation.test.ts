@@ -7,6 +7,8 @@ import {
     encodeCitedMessage,
     locateExcerptInPaper,
     locateMethodInPaper,
+    locateQuoteInPaper,
+    withPaperLineNumbers,
     parseCitedMessage,
     wrapTextToLines,
 } from "./paper-citation";
@@ -95,6 +97,51 @@ describe("paper citation lines", () => {
         expect(citation.endLine).toBeGreaterThanOrEqual(citation.startLine);
         expect(citationLabel(citation)).toMatch(/Abstract · \d+/);
         expect(citation.lines.join(" ")).toContain("Experimental support");
+    });
+
+    it("trims cited lines to exactly the located passage", () => {
+        const excerpt =
+            "reported associations with depression, anxiety, suicidality, reward-related behaviour";
+        const citation = locateExcerptInPaper(paper, excerpt);
+        expect(citation.lines.join(" ")).toBe(excerpt);
+        expect(citation.endLine).toBeGreaterThan(citation.startLine);
+    });
+
+    it("locates an assistant quote stitched together with ellipses", () => {
+        const citation = locateQuoteInPaper(
+            paper,
+            "Mice were transfected... 2 µg plasmid using Lipofectamine... Readouts were taken at 48 hours.",
+            "Methods",
+        );
+        expect(citation.sectionTitle).toBe("Methods");
+        expect(citation.lines.join(" ")).toBe(
+            "2 µg plasmid using Lipofectamine",
+        );
+    });
+
+    it("replaces the assistant's guessed line numbers with the real ones", () => {
+        const quote = "Readouts were taken at 48 hours.";
+        const real = locateExcerptInPaper(paper, quote, "Methods");
+        const fixed = withPaperLineNumbers(paper, {
+            sectionTitle: "Methods",
+            startLine: 1,
+            endLine: 1,
+            lines: [quote],
+        });
+        expect(real.startLine).toBeGreaterThan(1);
+        expect(fixed.startLine).toBe(real.startLine);
+        expect(fixed.endLine).toBe(real.endLine);
+        expect(fixed.lines).toEqual([quote]);
+    });
+
+    it("keeps the assistant's numbers when the quote is not in the paper", () => {
+        const citation = {
+            sectionTitle: "Methods",
+            startLine: 1,
+            endLine: 1,
+            lines: ["Nothing like this sentence appears anywhere in the text."],
+        };
+        expect(withPaperLineNumbers(paper, citation)).toBe(citation);
     });
 
     it("prefers Methods over Abstract when the same methods sentence appears in both", () => {

@@ -26,6 +26,11 @@ const MODEL_PRICES_PER_MILLION: Record<
     "openai/gpt-4.1-mini": { input: 0.4, output: 1.6 },
     "openai/gpt-4.1-nano": { input: 0.1, output: 0.4 },
     "openai/text-embedding-3-small": { input: 0.02, output: 0 },
+    // OpenRouter list prices, 2026-09-27.
+    "anthropic/claude-sonnet-5": { input: 2, output: 10 },
+    // OpenRouter list price, 2026-09-28. Paper and figure chat.
+    "anthropic/claude-haiku-4.5": { input: 1, output: 5 },
+    "anthropic/claude-sonnet-4.5": { input: 3, output: 15 },
 };
 
 export function estimateAiCostMicros(input: {

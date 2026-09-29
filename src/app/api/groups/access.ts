@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { EMPTY_BADGE, parseBadge } from "../../lib/lab-badge";
 import Group from "../../models/Group";
 import GroupMember from "../../models/GroupMember";
 
@@ -32,11 +33,13 @@ export function authorView(user: {
     firstName?: string;
     lastName?: string;
     profileColor?: string;
+    badge?: unknown;
 } | null | undefined) {
-    if (!user) return { id: "", name: "Former member", profileColor: null };
+    if (!user) return { id: "", name: "Former member", profileColor: null, badge: EMPTY_BADGE };
     return {
         id: user._id.toString(),
         name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "Member",
         profileColor: user.profileColor || null,
+        badge: parseBadge(user.badge),
     };
 }

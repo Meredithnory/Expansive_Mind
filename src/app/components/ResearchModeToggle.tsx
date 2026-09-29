@@ -1,111 +1,85 @@
 "use client";
 
-import { useCallback, useId, type KeyboardEvent } from "react";
+import { useId, useRef, type KeyboardEvent } from "react";
 import type { ResearchMode } from "../lib/research-mode";
 import styles from "./styles/research-mode-toggle.module.scss";
 
-const COPY: Record<
-    ResearchMode,
-    {
-        title: string;
-        job: string;
-        subtitle: string;
-        tone: "discover" | "search";
-    }
-> = {
-    discover: {
-        title: "Discovery",
-        job: "Cited brief",
-        subtitle:
-            "Ask one research question → findings, gaps, and what to study next.",
-        tone: "discover",
-    },
-    search: {
-        title: "Search",
-        job: "Find papers",
-        subtitle: "Look up papers across the databases.",
-        tone: "search",
-    },
-};
+const MODES: Array<{ id: ResearchMode; label: string }> = [
+    { id: "discover", label: "Discovery" },
+    { id: "search", label: "Search" },
+];
+
+const SparkleIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+            d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+const SearchIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M16 16l4 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+);
 
 type ResearchModeToggleProps = {
     mode: ResearchMode;
     onChange: (mode: ResearchMode) => void;
 };
 
+/** Discovery | Search, centered above the research question. */
 export default function ResearchModeToggle({
     mode,
     onChange,
 }: ResearchModeToggleProps) {
-    const titleId = useId();
-    const subtitleId = useId();
-    const switchId = useId();
-    const checked = mode === "search";
-    const copy = COPY[mode];
-
-    const flip = useCallback(() => {
-        onChange(mode === "discover" ? "search" : "discover");
-    }, [mode, onChange]);
+    const baseId = useId();
+    const listRef = useRef<HTMLDivElement>(null);
 
     const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-        if (event.key === " " || event.key === "Enter") {
-            event.preventDefault();
-            flip();
-            return;
-        }
-        if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            if (mode !== "discover") onChange("discover");
-            return;
-        }
-        if (event.key === "ArrowRight") {
-            event.preventDefault();
-            if (mode !== "search") onChange("search");
-        }
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const next: ResearchMode = event.key === "ArrowLeft" ? "discover" : "search";
+        onChange(next);
+        listRef.current
+            ?.querySelector<HTMLButtonElement>(`[data-mode-option="${next}"]`)
+            ?.focus();
     };
 
     return (
         <div className={styles.chrome} data-research-mode-chrome data-mode={mode}>
-            <div className={styles.row} data-mode={mode}>
-                <div className={styles.copy}>
-                    <p id={titleId} className={styles.title} data-tone={copy.tone}>
-                        {copy.title}
-                    </p>
-                    <p className={styles.job} data-tone={copy.tone} aria-hidden="true">
-                        {copy.job}
-                    </p>
-                    <p id={subtitleId} className={styles.subtitle} data-tone={copy.tone}>
-                        {copy.subtitle}
-                    </p>
-                </div>
-
-                <button
-                    id={switchId}
-                    type="button"
-                    role="switch"
-                    className={styles.switch}
-                    aria-checked={checked}
-                    aria-labelledby={titleId}
-                    aria-describedby={subtitleId}
-                    data-mode={mode}
-                    onClick={flip}
-                    onKeyDown={onKeyDown}
-                >
-                    <span className={styles.track} aria-hidden="true">
-                        <span className={styles.trackLabel} data-side="left">
-                            Discovery
-                        </span>
-                        <span className={styles.trackLabel} data-side="right">
-                            Search
-                        </span>
-                        <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.visuallyHidden}>
-                        {checked
-                            ? "Search mode. Switch to Discovery."
-                            : "Discovery mode. Switch to Search."}
-                    </span>
-                </button>
+            <div
+                ref={listRef}
+                className={styles.tabs}
+                role="tablist"
+                aria-label="Research mode"
+            >
+                {MODES.map((option) => {
+                    const selected = option.id === mode;
+                    return (
+                        <button
+                            key={option.id}
+                            id={`${baseId}-${option.id}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={selected}
+                            tabIndex={selected ? 0 : -1}
+                            className={styles.tab}
+                            data-mode-option={option.id}
+                            onClick={() => {
+                                if (!selected) onChange(option.id);
+                            }}
+                            onKeyDown={onKeyDown}
+                        >
+                            {option.id === "discover" ? <SparkleIcon /> : <SearchIcon />}
+                            {option.label}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

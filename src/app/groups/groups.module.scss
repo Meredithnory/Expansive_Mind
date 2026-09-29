@@ -332,10 +332,34 @@
     }
 }
 
+/* The sharer's own comment: set apart from the quoted highlights below. */
 .note {
-    margin: 0;
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 79, 168, 0.32);
+    border-radius: 14px;
+    background: rgba(255, 79, 168, 0.1);
+}
+
+.noteText {
+    margin: 2px 0 0;
+    color: #fff;
+    font-size: 1.02rem;
     line-height: 1.55;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.authorBadge {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(255, 79, 168, 0.18);
+    color: #ff4fa8;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .highlight {

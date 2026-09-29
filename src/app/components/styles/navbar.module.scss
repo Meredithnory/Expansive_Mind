@@ -48,6 +48,13 @@
     display: none;
 }
 
+/* The link row may shrink or collapse into More; the wordmark never does. */
+@media (min-width: 721px) {
+    .navbar {
+        flex-shrink: 0;
+    }
+}
+
 @media (max-width: 720px) {
     .navbarShell {
         display: block;

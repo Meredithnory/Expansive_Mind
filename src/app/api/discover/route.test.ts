@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-const mocks = vi.hoisted(() => ({ agent: vi.fn(), retrieve: vi.fn(), build: vi.fn(), quota: vi.fn(), cache: vi.fn(), save: vi.fn(), recordGuest: vi.fn() }));
+const mocks = vi.hoisted(() => ({ agent: vi.fn(), retrieve: vi.fn(), build: vi.fn(), quota: vi.fn(), cache: vi.fn(), save: vi.fn(), recordGuest: vi.fn(), find: vi.fn(), snapshot: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("../authMiddleware", () => ({ withAuth: (handler: unknown) => handler, withOptionalAuth: (handler: unknown) => handler }));
 vi.mock("../../lib/rate-limit", () => ({ consumeRateLimit: async () => ({ allowed: true }), requestIp: () => "test-ip" }));
@@ -17,17 +17,17 @@ vi.mock("../../lib/request-security", () => ({
 vi.mock("../../lib/guest-cost-cap", () => ({
     consumeGuestDailyCap: async () => ({ allowed: true, retryAfterSeconds: 0 }),
 }));
-vi.mock("../../models/SavedDiscovery", () => ({ default: { create: mocks.save } }));
+vi.mock("../../models/SavedDiscovery", () => ({ default: { create: mocks.save, find: mocks.find } }));
 vi.mock("../../lib/guest-discovery-log", () => ({ recordGuestDiscovery: mocks.recordGuest }));
 vi.mock("./agent", () => ({ runDiscoverAgent: mocks.agent, DiscoverAgentError: class extends Error { status = 400; } }));
 vi.mock("./assess-query", () => ({ UNCLEAR_QUESTION_ERROR: "Unclear" }));
 vi.mock("../../lib/query-quality", () => ({ looksLikeUnclearResearchQuestion: () => false }));
-vi.mock("../../lib/entitlements", () => ({ consumeQuota: mocks.quota, getQuotaSnapshot: vi.fn(), refundQuota: vi.fn(), resolvePlan: () => "guest" }));
+vi.mock("../../lib/entitlements", () => ({ consumeQuota: mocks.quota, getQuotaSnapshot: mocks.snapshot, refundQuota: vi.fn(), resolvePlan: () => "guest" }));
 vi.mock("../../lib/provider-cache", () => ({ cached: mocks.cache, getCachedValue: vi.fn(), setCachedValue: vi.fn() }));
 vi.mock("../../lib/usage-meter", () => ({ deferUsageRecording: vi.fn() }));
 vi.mock("../../lib/admin", () => ({ isAdminUser: () => false }));
 vi.mock("./founder-diligence", () => ({ retrieveFounderSources: mocks.retrieve, buildFounderReport: mocks.build }));
-import { POST } from "./route";
+import { GET, POST } from "./route";
 import { parseFounderReport } from "../../lib/founder-report";
 
 beforeEach(() => {
@@ -67,5 +67,25 @@ describe("one-question discovery workflow", () => {
         const response = await POST(request({ question: "assay" }));
         expect(response.status).toBe(200);
         expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ commercial: { sources: [], limitations: ["Commercial retrieval failed. Commercial conclusions remain unverified."] } }));
+    });
+});
+describe("saved discoveries list", () => {
+    it("tells the owner which briefs are shared without returning the slug", async () => {
+        mocks.snapshot.mockResolvedValue({ discover: { remaining: 1 } });
+        const lean = vi.fn().mockResolvedValue([
+            { _id: { toString: () => "a" }, question: "Shared one", shareSlug: "OUbLD3_1sraw", createdAt: "2026-09-26" },
+            { _id: { toString: () => "b" }, question: "Private one", createdAt: "2026-09-22" },
+        ]);
+        mocks.find.mockReturnValue({ sort: () => ({ limit: () => ({ lean }) }) });
+        const request = Object.assign(new NextRequest("http://localhost:3000/api/discover"), {
+            user: { _id: { toString: () => "user-1" } },
+        });
+        const response = await GET(request);
+        const data = await response.json();
+        expect(data.discoveries.map((item: { id: string; shared: boolean }) => [item.id, item.shared])).toEqual([
+            ["a", true],
+            ["b", false],
+        ]);
+        expect(JSON.stringify(data)).not.toContain("OUbLD3_1sraw");
     });
 });
