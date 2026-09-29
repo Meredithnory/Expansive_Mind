@@ -101,6 +101,15 @@ export async function POST(request: NextRequest) {
             lastName: lastName.trim(),
             email: normalizedEmail,
             password: password.trim(),
+            ...(formData.get("source") === "brief" ? { signupSource: "brief" } : {}),
+            // Only an explicit tick opts in; the box starts unticked.
+            ...(formData.get("productEmailOptIn") === "true"
+                ? {
+                      productEmailOptIn: true,
+                      productEmailOptInAt: new Date(),
+                      productEmailOptInSource: "signup",
+                  }
+                : {}),
         });
 
         //Save to MongoDB

@@ -9,6 +9,8 @@ export interface SessionUser {
     plan: "free" | "pro";
     isAdmin: boolean;
     subscriptionStatus: string;
+    /** Agreed to product email from the team. */
+    productEmailOptIn?: boolean;
 }
 
 export type QuotaValue = {

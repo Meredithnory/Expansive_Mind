@@ -24,6 +24,19 @@ function request(body: unknown, origin = "https://example.test") {
 describe("PATCH /api/account/profile", () => {
     beforeEach(() => vi.clearAllMocks());
 
+    it("records when and where product email was turned on or off", async () => {
+        await PATCH(request({ productEmailOptIn: true }));
+        const on = mocks.updateOne.mock.calls[0][1].$set;
+        expect(on).toMatchObject({ productEmailOptIn: true, productEmailOptInSource: "profile" });
+        expect(on.productEmailOptInAt).toBeInstanceOf(Date);
+
+        await PATCH(request({ productEmailOptIn: false }));
+        const off = mocks.updateOne.mock.calls[1][1].$set;
+        expect(off.productEmailOptIn).toBe(false);
+        expect(off.productEmailOptOutAt).toBeInstanceOf(Date);
+        expect(off.productEmailOptInAt).toBeUndefined();
+    });
+
     it("saves a known coat color for the signed-in user", async () => {
         const response = await PATCH(request({ profileColor: "green" }));
         expect(response.status).toBe(200);

@@ -7,6 +7,7 @@ export const AUDIENCE_PAGES = {
     library: "Library",
     projects: "Projects",
     paper: "Paper",
+    brief: "Shared brief",
     pricing: "Pricing",
     account: "Account",
     company: "About & contact",
@@ -25,11 +26,8 @@ export function audiencePage(pathname: string): AudiencePage | null {
     if (path.startsWith("/search")) return "search";
     if (path.startsWith("/saved")) return "library";
     if (path.startsWith("/projects")) return "projects";
-    if (
-        path.startsWith("/paper") ||
-        path.startsWith("/brief") ||
-        path.startsWith("/shared")
-    ) {
+    if (path.startsWith("/brief")) return "brief";
+    if (path.startsWith("/paper") || path.startsWith("/shared")) {
         return "paper";
     }
     if (path.startsWith("/pricing")) return "pricing";

@@ -1116,3 +1116,77 @@
         opacity: 0;
     }
 }
+
+.emailToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.emailToggleText {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    color: rgba(215, 235, 255, 0.7);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.emailToggleError {
+    color: #ff9b9b;
+}
+
+.switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: #1b1b22;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease;
+
+    &[aria-checked="true"] {
+        border-color: rgba(255, 90, 169, 0.7);
+        background: #ff0084;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: progress;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #ff5aa9;
+        outline-offset: 2px;
+    }
+}
+
+.switchKnob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #fff;
+    transition: transform 160ms ease;
+
+    .switch[aria-checked="true"] & {
+        transform: translateX(22px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .switch,
+    .switchKnob {
+        transition: none;
+    }
+}
+

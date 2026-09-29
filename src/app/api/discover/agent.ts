@@ -507,7 +507,7 @@ export async function runDiscoverAgent(
         papers: cards,
         brief: synthesis.brief,
         report: report
-            ? attachClaimLedger(report, cards, extractions)
+            ? attachClaimLedger(report, cards, extractions, question)
             : undefined,
         extractions,
         meta: {

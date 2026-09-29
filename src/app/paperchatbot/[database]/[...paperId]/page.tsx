@@ -3,6 +3,8 @@ import RouteLoading from "../../../components/RouteLoading";
 import PaperChatClient from "./PaperChatClient";
 import { parseAnchorParam } from "../../../lib/paper-evidence";
 import {
+    parseBriefClaim,
+    parseBriefSlug,
     parseReportPaperNumber,
     parseReportView,
     parseSavedReportId,
@@ -24,6 +26,8 @@ export default async function PaperChatPage({ params, searchParams }: PaperChatP
         searchParams,
     ]);
     const paperId = paperIdParts.map((segment) => decodeURIComponent(segment)).join("/");
+    const briefSlug =
+        first(query.from) === "brief" ? parseBriefSlug(first(query.brief)) : null;
 
     // Loading stays behind /api/paper: that handler composes optional auth,
     // content-access policy, messages, and the existing paper cache helpers.
@@ -44,6 +48,8 @@ export default async function PaperChatPage({ params, searchParams }: PaperChatP
                 reportId={parseSavedReportId(first(query.report))}
                 reportView={parseReportView(first(query.view))}
                 focusAnchor={parseAnchorParam(first(query.anchor))}
+                briefSlug={briefSlug}
+                briefClaim={briefSlug ? parseBriefClaim(first(query.claim)) : null}
             />
         </Suspense>
     );

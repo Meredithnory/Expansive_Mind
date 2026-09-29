@@ -8,7 +8,7 @@ Discover takes a biomedical question, searches Springer Nature, NIH PubMed Centr
 - `discover-ask` submits `#discover-question` with **Run discovery**.
 - `discover-progress` shows the live steps while the request runs (often 1–2 minutes).
 - `discover-report` renders the report tabs **State of the science**, **Gaps · N**, **Papers · N**, **Provenance**, and **Claim ledger**, or the markdown fallback under **State of the science**.
-- `discover-claim-ledger` lists every gap, problem, and venture claim as a row with a source excerpt. A complete row click opens the cited paper preview.
+- `discover-claim-ledger` lists each gap, problem, and venture claim once (a repeated claim folds into the first), with every cited paper under it: a licensed quote when allowed, else a **Paper N · title** pill, and **Scope:** when known. A passage already quoted above shows **Same passage as above**. A **Paper N** click opens the paper panel.
 - `discover-empty` shows **No papers found** / **Nothing I can synthesize yet** when the agent returns `noResults`.
 - `discover-quota` shows the guest remaining count or the locked **Continue discovering with Researcher Pro** control.
 - `discover-share-affordance` shows **Share brief** when signed in with a saved Mongo id. The button is enabled; claim-excerpt completeness does not gate it.

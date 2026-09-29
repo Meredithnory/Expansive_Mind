@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AdminUserUsage } from "./AdminUserUsage";
 
-const usersPage = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "(protected)/page.tsx"),
+const peoplePage = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "(protected)/people/page.tsx"),
     "utf8",
 );
 
@@ -33,8 +33,8 @@ describe("AdminUserUsage", () => {
         expect(renderToStaticMarkup(<AdminUserUsage usage={null} />)).toBe("");
     });
 
-    it("keeps the admin Users tab on the text renderer", () => {
-        expect(usersPage).toContain("<AdminUserUsage usage={selectedUser.usage} />");
-        expect(usersPage).not.toContain("Object.entries(selectedUser.usage)");
+    it("reads usage on the People page through the same cell parser", () => {
+        expect(peoplePage).toContain("adminUsageCells(selected.usage)");
+        expect(peoplePage).not.toContain("Object.entries(selected.usage)");
     });
 });

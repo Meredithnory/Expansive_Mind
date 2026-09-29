@@ -547,6 +547,38 @@
         }
     }
 
+    .citedInBrief {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex-shrink: 0;
+        padding: 12px 16px;
+        border: 1px solid rgba(255, 90, 169, 0.35);
+        border-radius: 16px;
+        background: rgba(255, 0, 132, 0.06);
+
+        p {
+            margin: 0;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+    }
+
+    .citedInBriefLabel {
+        color: #ff5aa9;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .citedInBriefNote {
+        color: #9aa3b2;
+        font-size: 0.8rem;
+    }
+
     .loadError {
         display: flex;
         align-items: center;

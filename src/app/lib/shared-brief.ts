@@ -9,6 +9,7 @@ import {
     toLedgerExtractions,
     toLedgerPapers,
 } from "../api/discover/claim-ledger";
+import { buildBriefView, toBriefExtractions, type BriefView } from "./brief-view";
 import { parseOpportunityReport } from "../api/discover/synthesize";
 import type { ClaimLedger, GapActivity } from "../api/discover/report-types";
 
@@ -18,6 +19,8 @@ export interface SharedBriefPaperRef {
     sourceLabel: string;
     authors: string[];
     date: string;
+    /** Set only when the paper studied a narrower group than the question. */
+    scope?: string;
 }
 
 export interface SharedBrief {
@@ -33,6 +36,9 @@ export interface SharedBrief {
     claimLedger?: ClaimLedger;
     /** Gaps that have a registry check. Grants carry no PI or institution. */
     gapActivity?: SharedGapActivity[];
+    /** A discovery brief's structured page. Absent when the report can't be parsed. */
+    view?: BriefView;
+    slug: string;
     createdAt: Date;
 }
 
@@ -75,6 +81,7 @@ export async function findSharedBrief(
                 paperBrief.idName,
             ),
             papers: [],
+            slug,
             createdAt: paperBrief.createdAt,
         };
     }
@@ -95,10 +102,7 @@ export async function findSharedBrief(
             authors: string[];
             date: string;
         }>;
-        extractions?: Array<{
-            index?: number;
-            supportingExcerpt?: string;
-        }>;
+        extractions?: unknown[];
         createdAt: Date;
     } | null>();
     if (discovery) {
@@ -108,8 +112,28 @@ export async function findSharedBrief(
                   report,
                   toLedgerPapers(discovery.papers),
                   toLedgerExtractions(discovery.extractions),
+                  discovery.question,
               ).claimLedger
             : undefined;
+        const view = report
+            ? buildBriefView({
+                  slug,
+                  question: discovery.question,
+                  sections: report.sections,
+                  papers: (discovery.papers || []).map((paper) => ({
+                      ...paper,
+                      authors: paper.authors || [],
+                      date: paper.date || "",
+                  })),
+                  extractions: toBriefExtractions(discovery.extractions),
+                  ledger: claimLedger,
+              })
+            : undefined;
+        const scopeByIndex = new Map(
+            (view?.papers ?? []).flatMap((paper) =>
+                paper.scope ? [[paper.index, paper.scope] as const] : [],
+            ),
+        );
         const gapActivity: SharedGapActivity[] = (report?.sections.gaps ?? [])
             .map((gap, index) =>
                 gap.activity
@@ -126,15 +150,23 @@ export async function findSharedBrief(
             canonicalUrl: "",
             publicationDate: "",
             chatPath: "/discover",
-            papers: (discovery.papers || []).map((paper) => ({
-                title: paper.title,
-                href: paper.href,
-                sourceLabel: paper.sourceLabel,
-                authors: paper.authors || [],
-                date: paper.date || "",
-            })),
+            papers: (discovery.papers || []).map((paper) => {
+                const scope = paper.index
+                    ? scopeByIndex.get(paper.index)
+                    : undefined;
+                return {
+                    title: paper.title,
+                    href: paper.href,
+                    sourceLabel: paper.sourceLabel,
+                    authors: paper.authors || [],
+                    date: paper.date || "",
+                    ...(scope ? { scope } : {}),
+                };
+            }),
             ...(claimLedger ? { claimLedger } : {}),
             ...(gapActivity.length > 0 ? { gapActivity } : {}),
+            ...(view ? { view } : {}),
+            slug,
             createdAt: discovery.createdAt,
         };
     }

@@ -231,6 +231,25 @@ describe("synthesizeOpportunityReport", () => {
         );
     });
 
+    it("gives the writer each paper's population and tells it to keep numbers in scope", async () => {
+        createPrivateChatCompletion.mockResolvedValue({
+            choices: [{ message: { content: JSON.stringify(report) } }],
+        });
+
+        await synthesizeOpportunityReport(
+            "How often are off-target edits assessed?",
+            [{ ...extraction, population: "genome-edited livestock" }],
+        );
+
+        const [request] = createPrivateChatCompletion.mock.calls[0];
+        expect(request.messages[0].content).toContain(
+            "A number, percentage, or count keeps the scope it was measured in.",
+        );
+        expect(request.messages[1].content).toContain(
+            '"population":"genome-edited livestock"',
+        );
+    });
+
     it("retries once when the first reply is not valid JSON", async () => {
         createPrivateChatCompletion
             .mockResolvedValueOnce({

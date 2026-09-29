@@ -16,6 +16,7 @@ const PAGE_COLORS: Record<string, string> = {
     discover: "#ff168f",
     search: "#0ab1ff",
     paper: "#f4d98a",
+    brief: "#ff8ec4",
     library: "#3dd6c6",
     projects: "#ff8a4c",
     pricing: "#b45cff",

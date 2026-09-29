@@ -5,7 +5,8 @@ A shareable brief is a public `/brief/{slug}` page. Anyone with the link can rea
 ## Sub-features
 
 - `brief-discover-share` copies a topic-synthesis link from Discover **Share brief**.
-- `brief-discover-public` opens `/brief/{slug}` logged out and shows **Topic Synthesis**, the question as `h1`, **Claim ledger** (`#claim-ledger`) with quote and DOI or paper link on each row, and **Papers behind this synthesis**.
+- `brief-discover-public` opens `/brief/{slug}` logged out and shows the eyebrow **Topic synthesis · {date} · {N} papers**, the question as `h1`, **Copy link** and **Try Discover**, an **On this page** nav, **State of the science** with **Paper N** chips that open the reader at the cited sentence, **Gaps in the science**, **Claim ledger** (`#claim-ledger`, filters **All claims / Quoted / Link only**) with one row per claim, and **Papers behind this synthesis**. A paper that studied a narrower group than the question says so in amber.
+- `brief-open-paper` clicks a **Paper N** chip or ledger link on the brief: the reader opens with **Back to the brief** and a **Cited in the brief for** banner, highlighting the passage when one was quoted.
 - `brief-paper-generate` opens **Share summary** on a licensed paper and runs **Generate summary**.
 - `brief-paper-copy` copies the paper link with **Copy share link**.
 - `brief-paper-public` opens that slug logged out and shows **Paper Summary** plus **Open this paper**.
@@ -30,7 +31,7 @@ Preconditions:
 - **Invalid slug.** Open `/brief/x`. The app 404s. `scripts/doctor` already checks this.
 - **Discover share.** After a signed-in Discover pass with a saved Mongo id, click **Share brief**. The dialog shows **Making your link…**, then the link; **Copy link** reads **Link copied!** (a failure shows the error in the link field). Read the clipboard. It must match `{origin}/brief/{slug}` where slug matches `^[A-Za-z0-9_-]{10,24}$`.
 - **API fallback for Discover share.** `POST /api/discover/share` with `{"id":"<mongoObjectId>"}`, cookie `auth_token`, and matching `Origin`. Expect `{ "slug": "..." }`. 401 without a cookie. 404 if the id is not this user's.
-- **Public topic brief.** Open the slug in a fresh profile (no cookie). Eyebrow **Topic Synthesis**. `h1` equals the Discover question. `#claim-ledger` lists the same claims with excerpts (not markdown-only). Section **Papers behind this synthesis** lists the same titles. Disclaimer includes **not medical advice**. Primary button **Try Discover** goes to `/discover`.
+- **Public topic brief.** Open the slug in a fresh profile (no cookie). Eyebrow starts **Topic synthesis** (rendered uppercase). `h1` equals the Discover question. `#claim-ledger` lists the same claims with excerpts (not markdown-only). Section **Papers behind this synthesis** lists the same titles. Disclaimer includes **not medical advice**. Primary button **Try Discover** goes to `/discover`.
 - **Paper summary.** On a loaded paper with **Share summary** visible, click it. Dialog `aria-label="Paper summary"`, eyebrow **Paper Summary**, title is the paper title. If empty, click **Generate summary** and wait for markdown. Then **Copy share link**.
 - **API fallback for paper brief.** `GET /api/brief?database=nih&paperId={id}&idName=pmcid` (auth). `POST /api/brief` with `{ "database", "paperId", "idName" }`, auth, and `Origin`. Expect `{ brief: { brief, slug, updatedAt } }`. 403 when license blocks AI send.
 - **Public paper brief.** Open that slug logged out. Eyebrow **Paper Summary**. Primary button **Open this paper** goes to `chatPath` from `buildPaperPath`.

@@ -14,6 +14,10 @@ export async function sendEmail(input: {
     text: string;
     html: string;
     replyTo?: string;
+    /** Extra headers, e.g. List-Unsubscribe on group email. */
+    headers?: Record<string, string>;
+    /** Sender for this message; defaults to the account-mail sender. */
+    from?: string;
 }): Promise<SendEmailResult> {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) return { accepted: false, status: null, id: null };
@@ -25,12 +29,13 @@ export async function sendEmail(input: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                from: emailFromAddress(),
+                from: input.from || emailFromAddress(),
                 to: [input.to],
                 subject: input.subject,
                 text: input.text,
                 html: input.html,
                 ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+                ...(input.headers ? { headers: input.headers } : {}),
             }),
         });
         if (!response.ok) {

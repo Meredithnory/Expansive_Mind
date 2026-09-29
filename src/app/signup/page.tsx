@@ -52,6 +52,10 @@ const SignupPage = () => {
         setLoading(true);
 
         const formData = new FormData(event.currentTarget);
+        // Arrived from a shared brief's "Create free account" (/signup?from=brief).
+        if (new URLSearchParams(window.location.search).get("from") === "brief") {
+            formData.set("source", "brief");
+        }
         let succeeded = false;
         try {
             const response = await fetch("/api/signup", {
@@ -249,6 +253,19 @@ const SignupPage = () => {
                             {passwordHint}
                         </span>
                     </div>
+
+                    {/* Unticked by default: only an explicit tick opts in. */}
+                    <label className={styles.optIn}>
+                        <input
+                            type="checkbox"
+                            name="productEmailOptIn"
+                            value="true"
+                        />
+                        <span>
+                            Email me the Expansive Mind newsletter and product
+                            updates. Unsubscribe anytime.
+                        </span>
+                    </label>
 
                     <button
                         type="submit"

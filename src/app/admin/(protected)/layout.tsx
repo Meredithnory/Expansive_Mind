@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import connectDB from "../../db/connectDB";
 import User from "../../models/User";
 import { isAdminUser } from "../../lib/admin";
+import AdminShell from "../AdminShell";
 import {
     ADMIN_SESSION_COOKIE,
     readAdminSession,
@@ -29,5 +30,5 @@ export default async function ProtectedAdminLayout({
     if (!(await hasValidAdminSession())) {
         redirect("/admin/login");
     }
-    return children;
+    return <AdminShell>{children}</AdminShell>;
 }

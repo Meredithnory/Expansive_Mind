@@ -100,6 +100,10 @@ export function renderEmail(input: {
     /** Escaped HTML under the button (the reset link to paste). */
     afterButtonHtml?: string;
     footerNote: string;
+    /** Escaped HTML after the footer note, e.g. an unsubscribe link. */
+    footerLinkHtml?: string;
+    /** Mailing address under the copyright line. Product email must carry one (CAN-SPAM). */
+    postalAddress?: string;
     year?: number;
 }) {
     const t = EMAIL_THEME;
@@ -140,7 +144,7 @@ ${darkModeStyle()}
                 ${button}
                 ${input.afterButtonHtml ? `<tr><td style="padding:0 0 28px;">${input.afterButtonHtml}</td></tr>` : ""}
                 <tr><td class="${c.muted}" style="padding:20px 0 0;border-top:1px solid ${t.cardBorder};font-size:13px;line-height:1.55;color:${t.muted};">
-                  ${escapeHtml(input.footerNote)}<br><br>© ${year} Expansive Mind. All rights reserved.
+                  ${escapeHtml(input.footerNote)}${input.footerLinkHtml ? ` ${input.footerLinkHtml}` : ""}<br><br>© ${year} Expansive Mind. All rights reserved.${input.postalAddress ? `<br>${escapeHtml(input.postalAddress)}` : ""}
                 </td></tr>
               </table>
             </td>

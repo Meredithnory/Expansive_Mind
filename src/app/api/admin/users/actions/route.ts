@@ -2,7 +2,17 @@ import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { withAdmin } from "../../../../lib/admin";
 import { recordAdminAction } from "../../../../lib/admin-audit";
-import { hasValidMutationOrigin } from "../../../../lib/request-security";
+import {
+    hasValidMutationOrigin,
+    trustedApplicationOrigin,
+} from "../../../../lib/request-security";
+import {
+    PASSWORD_RESET_TTL_MS,
+    buildPasswordResetLink,
+    createPasswordResetToken,
+    hashPasswordResetToken,
+} from "../../../../lib/password-reset";
+import { sendPasswordResetEmail } from "../../../../lib/password-reset-mail";
 import { getStripe } from "../../../../lib/stripe";
 import type { QuotaFeature } from "../../../../lib/plan-config";
 import Block from "../../../../models/Block";
@@ -33,6 +43,8 @@ const actions = new Set([
     "cancel_subscription",
     "refund_latest",
     "remove_user",
+    "send_password_reset",
+    "revoke_sessions",
 ]);
 const features = new Set<QuotaFeature>([
     "search",
@@ -114,6 +126,56 @@ export const POST = withAdmin(async (request: NextRequest) => {
             ...(feature ? { feature } : {}),
         });
         result = { resetFeature: feature || "all", deleted: deletion.deletedCount };
+    }
+
+    if (action === "send_password_reset") {
+        if (!process.env.RESEND_API_KEY) {
+            return NextResponse.json(
+                { error: "Email isn't set up, so no reset link can be sent." },
+                { status: 503 },
+            );
+        }
+        let origin: string;
+        try {
+            origin = trustedApplicationOrigin(request);
+        } catch {
+            return NextResponse.json(
+                { error: "The site address isn't configured for reset links." },
+                { status: 503 },
+            );
+        }
+        // Same one-time, one-hour link as Forgot password.
+        const token = createPasswordResetToken();
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    passwordResetTokenHash: hashPasswordResetToken(token),
+                    passwordResetExpiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+                },
+            },
+        );
+        const sent = await sendPasswordResetEmail({
+            to: user.email,
+            link: buildPasswordResetLink(origin, token),
+        });
+        if (!sent.accepted) {
+            await User.updateOne(
+                { _id: user._id },
+                { $unset: { passwordResetTokenHash: "", passwordResetExpiresAt: "" } },
+            );
+            return NextResponse.json(
+                { error: "The email service didn't accept the reset email. Try again." },
+                { status: 502 },
+            );
+        }
+        result = { resetEmailSent: true };
+    }
+
+    if (action === "revoke_sessions") {
+        // Every signed-in device fails its next session check.
+        await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
+        result = { sessionsRevoked: true };
     }
 
     if (action === "cancel_subscription") {

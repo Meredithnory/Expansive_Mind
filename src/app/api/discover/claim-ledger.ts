@@ -1,4 +1,6 @@
 import type { SourceDatabase } from "../../lib/paper-sources";
+import { evidencePaper } from "../../lib/cited-text";
+import { narrowerScope } from "../../lib/paper-scope";
 import {
     isCommercialFriendlyLicenseUri,
     isUndeterminedLicenseText,
@@ -11,6 +13,7 @@ import type {
     ClaimLedger,
     ClaimLedgerKind,
     ClaimLedgerRow,
+    ClaimLedgerSource,
     DiscoverPaperCard,
     OpportunityReport,
     PaperExtraction,
@@ -34,6 +37,9 @@ export type LedgerPaper = Pick<
 
 export type LedgerExtraction = Pick<PaperExtraction, "index"> & {
     supportingExcerpt?: string;
+    population?: string;
+    /** Verified sentences by evidence id. Text only for quote-eligible papers. */
+    evidence?: Array<{ id: string; quote?: string }>;
 };
 
 export type ClaimLedgerGateReason =
@@ -64,6 +70,14 @@ function claimText(title: string, fallback: string): string {
     return trimmed(title) || trimmed(fallback) || "Untitled claim";
 }
 
+/** "No standardized guidelines." and "no standardized guidelines" are one claim. */
+function claimKey(claim: string): string {
+    return claim
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .trim();
+}
+
 function paperByIndex(
     papers: LedgerPaper[],
     index: number,
@@ -71,29 +85,65 @@ function paperByIndex(
     return papers.find((paper) => paper.index === index);
 }
 
+function extractionByIndex(
+    extractions: LedgerExtraction[],
+    index: number,
+): LedgerExtraction | undefined {
+    return extractions.find((item) => item.index === index);
+}
+
 function excerptByIndex(
     extractions: LedgerExtraction[],
     index: number,
 ): string {
-    const extraction = extractions.find((item) => item.index === index);
-    return trimmed(extraction?.supportingExcerpt);
+    return trimmed(extractionByIndex(extractions, index)?.supportingExcerpt);
 }
 
-export function hasResolvableCitation(row: Pick<
-    ClaimLedgerRow,
+/** Excerpts carry "## Section" markers from how we split papers; they aren't the paper's words. */
+function withoutSectionMarkers(text: string): string {
+    return text.replace(/(^|\s)#{1,6}\s+/g, "$1").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The sentence this claim cited from the paper, when the writer cited an
+ * evidence id for it. Otherwise the paper's one supporting excerpt.
+ */
+function claimExcerpt(
+    extractions: LedgerExtraction[],
+    paperIndex: number,
+    evidenceIds: string[],
+): string {
+    const extraction = extractionByIndex(extractions, paperIndex);
+    for (const id of evidenceIds) {
+        if (evidencePaper(id) !== paperIndex) continue;
+        const quote = trimmed(
+            extraction?.evidence?.find((item) => item.id === id)?.quote,
+        );
+        if (quote) return withoutSectionMarkers(quote);
+    }
+    return withoutSectionMarkers(trimmed(extraction?.supportingExcerpt));
+}
+
+export function hasResolvableCitation(source: Pick<
+    ClaimLedgerSource,
     "doi" | "paperId" | "href"
 >): boolean {
     return Boolean(
-        trimmed(row.doi) || trimmed(row.paperId) || trimmed(row.href),
+        trimmed(source.doi) || trimmed(source.paperId) || trimmed(source.href),
     );
 }
 
-export function isClaimLedgerRowComplete(row: ClaimLedgerRow): boolean {
+export function isClaimLedgerSourceComplete(source: ClaimLedgerSource): boolean {
     return (
-        trimmed(row.quote).length > 0 &&
-        hasResolvableCitation(row) &&
-        isCommercialFriendlyLicenseUri(row.licenseUrl)
+        trimmed(source.quote).length > 0 &&
+        hasResolvableCitation(source) &&
+        isCommercialFriendlyLicenseUri(source.licenseUrl)
     );
+}
+
+/** A claim is sourced when at least one cited paper gives a licensed excerpt. */
+export function isClaimLedgerRowComplete(row: ClaimLedgerRow): boolean {
+    return row.sources.some(isClaimLedgerSourceComplete);
 }
 
 function ledgerLicenseResult(paper: LedgerPaper | undefined): QuoteLicenseResult {
@@ -145,25 +195,28 @@ function logLedgerQuoteDecisions(
     }
 }
 
-function rowForCitation(
-    kind: ClaimLedgerKind,
-    ordinal: number,
-    claim: string,
+function sourceForCitation(
     paperIndex: number,
+    evidenceIds: string[],
     papers: LedgerPaper[],
     extractions: LedgerExtraction[],
-    confidence?: ReportConfidence,
-): ClaimLedgerRow {
+    question: string,
+): ClaimLedgerSource {
     const paper = paperByIndex(papers, paperIndex);
     const doi = trimmed(paper?.doi) || undefined;
     const paperId = trimmed(paper?.paperId) || undefined;
     const href = trimmed(paper?.href) || undefined;
     const title = trimmed(paper?.title) || undefined;
+    const scope =
+        narrowerScope(
+            question,
+            extractionByIndex(extractions, paperIndex)?.population,
+        ) ?? undefined;
     const scholar = paper?.database === "scholar";
     const shown = scholar
         ? null
         : visiblePaperQuote({
-              quote: excerptByIndex(extractions, paperIndex),
+              quote: claimExcerpt(extractions, paperIndex, evidenceIds),
               title,
               doi,
               href,
@@ -172,9 +225,6 @@ function rowForCitation(
           });
     const licenseUrl = shown ? trimmed(paper?.licenseUrl) : "";
     return {
-        id: `${kind}-${ordinal}-p${paperIndex}`,
-        kind,
-        claim,
         paperIndex,
         ...(paperId ? { paperId } : {}),
         ...(doi ? { doi } : {}),
@@ -182,22 +232,7 @@ function rowForCitation(
         ...(title ? { title } : {}),
         quote: shown?.quote ?? "",
         ...(licenseUrl ? { licenseUrl } : {}),
-        ...(confidence ? { confidence } : {}),
-    };
-}
-
-function unresolvedRow(
-    kind: ClaimLedgerKind,
-    ordinal: number,
-    claim: string,
-    confidence?: ReportConfidence,
-): ClaimLedgerRow {
-    return {
-        id: `${kind}-${ordinal}-p0`,
-        kind,
-        claim,
-        quote: "",
-        ...(confidence ? { confidence } : {}),
+        ...(scope ? { scope } : {}),
     };
 }
 
@@ -211,34 +246,61 @@ function gapCitations(gap: ReportGap | undefined, papers: LedgerPaper[]): number
     return citationIndexes(gap.citations, papers);
 }
 
-function pushClaimRows(
+/** Evidence ids the writer cited in these report fields, in order. */
+function citedEvidence(report: OpportunityReport, keys: string[]): string[] {
+    const map = report.sections.citationEvidence ?? {};
+    return keys.flatMap((key) =>
+        (map[key] ?? []).filter((id): id is string => Boolean(id)),
+    );
+}
+
+function mergeSources(
+    current: ClaimLedgerSource[],
+    incoming: ClaimLedgerSource[],
+): ClaimLedgerSource[] {
+    const merged = current.slice();
+    for (const source of incoming) {
+        const at = merged.findIndex(
+            (item) => item.paperIndex === source.paperIndex,
+        );
+        if (at === -1) merged.push(source);
+        else if (!merged[at].quote && source.quote) merged[at] = source;
+    }
+    return merged;
+}
+
+/**
+ * One row per claim. A claim the report repeats (a problem titled like its
+ * gap) folds into the first row instead of showing twice.
+ */
+function pushClaimRow(
     rows: ClaimLedgerRow[],
     kind: ClaimLedgerKind,
     ordinal: number,
     claim: string,
     citations: number[],
+    evidenceIds: string[],
     papers: LedgerPaper[],
     extractions: LedgerExtraction[],
+    question: string,
     confidence?: ReportConfidence,
 ) {
-    const resolved = citationIndexes(citations, papers);
-    if (resolved.length === 0) {
-        rows.push(unresolvedRow(kind, ordinal, claim, confidence));
+    const sources = citationIndexes(citations, papers).map((paperIndex) =>
+        sourceForCitation(paperIndex, evidenceIds, papers, extractions, question),
+    );
+    const key = claimKey(claim);
+    const existing = rows.find((row) => claimKey(row.claim) === key);
+    if (existing) {
+        existing.sources = mergeSources(existing.sources, sources);
         return;
     }
-    for (const paperIndex of resolved) {
-        rows.push(
-            rowForCitation(
-                kind,
-                ordinal,
-                claim,
-                paperIndex,
-                papers,
-                extractions,
-                confidence,
-            ),
-        );
-    }
+    rows.push({
+        id: `${kind}-${ordinal}`,
+        kind,
+        claim,
+        sources,
+        ...(confidence ? { confidence } : {}),
+    });
 }
 
 function asPositiveIndex(value: unknown): number | null {
@@ -282,6 +344,25 @@ export function toLedgerPapers(papers: unknown): LedgerPaper[] {
     });
 }
 
+function toLedgerEvidence(
+    evidence: unknown,
+): Array<{ id: string; quote?: string }> {
+    if (!Array.isArray(evidence)) return [];
+    return evidence.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const value = item as Record<string, unknown>;
+        if (typeof value.id !== "string" || !value.id) return [];
+        return [
+            {
+                id: value.id,
+                ...(typeof value.quote === "string" && value.quote
+                    ? { quote: value.quote }
+                    : {}),
+            },
+        ];
+    });
+}
+
 export function toLedgerExtractions(extractions: unknown): LedgerExtraction[] {
     if (!Array.isArray(extractions)) return [];
     return extractions.flatMap((extraction) => {
@@ -289,66 +370,96 @@ export function toLedgerExtractions(extractions: unknown): LedgerExtraction[] {
         const value = extraction as Record<string, unknown>;
         const index = asPositiveIndex(value.index);
         if (index === null) return [];
+        const evidence = toLedgerEvidence(value.evidence);
         return [
             {
                 index,
                 ...(typeof value.supportingExcerpt === "string"
                     ? { supportingExcerpt: value.supportingExcerpt }
                     : {}),
+                ...(typeof value.population === "string" && value.population
+                    ? { population: value.population }
+                    : {}),
+                ...(evidence.length > 0 ? { evidence } : {}),
             },
         ];
     });
 }
 
+/**
+ * `question` is the discovery question: a source notes its paper's group
+ * only when that group is narrower than what was asked.
+ */
 export function buildClaimLedger(
     report: OpportunityReport,
     papers: LedgerPaper[],
     extractions: LedgerExtraction[],
+    question = "",
+    options: { logDecisions?: boolean } = {},
 ): ClaimLedger {
-    logLedgerQuoteDecisions(papers, extractions);
+    // Admin aggregates rebuild many ledgers; one log line per paper each time is noise.
+    if (options.logDecisions !== false) logLedgerQuoteDecisions(papers, extractions);
     const rows: ClaimLedgerRow[] = [];
     const { gaps, problems, venturePotential } = report.sections;
 
     gaps.forEach((gap, index) => {
-        const ordinal = index + 1;
-        pushClaimRows(
+        pushClaimRow(
             rows,
             "gap",
-            ordinal,
+            index + 1,
             claimText(gap.title, gap.description),
             gap.citations,
+            citedEvidence(
+                report,
+                ["title", "description", "whyItMatters"].map(
+                    (field) => `gaps.${index}.${field}`,
+                ),
+            ),
             papers,
             extractions,
+            question,
             gap.confidence,
         );
     });
 
     problems.forEach((problem, index) => {
-        const ordinal = index + 1;
         const citations = problem.gapRefs.flatMap((gapRef) =>
             gapCitations(gaps[gapRef - 1], papers),
         );
-        pushClaimRows(
+        pushClaimRow(
             rows,
             "problem",
-            ordinal,
+            index + 1,
             claimText(problem.title, problem.description),
             citations,
+            citedEvidence(
+                report,
+                ["title", "description"].map(
+                    (field) => `problems.${index}.${field}`,
+                ),
+            ),
             papers,
             extractions,
+            question,
         );
     });
 
     venturePotential.forEach((item, index) => {
-        const ordinal = index + 1;
-        pushClaimRows(
+        pushClaimRow(
             rows,
             "venture",
-            ordinal,
+            index + 1,
             claimText(item.title, item.thesis),
             item.citations,
+            citedEvidence(
+                report,
+                ["title", "thesis", "feasibilitySignals", "risks"].map(
+                    (field) => `venturePotential.${index}.${field}`,
+                ),
+            ),
             papers,
             extractions,
+            question,
         );
     });
 
@@ -359,10 +470,11 @@ export function attachClaimLedger(
     report: OpportunityReport,
     papers: LedgerPaper[],
     extractions: LedgerExtraction[],
+    question = "",
 ): OpportunityReport {
     return {
         ...report,
-        claimLedger: buildClaimLedger(report, papers, extractions),
+        claimLedger: buildClaimLedger(report, papers, extractions, question),
     };
 }
 

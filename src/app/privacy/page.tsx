@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            updated="September 26, 2026"
+            updated="September 29, 2026"
             intro={
                 <p>
                     Expansive Mind (expansivemind.ai) is a research tool run by{" "}
@@ -60,7 +60,13 @@ export default function PrivacyPage() {
                             </li>
                             <li>
                                 <strong>Messages:</strong> anything you send
-                                through the Contact page.
+                                through the Contact page, with the name and
+                                email address you give, so we can answer you.
+                            </li>
+                            <li>
+                                <strong>Email choices:</strong> whether you
+                                signed up for our newsletter and product
+                                updates, and when you turned them on or off.
                             </li>
                         </ul>
                     ),
@@ -78,6 +84,11 @@ export default function PrivacyPage() {
                             <li>
                                 To send account emails, such as password reset
                                 links.
+                            </li>
+                            <li>
+                                To send our newsletter and product updates, only
+                                if you sign up for them. Every one has an
+                                unsubscribe link.
                             </li>
                             <li>
                                 To keep the service secure and fix problems.
@@ -194,6 +205,10 @@ export default function PrivacyPage() {
                             information at any time by emailing {email}. You
                             can also remove Expansive Mind&apos;s access to your
                             Google account from your Google account settings.
+                            To stop the newsletter and product updates, use the
+                            unsubscribe link in any of them or turn them off on
+                            your profile. Account emails, such as password
+                            resets, still reach you.
                         </p>
                     ),
                 },

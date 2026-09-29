@@ -1,397 +1,359 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AdminUserUsage } from "../AdminUserUsage";
-import { useSession } from "../../lib/use-session";
-import styles from "../admin.module.scss";
-import AdminForumReports from "./AdminForumReports";
+import clsx from "clsx";
+import { adminApi } from "../admin-api";
+import { percentChange } from "../../lib/admin-overview";
+import { formatDuration, type AudienceSummary } from "../../lib/audience";
+import type { FunnelStep, QuestionTopic } from "../../lib/admin-pulse";
+import styles from "../admin-portal.module.scss";
 
-type Tab = "overview" | "pricing" | "users" | "reports" | "audit";
-type Feature = "search" | "discover" | "chat" | "scholar_search" | "projects";
-type Plan = "guest" | "free" | "pro";
-type Pricing = {
-    prices: Record<"month" | "year", { amount: number; currency: string; stripePriceId: string }>;
-    entitlements: Record<Plan, Record<Feature, number>>;
-    stripeConfigured?: boolean;
-    warning?: string;
-};
-type UserRow = {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    effectivePlan: string;
-    accessOverride?: string | null;
-    subscriptionStatus: string;
-    stripeSubscriptionId?: string;
-    subscriptionCurrentPeriodEnd?: string;
-    usage: Array<{
-        feature: string;
-        used: number;
-        limit: number;
-        period?: string;
-    }>;
-};
-type Usage = {
-    rangeDays: number;
-    estimatedCostUsd: number;
-    monthlyListPrice: number;
-    users: Record<string, number>;
-    usage: Array<{
-        feature: string;
-        provider: string;
-        calls: number;
-        estimatedCostUsd: number;
-        failures: number;
-    }>;
-};
-type AuditEntry = {
-    _id: string;
-    adminEmail: string;
-    action: string;
-    target: string;
-    createdAt: string;
+/** Share times, brief opens, and brief sign-ups are recorded from this day on. */
+const TRACKED_SINCE = "Sep 29, 2026";
+
+type Pulse = {
+    range: number;
+    funnel: FunnelStep[];
+    kpis: {
+        newAccounts: number;
+        priorNewAccounts: number;
+        proAccounts: number;
+        payingPro: number;
+        listValue: number;
+        aiCostUsd: number;
+        priorAiCostUsd: number;
+        discoveries: number;
+    };
+    today: { aiCostUsd: number; newMessages: number; openReports: number };
+    topics: QuestionTopic[];
+    newest: Array<{ question: string; createdAt: string; plan: string }>;
+    quality: Array<{ id: string; label: string; detail: string; value: string; examples: string[] }>;
+    sampled: boolean;
 };
 
-const features: Feature[] = ["search", "discover", "chat", "scholar_search", "projects"];
-const plans: Plan[] = ["guest", "free", "pro"];
+type Message = { _id: string; name: string; topic: string; message: string; createdAt: string };
 
-async function api<T>(url: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(url, { cache: "no-store", ...options });
-    const text = await response.text();
-    let data: { error?: string; message?: string } = {};
-    if (text) {
-        try {
-            data = JSON.parse(text);
-        } catch {
-            throw new Error(
-                response.ok
-                    ? "The server returned an unexpected response."
-                    : `Request failed (${response.status}).`,
-            );
-        }
-    }
-    if (!response.ok) {
-        throw new Error(
-            data.error || data.message || `Request failed (${response.status}).`,
-        );
-    }
-    return data as T;
+const RANGES = [7, 30, 90];
+
+function ago(date: string) {
+    const minutes = Math.round((Date.now() - new Date(date).getTime()) / 60_000);
+    if (minutes < 60) return `${Math.max(1, minutes)}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
 }
 
-export default function AdminPage() {
-    const { user, loading: sessionLoading } = useSession();
-    const [tab, setTab] = useState<Tab>("overview");
-    const [pricing, setPricing] = useState<Pricing | null>(null);
-    const [usage, setUsage] = useState<Usage | null>(null);
-    const [users, setUsers] = useState<UserRow[]>([]);
-    const [audit, setAudit] = useState<AuditEntry[]>([]);
-    const [query, setQuery] = useState("");
-    const [error, setError] = useState("");
-    const [message, setMessage] = useState("");
-    const [busy, setBusy] = useState("");
+/** "$0", "$0.042", "$12.40": small AI costs keep their cents. */
+function money(value: number) {
+    if (!value) return "$0";
+    return value < 1 ? `$${value.toFixed(3)}` : `$${value.toFixed(2)}`;
+}
 
-    const load = useCallback(async () => {
-        if (!user?.isAdmin) return;
-        setError("");
-        try {
-            const [usageData, pricingData, usersData, auditData] = await Promise.all([
-                api<Usage>("/api/admin/usage"),
-                api<Pricing>("/api/admin/pricing"),
-                api<{ users: UserRow[] }>("/api/admin/users"),
-                api<{ entries: AuditEntry[] }>("/api/admin/audit"),
-            ]);
-            setUsage(usageData);
-            setPricing(pricingData);
-            setUsers(usersData.users);
-            setAudit(auditData.entries);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Unable to load admin portal.");
-        }
-    }, [user?.isAdmin]);
+function Change({ current, prior }: { current: number; prior: number }) {
+    const change = percentChange(current, prior);
+    if (change == null) return <span className={styles.kpiNote}>No earlier period to compare</span>;
+    return (
+        <span className={styles.kpiNote}>
+            {change > 0 ? "+" : ""}
+            {change.toFixed(0)}% vs the period before
+        </span>
+    );
+}
+
+export default function AdminPulsePage() {
+    const [range, setRange] = useState(30);
+    const [pulse, setPulse] = useState<Pulse | null>(null);
+    const [error, setError] = useState("");
+    const [ask, setAsk] = useState<"topics" | "questions">("topics");
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [audience, setAudience] = useState<AudienceSummary | null>(null);
 
     useEffect(() => {
-        load();
-    }, [load]);
-
-    const searchUsers = async (event: FormEvent) => {
-        event.preventDefault();
-        try {
-            const data = await api<{ users: UserRow[] }>(
-                `/api/admin/users?q=${encodeURIComponent(query)}`,
-            );
-            setUsers(data.users);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Search failed.");
-        }
-    };
-
-    const savePricing = async () => {
-        if (!pricing) return;
-        setBusy("pricing");
+        let cancelled = false;
         setError("");
-        try {
-            const updated = await api<Pricing>("/api/admin/pricing", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(pricing),
-            });
-            setPricing(updated);
-            setMessage(
-                updated.warning || "Pricing and limits were saved.",
-            );
-            await load();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Unable to save pricing.");
-        } finally {
-            setBusy("");
-        }
-    };
+        adminApi<Pulse>(`/api/admin/pulse?range=${range}`)
+            .then((data) => !cancelled && setPulse(data))
+            .catch((err) => !cancelled && setError(err instanceof Error ? err.message : "Unable to load the pulse."));
+        return () => {
+            cancelled = true;
+        };
+    }, [range]);
 
-    const supportAction = async (
-        selectedUser: UserRow,
-        action: string,
-        feature?: Feature,
-    ) => {
-        const label = action.replaceAll("_", " ");
-        if (action === "remove_user") {
-            const typed = window.prompt(
-                `This permanently deletes ${selectedUser.email}, cancels any Stripe subscription, and erases their papers, chats, projects, discoveries, briefs, and share links. Type their email to confirm.`,
-            );
-            if (typed?.trim().toLowerCase() !== selectedUser.email.toLowerCase()) return;
-        } else if (!window.confirm(`Confirm ${label} for ${selectedUser.email}?`)) {
-            return;
-        }
-        setBusy(`${selectedUser._id}:${action}`);
-        setError("");
-        try {
-            await api("/api/admin/users/actions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: selectedUser._id,
-                    action,
-                    confirm: action,
-                    feature,
-                }),
-            });
-            setMessage(`${label} completed for ${selectedUser.email}.`);
-            await load();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Support action failed.");
-        } finally {
-            setBusy("");
-        }
-    };
+    useEffect(() => {
+        adminApi<{ messages: Message[] }>("/api/admin/feedback?status=new")
+            .then((data) => setMessages(data.messages.slice(0, 3)))
+            .catch(() => undefined);
+        adminApi<AudienceSummary>("/api/admin/audience")
+            .then(setAudience)
+            .catch(() => undefined);
+    }, []);
 
-    if (sessionLoading) return <main className={styles.page}>Checking access…</main>;
-    if (!user?.isAdmin) {
-        return <main className={styles.page}>You are not authorized to view this page.</main>;
-    }
-
-    const proUsers = usage?.users.pro || 0;
-    const listRevenue = proUsers * (usage?.monthlyListPrice || 0);
+    const kpis = pulse?.kpis;
 
     return (
-        <main className={styles.page}>
-            <header className={styles.header}>
+        <main className={styles.main}>
+            <header className={styles.pageHeader}>
                 <div>
-                    <p className={styles.eyebrow}>Internal administration</p>
-                    <h1>Billing and support</h1>
-                </div>
-                <span className={styles.muted}>{user.email}</span>
-            </header>
-            <nav className={styles.portalNav} aria-label="Admin pages">
-                <Link href="/admin" aria-current="page">
-                    Billing
-                </Link>
-                <Link href="/admin/usage">Usage</Link>
-            </nav>
-            <nav className={styles.tabs} aria-label="Admin sections" role="tablist">
-                {(["overview", "pricing", "users", "reports", "audit"] as Tab[]).map((item) => (
-                    <button
-                        key={item}
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === item}
-                        onClick={() => setTab(item)}
-                    >
-                        {item[0].toUpperCase() + item.slice(1)}
-                    </button>
-                ))}
-            </nav>
-            {error && <p className={styles.error}>{error}</p>}
-            {message && <p className={styles.success}>{message}</p>}
-
-            {tab === "overview" && (
-                <section className={styles.panel}>
-                    <div className={styles.metrics}>
-                        <div><strong>{usage?.users.free || 0}</strong><span>Free accounts</span></div>
-                        <div><strong>{proUsers}</strong><span>Paid plan records</span></div>
-                        <div><strong>${listRevenue.toFixed(2)}</strong><span>Monthly list value</span></div>
-                        <div><strong>${(usage?.estimatedCostUsd || 0).toFixed(2)}</strong><span>30-day AI cost</span></div>
-                    </div>
-                    <div className={styles.grid}>
-                        {usage?.usage.map((row) => (
-                            <article className={styles.card} key={`${row.feature}-${row.provider}`}>
-                                <strong>{row.calls.toLocaleString()} calls</strong>
-                                <p>{row.feature} · {row.provider}</p>
-                                <span className={styles.muted}>
-                                    ${row.estimatedCostUsd.toFixed(4)} · {row.failures} failures
-                                </span>
-                            </article>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {tab === "pricing" && pricing && (
-                <section className={styles.panel}>
-                    <p className={styles.notice}>
-                        {pricing.stripeConfigured
-                            ? "Price changes create new Stripe Prices for future subscribers. Existing subscribers keep their current price."
-                            : "Stripe is not connected yet. You can still save display prices and usage limits. Checkout stays off until STRIPE_SECRET_KEY is set and prices are saved again."}
+                    <p className={styles.eyebrow}>Admin</p>
+                    <h1>Product pulse</h1>
+                    <p className={styles.lead}>
+                        How people move from a question to a shared brief, and where they stop.
                     </p>
-                    <div className={styles.grid}>
-                        {(["month", "year"] as const).map((interval) => (
-                            <article className={styles.card} key={interval}>
-                                <h2>{interval === "month" ? "Monthly" : "Annual"} price</h2>
-                                <label className={styles.field}>
-                                    <span>Amount ({pricing.prices[interval].currency.toUpperCase()})</span>
-                                    <input
-                                        type="number"
-                                        min="0.50"
-                                        step="0.01"
-                                        value={pricing.prices[interval].amount / 100}
-                                        onChange={(event) =>
-                                            setPricing({
-                                                ...pricing,
-                                                prices: {
-                                                    ...pricing.prices,
-                                                    [interval]: {
-                                                        ...pricing.prices[interval],
-                                                        amount: Math.round(Number(event.target.value) * 100),
-                                                    },
-                                                },
-                                            })
-                                        }
-                                    />
-                                </label>
-                                <p className={styles.muted}>
-                                    {pricing.prices[interval].stripePriceId ||
-                                        (pricing.stripeConfigured
-                                            ? "No Stripe Price yet — save to create one."
-                                            : "No Stripe Price configured")}
-                                </p>
-                            </article>
-                        ))}
-                    </div>
-                    <h2>Usage limits</h2>
-                    <div className={styles.grid}>
-                        {plans.map((plan) => (
-                            <article className={styles.card} key={plan}>
-                                <h3>{plan[0].toUpperCase() + plan.slice(1)}</h3>
-                                {features.map((feature) => (
-                                    <label className={styles.field} key={feature}>
-                                        <span>{feature.replace("_", " ")}</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            value={pricing.entitlements[plan][feature]}
-                                            onChange={(event) =>
-                                                setPricing({
-                                                    ...pricing,
-                                                    entitlements: {
-                                                        ...pricing.entitlements,
-                                                        [plan]: {
-                                                            ...pricing.entitlements[plan],
-                                                            [feature]: Number(event.target.value),
-                                                        },
-                                                    },
-                                                })
-                                            }
-                                        />
-                                    </label>
-                                ))}
-                            </article>
-                        ))}
-                    </div>
-                    <button className={styles.button} disabled={busy === "pricing"} onClick={savePricing}>
-                        {busy === "pricing" ? "Saving…" : "Save pricing and limits"}
-                    </button>
-                </section>
-            )}
+                </div>
+                <div role="radiogroup" aria-label="Time range" className={styles.segmented}>
+                    {RANGES.map((days) => (
+                        <button
+                            key={days}
+                            type="button"
+                            role="radio"
+                            aria-checked={range === days}
+                            onClick={() => setRange(days)}
+                        >
+                            {days} days
+                        </button>
+                    ))}
+                </div>
+            </header>
 
-            {tab === "users" && (
-                <section className={styles.panel}>
-                    <form className={styles.toolbar} onSubmit={searchUsers}>
-                        <input
-                            className={styles.search}
-                            value={query}
-                            onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Search name or email"
-                        />
-                        <button className={styles.button}>Search</button>
-                    </form>
-                    <table className={`${styles.table} ${styles.stackOnPhone}`}>
-                        <thead><tr><th>User</th><th>Access</th><th>Usage</th><th>Support actions</th></tr></thead>
-                        <tbody>
-                            {users.map((selectedUser) => (
-                                <tr key={selectedUser._id}>
-                                    <td data-label="User">
-                                        <strong>{selectedUser.firstName} {selectedUser.lastName}</strong>
-                                        <span className={styles.muted}>{selectedUser.email}</span>
-                                    </td>
-                                    <td data-label="Access">
-                                        {selectedUser.effectivePlan} · {selectedUser.subscriptionStatus}
-                                        {selectedUser.accessOverride && <div className={styles.eyebrow}>Complimentary Pro</div>}
-                                    </td>
-                                    <td className={styles.muted} data-label="Usage">
-                                        <AdminUserUsage usage={selectedUser.usage} />
-                                    </td>
-                                    <td data-label="Support actions">
-                                        <div className={styles.actions}>
-                                            <button className={styles.button} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, selectedUser.accessOverride ? "revoke_pro" : "grant_pro")}>
-                                                {selectedUser.accessOverride ? "Remove comp" : "Grant Pro"}
-                                            </button>
-                                            <button className={styles.button} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "reset_usage")}>Reset usage</button>
-                                            {selectedUser.stripeSubscriptionId && (
-                                                <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "cancel_subscription")}>Cancel renewal</button>
-                                            )}
-                                            <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "refund_latest")}>Refund latest</button>
-                                            <button className={styles.danger} disabled={Boolean(busy)} onClick={() => supportAction(selectedUser, "remove_user")}>Delete user</button>
-                                        </div>
-                                    </td>
-                                </tr>
+            {error ? <p className={styles.error}>{error}</p> : null}
+
+            {pulse ? (
+                <section className={styles.today} aria-label="What needs you">
+                    <Link href="/admin/feedback" className={styles.todayItem}>
+                        <span>
+                            <strong>Feedback inbox</strong>
+                            <small>New contact messages</small>
+                        </span>
+                        <b>{pulse.today.newMessages}</b>
+                    </Link>
+                    <Link href="/admin/reports" className={styles.todayItem}>
+                        <span>
+                            <strong>Forum reports</strong>
+                            <small>Waiting for a decision</small>
+                        </span>
+                        <b>{pulse.today.openReports}</b>
+                    </Link>
+                    <Link href="/admin/usage" className={styles.todayItem}>
+                        <span>
+                            <strong>AI cost today</strong>
+                            <small>Since midnight UTC</small>
+                        </span>
+                        <b>{money(pulse.today.aiCostUsd)}</b>
+                    </Link>
+                </section>
+            ) : null}
+
+            <section className={clsx(styles.card, styles.funnelCard)} aria-labelledby="funnel-h">
+                <div className={styles.cardHead}>
+                    <div>
+                        <h2 id="funnel-h">From a question to a shared brief</h2>
+                        <p className={styles.muted}>
+                            The launch goal, step by step. Each arrow is the share of people who
+                            made it to the next step.
+                        </p>
+                    </div>
+                </div>
+                {pulse ? (
+                    <ol className={styles.funnel}>
+                        {pulse.funnel.map((step) => (
+                            <li key={step.id} className={clsx(styles.funnelStep, { [styles.funnelStepKey]: step.id === "shared" })}>
+                                {step.rate !== null ? (
+                                    <span className={styles.funnelRate} aria-label={`${step.rate}% of the step before`}>
+                                        {step.rate}% →
+                                    </span>
+                                ) : null}
+                                <span className={styles.funnelLabel}>{step.label}</span>
+                                <span className={styles.funnelCount}>{step.count.toLocaleString()}</span>
+                                <span className={styles.funnelDetail}>{step.detail}</span>
+                            </li>
+                        ))}
+                    </ol>
+                ) : (
+                    <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+                )}
+                <p className={styles.footnote}>
+                    Shares, brief opens, and sign-ups from a brief are counted from {TRACKED_SINCE}.
+                </p>
+            </section>
+
+            <div className={styles.kpiGrid}>
+                <div className={styles.kpi}>
+                    <span>New accounts</span>
+                    <strong>{kpis ? kpis.newAccounts.toLocaleString() : "—"}</strong>
+                    {kpis ? <Change current={kpis.newAccounts} prior={kpis.priorNewAccounts} /> : null}
+                </div>
+                <div className={styles.kpi}>
+                    <span>Pro accounts</span>
+                    <strong>{kpis ? kpis.proAccounts.toLocaleString() : "—"}</strong>
+                    {kpis ? <span className={styles.kpiNote}>{kpis.payingPro} paying, the rest complimentary</span> : null}
+                </div>
+                <div className={styles.kpi}>
+                    <span>AI cost</span>
+                    <strong>{kpis ? money(kpis.aiCostUsd) : "—"}</strong>
+                    {kpis ? (
+                        <span className={styles.kpiNote}>
+                            {kpis.discoveries
+                                ? `${money(kpis.aiCostUsd / kpis.discoveries)} per discovery`
+                                : "No discoveries in this period"}
+                        </span>
+                    ) : null}
+                </div>
+                <div className={styles.kpi}>
+                    <span>Paid plans, list value</span>
+                    <strong>{kpis ? `$${Math.round(kpis.listValue).toLocaleString()} / mo` : "—"}</strong>
+                    <span className={styles.kpiNote}>Paying Pro accounts × monthly price</span>
+                </div>
+            </div>
+
+            <div className={styles.twoUp}>
+                <section className={styles.card} aria-labelledby="asking-h">
+                    <div className={styles.cardHead}>
+                        <h2 id="asking-h">What people are asking</h2>
+                        <div role="radiogroup" aria-label="Show" className={clsx(styles.segmented, styles.segmentedSmall)}>
+                            <button type="button" role="radio" aria-checked={ask === "topics"} onClick={() => setAsk("topics")}>
+                                Topics
+                            </button>
+                            <button type="button" role="radio" aria-checked={ask === "questions"} onClick={() => setAsk("questions")}>
+                                Newest questions
+                            </button>
+                        </div>
+                    </div>
+                    {!pulse ? (
+                        <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+                    ) : ask === "topics" ? (
+                        pulse.topics.length === 0 ? (
+                            <p className={styles.muted}>No questions in this period yet.</p>
+                        ) : (
+                            <div role="table" aria-label="Topics" className={styles.topicTable}>
+                                <div role="row" className={styles.topicHead}>
+                                    <span role="columnheader">Topic</span>
+                                    <span role="columnheader">Runs</span>
+                                    <span role="columnheader">Shared</span>
+                                    <span role="columnheader">Before</span>
+                                </div>
+                                {pulse.topics.map((topic) => (
+                                    <div role="row" key={topic.topic} className={styles.topicRow}>
+                                        <span role="cell">{topic.topic}</span>
+                                        <span role="cell">{topic.runs}</span>
+                                        <span role="cell">{topic.shared}</span>
+                                        <span role="cell">{topic.prior}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    ) : (
+                        <ul className={styles.plainList}>
+                            {pulse.newest.map((item, index) => (
+                                <li key={`${item.createdAt}-${index}`} className={styles.questionRow}>
+                                    <span className={styles.questionText}>{item.question}</span>
+                                    <span className={styles.planChip}>{item.plan}</span>
+                                    <span className={styles.when}>{ago(item.createdAt)}</span>
+                                </li>
                             ))}
-                        </tbody>
-                    </table>
+                        </ul>
+                    )}
+                    <p className={styles.footnote}>
+                        Saved and guest discovery questions, grouped by the words people use.
+                        {pulse?.sampled ? " Quality numbers read the latest 400 runs." : ""}
+                    </p>
                 </section>
-            )}
 
-            {tab === "reports" && <AdminForumReports />}
-
-            {tab === "audit" && (
-                <section className={styles.panel}>
-                    <div className={styles.tableScroll}>
-                        <table className={styles.table}>
-                            <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th></tr></thead>
-                            <tbody>
-                                {audit.map((entry) => (
-                                    <tr key={entry._id}>
-                                        <td>{new Date(entry.createdAt).toLocaleString()}</td>
-                                        <td>{entry.adminEmail}</td>
-                                        <td>{entry.action}</td>
-                                        <td>{entry.target}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                <section className={styles.card} aria-labelledby="short-h">
+                    <div className={styles.cardHead}>
+                        <h2 id="short-h">Where runs fall short</h2>
                     </div>
+                    {!pulse ? (
+                        <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+                    ) : (
+                        <ul className={styles.plainList}>
+                            {pulse.quality.map((item) => (
+                                <li key={item.id} className={styles.qualityRow}>
+                                    <details>
+                                        <summary>
+                                            <span className={styles.qualityText}>
+                                                <strong>{item.label}</strong>
+                                                <small>{item.detail}</small>
+                                            </span>
+                                            <b>{item.value}</b>
+                                        </summary>
+                                        {item.examples.length > 0 ? (
+                                            <ul className={styles.examples}>
+                                                {item.examples.map((example, index) => (
+                                                    <li key={index}>{example}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className={styles.muted}>No example runs to show.</p>
+                                        )}
+                                    </details>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </section>
-            )}
+            </div>
+
+            <div className={styles.twoUp}>
+                <section className={styles.card} aria-labelledby="inbox-h">
+                    <div className={styles.cardHead}>
+                        <h2 id="inbox-h">Feedback inbox</h2>
+                        <Link href="/admin/feedback" className={styles.textLink}>
+                            Open inbox
+                        </Link>
+                    </div>
+                    {messages.length === 0 ? (
+                        <p className={styles.muted}>No new messages.</p>
+                    ) : (
+                        <ul className={styles.plainList}>
+                            {messages.map((message) => (
+                                <li key={message._id} className={styles.messagePreview}>
+                                    <span className={styles.messageHead}>
+                                        <span className={styles.topicChip}>{message.topic}</span>
+                                        <strong>{message.name}</strong>
+                                        <span className={styles.when}>{ago(message.createdAt)}</span>
+                                    </span>
+                                    <span className={styles.messageSnippet}>{message.message}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+                <section className={styles.card} aria-labelledby="time-h">
+                    <div className={styles.cardHead}>
+                        <h2 id="time-h">Where time goes</h2>
+                        <span className={styles.footnote}>Last 30 days</span>
+                    </div>
+                    {!audience ? (
+                        <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+                    ) : audience.pages.length === 0 && audience.destinations.length === 0 ? (
+                        <p className={styles.muted}>No visits recorded yet.</p>
+                    ) : (
+                        <ul className={styles.plainList}>
+                            {audience.pages.slice(0, 5).map((page) => (
+                                <li key={page.page} className={styles.timeRow}>
+                                    <span>{page.label}</span>
+                                    <span className={styles.muted}>
+                                        {formatDuration(page.seconds)} · {page.visitors}{" "}
+                                        {page.visitors === 1 ? "person" : "people"}
+                                    </span>
+                                </li>
+                            ))}
+                            {audience.destinations.slice(0, 3).map((move) => (
+                                <li key={`${move.from}-${move.to}`} className={styles.timeRow}>
+                                    <span>{move.label}</span>
+                                    <span className={styles.muted}>
+                                        {move.count} {move.count === 1 ? "move" : "moves"}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <span className={styles.footnote}>
+                        {audience ? `${audience.visitors} visitors, ${audience.signedInVisitors} signed in.` : ""}
+                    </span>
+                </section>
+            </div>
         </main>
     );
 }

@@ -760,3 +760,16 @@ html[data-nav-direction="forward"] .page-transition-shell,
         opacity: 1;
     }
 }
+
+/* Admin portal: its own sidebar and phone bar, full width, no site footer. */
+body:has([data-admin-portal]) {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    padding: 0;
+}
+
+body:has([data-admin-portal]) [data-app-footer] {
+    display: none;
+}
+

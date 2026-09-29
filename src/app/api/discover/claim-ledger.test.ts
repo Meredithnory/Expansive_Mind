@@ -8,6 +8,7 @@ import {
     evaluateShareGate,
     isClaimLedgerRowComplete,
     shareLockDetail,
+    toLedgerExtractions,
 } from "./claim-ledger";
 
 const CC_BY = "https://creativecommons.org/licenses/by/4.0/";
@@ -71,48 +72,165 @@ const completeReport: OpportunityReport = {
 };
 
 describe("buildClaimLedger", () => {
-    it("maps gaps, problems, and ventures onto rows with real excerpts", () => {
+    it("lists each claim once with every paper cited for it", () => {
         const ledger = buildClaimLedger(completeReport, papers, extractions);
 
         expect(ledger.rows.map((row) => row.id)).toEqual([
-            "gap-1-p1",
-            "gap-1-p2",
-            "problem-1-p1",
-            "problem-1-p2",
-            "venture-1-p2",
+            "gap-1",
+            "problem-1",
+            "venture-1",
         ]);
         expect(ledger.rows[0]).toMatchObject({
             kind: "gap",
             claim: "Durability unknown",
-            paperIndex: 1,
-            doi: "10.1/one",
-            title: "Treatment arm outcomes",
-            quote: "Events fell by 12% in the treatment arm.",
-            licenseUrl: CC_BY,
             confidence: "suggested",
         });
-        expect(ledger.rows[1].doi).toBeUndefined();
-        expect(ledger.rows[1].paperId).toBe("PMC99");
-        expect(ledger.rows[1].quote).toBe(
-            "No outcome past three years was reported.",
-        );
-        expect(ledger.rows[2].kind).toBe("problem");
-        expect(ledger.rows[4]).toMatchObject({
-            kind: "venture",
+        expect(ledger.rows[0].sources).toEqual([
+            {
+                paperIndex: 1,
+                paperId: "10.1/one",
+                doi: "10.1/one",
+                href: "/paperchatbot/springer/10.1/one",
+                title: "Treatment arm outcomes",
+                quote: "Events fell by 12% in the treatment arm.",
+                licenseUrl: CC_BY,
+            },
+            {
+                paperIndex: 2,
+                paperId: "PMC99",
+                href: "/paperchatbot/nih/PMC99",
+                title: "Follow-up horizon",
+                quote: "No outcome past three years was reported.",
+                licenseUrl: CC_BY,
+            },
+        ]);
+        expect(ledger.rows[1].kind).toBe("problem");
+        expect(ledger.rows[1].sources.map((source) => source.paperIndex)).toEqual([
+            1, 2,
+        ]);
+        expect(ledger.rows[2]).toMatchObject({ kind: "venture" });
+        expect(ledger.rows[2].sources).toHaveLength(1);
+        expect(ledger.rows[2].sources[0]).toMatchObject({
             paperIndex: 2,
             quote: "No outcome past three years was reported.",
         });
         expect(ledger.rows.every(isClaimLedgerRowComplete)).toBe(true);
     });
 
-    it("does not invent a quote when the extraction has no excerpt", () => {
+    it("does not repeat a claim once per citation or once per section", () => {
+        const threePapers = [
+            ...papers,
+            {
+                index: 3,
+                paperId: "PMC3",
+                title: "Third paper",
+                href: "/paperchatbot/nih/PMC3",
+                licenseUrl: CC_BY,
+                database: "nih" as const,
+            },
+        ];
+        const ledger = buildClaimLedger(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    gaps: [
+                        {
+                            title: "No standardized guidelines",
+                            description: "Assessment methods vary.",
+                            whyItMatters: "",
+                            citations: [1, 2, 3, 2],
+                            confidence: "suggested",
+                        },
+                    ],
+                    problems: [
+                        {
+                            title: "No standardized guidelines.",
+                            description: "Same claim, restated.",
+                            gapRefs: [1],
+                        },
+                    ],
+                    venturePotential: [],
+                },
+            },
+            threePapers,
+            extractions,
+        );
+        expect(ledger.rows).toHaveLength(1);
+        expect(ledger.rows[0].id).toBe("gap-1");
+        expect(ledger.rows[0].sources.map((source) => source.paperIndex)).toEqual([
+            1, 2, 3,
+        ]);
+    });
+
+    it("keeps an unquotable paper as a linked source instead of an empty row", () => {
         const ledger = buildClaimLedger(completeReport, papers, [
             { index: 1, supportingExcerpt: "Events fell by 12% in the treatment arm." },
         ]);
-        const paper2 = ledger.rows.filter((row) => row.paperIndex === 2);
-        expect(paper2.length).toBeGreaterThan(0);
-        expect(paper2.every((row) => row.quote === "")).toBe(true);
-        expect(paper2.every((row) => !isClaimLedgerRowComplete(row))).toBe(true);
+        expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(true);
+        const venture = ledger.rows[2];
+        expect(venture.sources[0]).toMatchObject({
+            paperIndex: 2,
+            title: "Follow-up horizon",
+            href: "/paperchatbot/nih/PMC99",
+            quote: "",
+        });
+        expect(venture.sources[0].licenseUrl).toBeUndefined();
+        expect(isClaimLedgerRowComplete(venture)).toBe(false);
+    });
+
+    it("drops the section markers our excerpts carry", () => {
+        const ledger = buildClaimLedger(completeReport, papers, [
+            { index: 1, supportingExcerpt: "## 2. Results Events fell by 12% in the treatment arm." },
+            extractions[1],
+        ]);
+        expect(ledger.rows[0].sources[0].quote).toBe(
+            "2. Results Events fell by 12% in the treatment arm.",
+        );
+    });
+
+    it("quotes the sentence the claim cited, not the paper's generic excerpt", () => {
+        const ledger = buildClaimLedger(
+            {
+                sections: {
+                    ...completeReport.sections,
+                    citationEvidence: {
+                        "gaps.0.description": ["E2.2"],
+                        "venturePotential.0.thesis": [null],
+                    },
+                },
+            },
+            papers,
+            [
+                extractions[0],
+                {
+                    ...extractions[1],
+                    evidence: [
+                        { id: "E2.1", quote: "Median follow-up was 14 months." },
+                        { id: "E2.2", quote: "No trial followed patients past year three." },
+                    ],
+                },
+            ],
+        );
+        expect(ledger.rows[0].sources[1].quote).toBe(
+            "No trial followed patients past year three.",
+        );
+        expect(ledger.rows[2].sources[0].quote).toBe(
+            "No outcome past three years was reported.",
+        );
+    });
+
+    it("notes a paper's group only when it is narrower than the question", () => {
+        const ledger = buildClaimLedger(
+            completeReport,
+            papers,
+            [
+                { ...extractions[0], population: "genome-edited livestock" },
+                { ...extractions[1], population: "adults on long-term therapy" },
+            ],
+            "How durable is the treatment benefit?",
+        );
+        expect(ledger.rows[0].sources[0].scope).toBe("genome-edited livestock");
+        expect(ledger.rows[0].sources[1].scope).toBeUndefined();
     });
 
     it("marks a claim without a resolvable paper as incomplete", () => {
@@ -137,7 +255,7 @@ describe("buildClaimLedger", () => {
             extractions,
         );
         expect(ledger.rows).toHaveLength(1);
-        expect(ledger.rows[0].paperIndex).toBeUndefined();
+        expect(ledger.rows[0].sources).toEqual([]);
         expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
     });
 });
@@ -172,8 +290,8 @@ describe("evaluateClaimLedger / share gate", () => {
             ],
             [{ index: 1, supportingExcerpt: "A Scholar snippet." }],
         );
-        expect(ledger.rows[0].quote).toBe("");
-        expect(ledger.rows[0].licenseUrl).toBeUndefined();
+        expect(ledger.rows[0].sources[0].quote).toBe("");
+        expect(ledger.rows[0].sources[0].licenseUrl).toBeUndefined();
         expect(isClaimLedgerRowComplete(ledger.rows[0])).toBe(false);
     });
 
@@ -201,7 +319,11 @@ describe("evaluateClaimLedger / share gate", () => {
                 })),
                 extractions,
             );
-            expect(ledger.rows.every((row) => row.quote === "")).toBe(true);
+            expect(
+                ledger.rows.every((row) =>
+                    row.sources.every((source) => source.quote === ""),
+                ),
+            ).toBe(true);
         }
     });
 
@@ -224,13 +346,13 @@ describe("evaluateClaimLedger / share gate", () => {
             [{ ...papers[0], title: "  " }],
             extractions,
         );
-        expect(noTitle.rows[0].quote).toBe("");
+        expect(noTitle.rows[0].sources[0].quote).toBe("");
         const noLink = buildClaimLedger(
             gap,
             [{ ...papers[0], doi: undefined, href: "", sourceUrl: "" }],
             extractions,
         );
-        expect(noLink.rows[0].quote).toBe("");
+        expect(noLink.rows[0].sources[0].quote).toBe("");
     });
 
     it("logs an unknown license without the quote text", () => {
@@ -344,13 +466,40 @@ describe("evaluateClaimLedger / share gate", () => {
             extractions,
         );
         expect(gate.ok).toBe(true);
-        expect(gate.ledger.rows[0].doi).toBeUndefined();
-        expect(gate.ledger.rows[0].paperId).toBe("PMC99");
+        expect(gate.ledger.rows[0].sources[0].doi).toBeUndefined();
+        expect(gate.ledger.rows[0].sources[0].paperId).toBe("PMC99");
     });
 
     it("attaches a rebuilt ledger onto the report", () => {
         const attached = attachClaimLedger(completeReport, papers, extractions);
-        expect(attached.claimLedger?.rows).toHaveLength(5);
+        expect(attached.claimLedger?.rows).toHaveLength(3);
         expect(attached.sections).toEqual(completeReport.sections);
+    });
+});
+
+describe("toLedgerExtractions", () => {
+    it("keeps population and evidence quotes from a stored extraction", () => {
+        expect(
+            toLedgerExtractions([
+                {
+                    index: 2,
+                    supportingExcerpt: "Kept.",
+                    population: "genome-edited livestock",
+                    evidence: [
+                        { id: "E2.1", finding: "x", quote: "A sentence." },
+                        { id: "E2.2", finding: "y" },
+                        { finding: "no id" },
+                    ],
+                },
+                { index: 0 },
+            ]),
+        ).toEqual([
+            {
+                index: 2,
+                supportingExcerpt: "Kept.",
+                population: "genome-edited livestock",
+                evidence: [{ id: "E2.1", quote: "A sentence." }, { id: "E2.2" }],
+            },
+        ]);
     });
 });

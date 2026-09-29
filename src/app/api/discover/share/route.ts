@@ -36,6 +36,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
         if (!discovery.shareSlug) {
             discovery.shareSlug = generateShareSlug();
+            discovery.sharedAt = new Date();
             await discovery.save();
         }
 

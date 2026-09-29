@@ -209,6 +209,8 @@ const savedDiscoverySchema = new Schema(
             type: String,
             index: { unique: true, sparse: true },
         },
+        /** When the owner first shared it. Older shares have none. */
+        sharedAt: { type: Date },
         report: {
             type: Schema.Types.Mixed,
         },

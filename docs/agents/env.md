@@ -26,5 +26,9 @@ Canonical list: [`.env.example`](../../.env.example). Local file: `.env.local` (
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client analytics |
 | `ADMIN_EMAILS` | Comma-separated owner allowlist (unlimited quota + `/admin`) |
 | `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | Contact form email and password-reset email. Without `RESEND_API_KEY`, `/forgot-password` says reset is unavailable. `CONTACT_FROM_EMAIL` defaults to `Expansive Mind <support@expansivemind.ai>`; the sending domain must be verified in Resend or mail is rejected. Contact sends Meredith the message and the sender a short reply (max 2 a day per address) |
+| `EMAIL_POSTAL_ADDRESS` | Mailing address in every group (newsletter / product) email footer from `/admin/email`, required by CAN-SPAM. Group sends are refused until it is set. A PO box or virtual mailbox is fine |
+| `EMAIL_UNSUBSCRIBE_SECRET` | Signs unsubscribe links (`src/app/lib/email-unsubscribe.ts`). Separate from `JWT_SECRET` so rotating sign-in keys never breaks links already sent. Group sends are refused until it is set |
+| `PRODUCT_EMAIL_FROM` | Sender for group email. Defaults to `Expansive Mind <newsletter@expansivemind.ai>`; the domain must be verified in Resend |
+| `PRODUCT_EMAIL_DAILY_MAX` | Admin emails per UTC day (default 50). Resend's free plan allows 100/day shared with password resets and contact mail; raise this only after upgrading Resend |
 
 Never commit secrets. New vars need a blank key in `.env.example` and a row here.

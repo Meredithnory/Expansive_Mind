@@ -5,12 +5,15 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | File | Side | One line |
 | --- | --- | --- |
 | `abstract-text.ts` | both | Flatten abstract fields to text |
+| `admin-email.ts` | both | Parse and render an `/admin/email` message; group sends carry an unsubscribe link |
+| `admin-pulse.ts` | both | `/admin` pulse helpers: range, question-to-brief funnel, question topics |
 | `admin.ts` | server | `withAdmin` + `isAdminUser` |
 | `admin-audit.ts` | server | Persist admin actions |
 | `admin-identity.ts` | both | Parse `ADMIN_EMAILS` |
 | `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
 | `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
+| `brief-view.ts` | both | Shared topic brief view model: summary chips that open the cited sentence, gaps, papers, counts |
 | `browser-paper.ts` | client | Load an unlicensed PMC body in the reader's browser from NIH / Europe PMC. Read-only figures |
 | `canvas-image.ts` | client | Canvas → file, size cap |
 | `chat-access.ts` | both | `paperChatMode`: body excerpts, abstract only, or no chat |
@@ -20,6 +23,9 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `contact.ts` | both | Contact form parse / mailto |
 | `contact-mail.ts` | both | Contact emails: the message to Meredith and the "we got your message" reply (never echoes the message) |
 | `email-layout.ts` | both | Branded HTML email shell (light inline default; dark through `prefers-color-scheme` and `EMAIL_CLASS` hooks), escaping, and the default sender (`support@expansivemind.ai`) |
+| `email-unsubscribe.ts` | server | Signed unsubscribe tokens and links for product email |
+| `paper-scope.ts` | both | `narrowerScope`: note a paper only when it studied a narrower group (livestock, mice, cell lines) than the question |
+| `product-signals.ts` | both | Allowed product signal keys and a fire-and-forget sender for `/api/signals` |
 | `send-email.ts` | server | Sends one email through Resend; never throws |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
 | `quote-eligibility.ts` | both | Strict quote gate. Does not decide whether a share slug can be created |
@@ -42,7 +48,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `openrouter-policy.ts` | both | ZDR + deny data collection |
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
-| `paper-evidence.ts` | both | Verify a finding's quote is verbatim in the excerpt; pick the evidence sentence a clicked citation opens |
+| `paper-evidence.ts` | both | Verify a finding's quote is verbatim in the excerpt; pick the evidence sentence a clicked citation opens; `closestSentence` finds the paper's best match for a claim with no recorded sentence (labeled as a match in the panel) |
 | `paper-highlights.ts` | server | Highlight CRUD |
 | `paper-sources.ts` | both | `nih \| springer \| scholar` IDs, paths, `PaperLocator` |
 | `profile-colors.ts` | both | Coat colors (profileColor) with shade and ink |

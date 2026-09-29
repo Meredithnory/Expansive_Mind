@@ -578,6 +578,7 @@ function DiscoverClient({
                       structuredReport,
                       toLedgerPapers(result.papers),
                       toLedgerExtractions(result.extractions),
+                      result.question,
                   )
                 : undefined,
         [result, structuredReport],
@@ -687,6 +688,7 @@ function DiscoverClient({
                                   ?.supportingExcerpt || ""),
                     anchor: citedQuote ? null : (cited?.anchor ?? null),
                     citedFor: cited?.finding ?? null,
+                    claim: cite?.context || null,
                     requestId: (current?.requestId ?? 0) + 1,
                     origin: rect
                         ? {

@@ -37,6 +37,7 @@ export const GET = withAuth(async (request: NextRequest) => {
                 plan,
                 isAdmin,
                 subscriptionStatus: request.user.subscriptionStatus || "none",
+                productEmailOptIn: request.user.productEmailOptIn === true,
             },
             quotas,
         },

@@ -183,6 +183,105 @@ function contentWords(text: string) {
     );
 }
 
+// Sections whose words describe other papers or the authors, not this
+// paper's findings. A reference title can outscore every real sentence.
+const NOT_FINDINGS =
+    /^(references?|bibliography|literature cited|acknowledge?ments?|funding|author contributions?|conflicts? of interest|competing interests?|data availability|supplementary|abbreviations)\b/i;
+
+const SENTENCE_MIN_CHARS = 40;
+const SENTENCE_MAX_CHARS = 420;
+
+/** Folds "edits"/"edited"/"editing" and "studies"/"study" onto one word. */
+function stem(word: string) {
+    if (word.length <= 4) return word;
+    if (word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+    return word.replace(/(?:ing|ed|es|s)$/, "");
+}
+
+/** "guide-independent" and "guide RNA-independent" share "guide" and "independent". */
+function matchWords(text: string) {
+    const words = new Set<string>();
+    for (const word of contentWords(text)) {
+        for (const part of word.split("-")) {
+            if (part.length >= 3 && !STOP.has(part)) words.add(stem(part));
+        }
+    }
+    return words;
+}
+
+function findingSentences(paper: {
+    abstract?: string;
+    paper?: Array<{
+        title?: string;
+        content?: string;
+        subSections?: Array<{ title?: string; content?: string }>;
+    }>;
+}): string[] {
+    const blocks = [paper.abstract ?? ""];
+    for (const section of paper.paper ?? []) {
+        if (NOT_FINDINGS.test(section.title?.trim() ?? "")) continue;
+        blocks.push(section.content ?? "");
+        for (const sub of section.subSections ?? []) {
+            if (NOT_FINDINGS.test(sub.title?.trim() ?? "")) continue;
+            blocks.push(sub.content ?? "");
+        }
+    }
+    return blocks
+        .flatMap((block) => block.split(/\n+|(?<=[.!?])\s+(?=[A-Z0-9(\[])/))
+        .map((sentence) => sentence.trim())
+        .filter(
+            (sentence) =>
+                sentence.length >= SENTENCE_MIN_CHARS &&
+                sentence.length <= SENTENCE_MAX_CHARS &&
+                !sentence.startsWith("#"),
+        );
+}
+
+/**
+ * For a citation that recorded no sentence: the sentence of the loaded
+ * paper that covers the most of the claim. A word rare in this paper counts
+ * more than one on every page ("base editor" in a base-editor review).
+ * Null unless the match is clear. The caller must label it as a match, not
+ * as the report's evidence.
+ */
+export function closestSentence(
+    paper: Parameters<typeof findingSentences>[0],
+    claim: string,
+): string | null {
+    const wanted = matchWords(claim);
+    if (wanted.size < 2) return null;
+    const sentences = findingSentences(paper).map((sentence) => ({
+        sentence,
+        words: matchWords(sentence),
+    }));
+    if (sentences.length === 0) return null;
+    const seenIn = new Map<string, number>();
+    for (const { words } of sentences) {
+        for (const word of words) {
+            if (wanted.has(word)) seenIn.set(word, (seenIn.get(word) ?? 0) + 1);
+        }
+    }
+    const weight = (word: string) =>
+        Math.log(1 + sentences.length / (seenIn.get(word) ?? 1));
+    let total = 0;
+    for (const word of wanted) total += weight(word);
+    let best: { sentence: string; shared: number; score: number } | null = null;
+    for (const { sentence, words } of sentences) {
+        let shared = 0;
+        let covered = 0;
+        for (const word of words) {
+            if (!wanted.has(word)) continue;
+            shared += 1;
+            covered += weight(word);
+        }
+        if (shared === 0) continue;
+        // Coverage of the claim decides; density breaks near-ties.
+        const score = covered / total + 0.1 * (shared / words.size);
+        if (!best || score > best.score) best = { sentence, shared, score };
+    }
+    return best && best.shared >= 2 && best.score >= 0.3 ? best.sentence : null;
+}
+
 export type CiteContext = {
     /** The evidence id the report recorded for this chip. */
     evidenceId?: string | null;

@@ -109,6 +109,7 @@ describe("findSharedBrief", () => {
                         index: 1,
                         supportingExcerpt:
                             "Events fell by 12% in the treatment arm.",
+                        population: "diet-induced obese mice",
                     },
                 ],
                 createdAt: new Date("2026-09-01T00:00:00.000Z"),
@@ -119,7 +120,7 @@ describe("findSharedBrief", () => {
 
         expect(brief?.kind).toBe("discovery");
         expect(brief?.chatPath).toBe("/discover");
-        expect(brief?.papers[0]).toEqual({
+        expect(brief?.papers[0]).toMatchObject({
             title: "Events fell",
             href: "/paperchatbot/springer/10.1/one",
             sourceLabel: "Springer Nature",
@@ -128,10 +129,17 @@ describe("findSharedBrief", () => {
         });
         expect(brief?.claimLedger?.rows[0]).toMatchObject({
             claim: "Durability unknown",
+        });
+        expect(brief?.claimLedger?.rows[0].sources[0]).toMatchObject({
             quote: "Events fell by 12% in the treatment arm.",
             licenseUrl: CC_BY,
             doi: "10.1/one",
+            scope: "diet-induced obese mice",
         });
+        expect(brief?.papers[0].scope).toBe("diet-induced obese mice");
+        expect(brief?.slug).toBe(SLUG);
+        expect(brief?.view?.claimCount).toBe(1);
+        expect(brief?.view?.quotedCount).toBe(1);
     });
 
     it("omits the ledger when the stored report cannot be parsed", async () => {
