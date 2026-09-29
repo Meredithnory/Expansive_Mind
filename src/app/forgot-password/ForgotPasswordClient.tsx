@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "../login/login.module.scss";
 import { PASSWORD_RESET_REQUEST_MESSAGE } from "../lib/password-reset-copy";
+import { useSession } from "../lib/use-session";
 
 type Phase = "idle" | "submitting" | "success" | "error";
 
@@ -13,6 +14,12 @@ export default function ForgotPasswordClient() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [phase, setPhase] = useState<Phase>("idle");
+    // Signed-in readers come here from Profile; /login would bounce them to
+    // Discovery, so send them back where they came from.
+    const { isLoggedIn } = useSession();
+    const back = isLoggedIn
+        ? { href: "/profile", label: "Back to profile" }
+        : { href: "/login", label: "Back to login" };
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
@@ -70,7 +77,7 @@ export default function ForgotPasswordClient() {
                                 {PASSWORD_RESET_REQUEST_MESSAGE}
                             </p>
                             <p className={styles.signupPrompt}>
-                                <Link href="/login">Back to login</Link>
+                                <Link href={back.href}>{back.label}</Link>
                             </p>
                         </div>
                     ) : (
@@ -120,7 +127,7 @@ export default function ForgotPasswordClient() {
                                 {loading ? "Sending..." : "Send reset link"}
                             </button>
                             <p className={styles.signupPrompt}>
-                                <Link href="/login">Back to login</Link>
+                                <Link href={back.href}>{back.label}</Link>
                             </p>
                         </form>
                     )}

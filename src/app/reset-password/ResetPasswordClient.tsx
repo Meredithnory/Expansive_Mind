@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import styles from "../login/login.module.scss";
+import { useSession } from "../lib/use-session";
 import {
     PASSWORD_RESET_LINK_INVALID,
     PASSWORD_RESET_UPDATED,
@@ -16,6 +17,8 @@ export default function ResetPasswordClient() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token")?.trim() ?? "";
     const [password, setPassword] = useState("");
+    // A signed-in reader would bounce from /login to Discovery.
+    const { isLoggedIn } = useSession();
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -171,7 +174,9 @@ export default function ResetPasswordClient() {
                                 {loading ? "Saving..." : "Save new password"}
                             </button>
                             <p className={styles.signupPrompt}>
-                                <Link href="/login">Back to login</Link>
+                                <Link href={isLoggedIn ? "/profile" : "/login"}>
+                                    {isLoggedIn ? "Back to profile" : "Back to login"}
+                                </Link>
                             </p>
                         </form>
                     )}
