@@ -3,6 +3,7 @@ import type {
     PaperFigure,
     Section,
 } from "../api/general-interfaces";
+import { isMethodsSectionTitle } from "./paper-citation";
 
 const MAX_CONTEXT_CHARS = 6_000;
 const MAX_ABSTRACT_CHARS = 1_500;
@@ -166,3 +167,28 @@ export function selectQuotableExcerpt(
         maxChars,
     );
 }
+
+/** How much of the Methods section Discover adds so "Show method" can find the paper's own sentence. */
+export const METHODS_OPENING_CHARS = 700;
+
+/**
+ * The start of the paper's Methods section, where the design is usually
+ * stated. Empty when there is no Methods section or the excerpt already
+ * carries it.
+ */
+export const selectMethodsOpening = (
+    paper: FormattedPaper,
+    excerpt: string,
+    limit = METHODS_OPENING_CHARS,
+) => {
+    const section = paper.paper.find((item) => isMethodsSectionTitle(item.title || ""));
+    if (!section) return "";
+    const text = [section.content, ...(section.subSections ?? []).map((sub) => sub.content)]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+    if (!text) return "";
+    if (excerpt.replace(/\s+/g, " ").includes(text.slice(0, 80))) return "";
+    return truncateAtSentence(text, limit);
+};

@@ -70,6 +70,7 @@ vi.mock("../../lib/paper-context", () => ({
     selectAbstractContext: vi.fn((abstract: string) => abstract),
     selectPaperContext: vi.fn(() => "Licensed excerpt from the paper."),
     selectQuotableExcerpt: vi.fn(() => "Licensed excerpt from the paper."),
+    selectMethodsOpening: vi.fn(() => ""),
 }));
 
 import { selectPaperContext } from "../../lib/paper-context";

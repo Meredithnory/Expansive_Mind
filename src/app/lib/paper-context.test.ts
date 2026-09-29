@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FormattedPaper } from "../api/general-interfaces";
-import { selectPaperContext, selectQuotableExcerpt } from "./paper-context";
+import { selectPaperContext, selectQuotableExcerpt, selectMethodsOpening } from "./paper-context";
 
 const paper: FormattedPaper = {
     title: "Example",
@@ -181,5 +181,43 @@ describe("selectPaperContext", () => {
                 ? context.length
                 : context.indexOf("## Abstract"),
         );
+    });
+});
+
+describe("selectMethodsOpening", () => {
+    const paper = {
+        title: "T",
+        authors: [],
+        paperId: "1",
+        idName: "doi",
+        primarySource: "Springer Nature",
+        access: {} as never,
+        paper: [
+            { title: "Introduction", content: "Background text.", subSections: [] },
+            {
+                title: "Materials and methods",
+                content: "We enrolled 120 adults with prediabetes in a 12-week randomized trial. Fasting glucose was measured weekly.",
+                subSections: [],
+            },
+        ],
+    } as never;
+
+    it("returns the start of the Methods section", () => {
+        expect(selectMethodsOpening(paper, "Background text.")).toBe(
+            "We enrolled 120 adults with prediabetes in a 12-week randomized trial. Fasting glucose was measured weekly.",
+        );
+    });
+
+    it("skips it when the excerpt already has the Methods section", () => {
+        expect(
+            selectMethodsOpening(
+                paper,
+                "## Materials and methods We enrolled 120 adults with prediabetes in a 12-week randomized trial. Fasting glucose was measured weekly.",
+            ),
+        ).toBe("");
+    });
+
+    it("returns nothing for a paper without a Methods section", () => {
+        expect(selectMethodsOpening({ ...(paper as object), paper: [] } as never, "")).toBe("");
     });
 });

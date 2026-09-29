@@ -87,6 +87,8 @@ export interface PaperExcerptForSynthesis {
     excerptKind?: "body" | "abstract";
     /** Body-only licensed excerpt for the claim ledger. Never a Scholar snippet or abstract. */
     quoteExcerpt?: string;
+    /** The start of the Methods section (full-text papers), for "Show method". */
+    methodsExcerpt?: string;
 }
 
 /**
