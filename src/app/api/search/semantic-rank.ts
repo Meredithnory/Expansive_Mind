@@ -72,6 +72,9 @@ const tokenCoverage = (tokens: string[], text: string) => {
     return matches / tokens.length;
 };
 
+/** How many candidates get the embedding score: the best by word match, whatever their source. */
+export const SEMANTIC_POOL_SIZE = 40;
+
 const getLexicalScore = (query: string, result: SearchResult) => {
     const normalizedQuery = normalizeText(query);
     const queryTokens = tokenize(query);
@@ -84,6 +87,15 @@ const getLexicalScore = (query: string, result: SearchResult) => {
     const exactAbstractPhrase =
         normalizedQuery.length > 1 &&
         normalizedAbstract.includes(normalizedQuery);
+
+    if (!normalizedAbstract) {
+        // Some sources send no abstract with a hit (NIH search summaries).
+        // Score the title alone rather than marking the paper down for it.
+        return (
+            tokenCoverage(queryTokens, title) * 0.85 +
+            (exactTitlePhrase ? 0.15 : 0)
+        );
+    }
 
     return (
         tokenCoverage(queryTokens, title) * 0.58 +
@@ -111,16 +123,17 @@ const cosineSimilarity = (left: number[], right: number[]) => {
 const getSemanticScores = async <T extends SearchResult>(
     query: string,
     results: T[],
+    pool: number[],
     usageContext?: UsageContext,
 ): Promise<number[] | null> => {
-    if (!process.env.AI_API_KEY || results.length < 2) {
+    if (!process.env.AI_API_KEY || results.length < 2 || pool.length === 0) {
         return null;
     }
 
-    const eligibleResults = results.slice(0, 10);
     const inputs = [
         query.slice(0, 500),
-        ...eligibleResults.map((result) => {
+        ...pool.map((index) => {
+            const result = results[index];
             const abstract = result.access?.canSendToAI
                 ? unknownToText(result.abstract)
                       .replace(/\s+/g, " ")
@@ -146,15 +159,14 @@ const getSemanticScores = async <T extends SearchResult>(
             return null;
         }
 
-        const scores = response.data
-            .slice(1)
-            .map(({ embedding }) =>
-                Math.max(0, cosineSimilarity(queryEmbedding, embedding)),
+        const scores: number[] = Array(results.length).fill(0);
+        response.data.slice(1).forEach(({ embedding }, position) => {
+            scores[pool[position]] = Math.max(
+                0,
+                cosineSimilarity(queryEmbedding, embedding),
             );
-        return [
-            ...scores,
-            ...Array(Math.max(0, results.length - scores.length)).fill(0),
-        ];
+        });
+        return scores;
     } catch {
         console.warn("Semantic search unavailable; using lexical ranking");
         return null;
@@ -195,17 +207,36 @@ export const rankSearchResults = async <T extends SearchResult>(
     const lexicalScores = deduplicated.map((result) =>
         getLexicalScore(query, result),
     );
+    // Sources arrive one after another (all Springer, then all NIH), so the
+    // embedding pool is the best by word match, not the first in the list.
+    const pool = deduplicated
+        .map((_, index) => index)
+        .sort(
+            (left, right) =>
+                lexicalScores[right] - lexicalScores[left] || left - right,
+        )
+        .slice(0, SEMANTIC_POOL_SIZE);
     const semanticScores = await getSemanticScores(
         query,
         deduplicated,
+        pool,
         usageContext,
     );
     const maxLexicalScore = Math.max(...lexicalScores, 1);
+    // Each source's own order is a relevance signal; count it within the
+    // source so whichever source is listed first isn't favored.
+    const seenPerSource = new Map<string, number>();
+    const rankInSource = deduplicated.map((result) => {
+        const key = result.source ?? "other";
+        const rank = seenPerSource.get(key) ?? 0;
+        seenPerSource.set(key, rank + 1);
+        return rank;
+    });
 
     const ranked = deduplicated
         .map((result, index) => {
             const lexicalScore = lexicalScores[index] / maxLexicalScore;
-            const sourceRankScore = 1 / (index + 1);
+            const sourceRankScore = 1 / (rankInSource[index] + 1);
             const score = semanticScores
                 ? lexicalScore * 0.55 +
                   semanticScores[index] * 0.35 +
@@ -216,17 +247,11 @@ export const rankSearchResults = async <T extends SearchResult>(
         })
         .sort(
             (left, right) =>
-                right.score - left.score || left.index - right.index,
+                right.score - left.score ||
+                rankInSource[left.index] - rankInSource[right.index] ||
+                left.index - right.index,
         )
         .map(({ result }) => result);
-
-    const bestNatureIndex = ranked.findIndex(
-        (result) => result.source === "nature",
-    );
-    if (bestNatureIndex > 0) {
-        const [bestNatureResult] = ranked.splice(bestNatureIndex, 1);
-        ranked.unshift(bestNatureResult);
-    }
 
     return ranked;
 };
