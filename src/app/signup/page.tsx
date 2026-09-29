@@ -19,6 +19,12 @@ const perks = [
     { label: "Chat", detail: "Ask the paper anything" },
 ];
 
+/**
+ * Hidden until newsletters start (Meredith, 2026-09-29), so nobody signs up
+ * expecting email that isn't coming. Set to true to show the opt-in box.
+ */
+const SHOW_NEWSLETTER_OPT_IN = false;
+
 function signupDestination() {
     return safeInternalPath(
         new URLSearchParams(window.location.search).get("next"),
@@ -255,17 +261,19 @@ const SignupPage = () => {
                     </div>
 
                     {/* Unticked by default: only an explicit tick opts in. */}
-                    <label className={styles.optIn}>
-                        <input
-                            type="checkbox"
-                            name="productEmailOptIn"
-                            value="true"
-                        />
-                        <span>
-                            Email me the Expansive Mind newsletter and product
-                            updates. Unsubscribe anytime.
-                        </span>
-                    </label>
+                    {SHOW_NEWSLETTER_OPT_IN && (
+                        <label className={styles.optIn}>
+                            <input
+                                type="checkbox"
+                                name="productEmailOptIn"
+                                value="true"
+                            />
+                            <span>
+                                Email me the Expansive Mind newsletter and
+                                product updates. Unsubscribe anytime.
+                            </span>
+                        </label>
+                    )}
 
                     <button
                         type="submit"
