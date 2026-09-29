@@ -29,6 +29,13 @@ describe("homeLead", () => {
         });
     });
 
+    it("names the index that found the paper", () => {
+        expect(homeLead(lead({ pmcid: "PMC1" }))?.indexedBy).toEqual(["OpenAlex"]);
+        expect(
+            homeLead(lead({ pmcid: "PMC1", producer: "europepmc" }))?.indexedBy,
+        ).toEqual(["Europe PMC"]);
+    });
+
     it("drops DOI-only leads instead of guessing a Springer home", () => {
         expect(
             homeLead(

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { QUOTE_GATE_REASONS } from "../lib/quote-eligibility";
 
 const { Schema } = mongoose;
 
@@ -27,6 +28,7 @@ const discoverPaperSchema = new Schema(
         },
         scholarCitesId: { type: String },
         licenseUrl: { type: String },
+        quoteGate: { type: String, enum: QUOTE_GATE_REASONS },
     },
     {
         _id: false,

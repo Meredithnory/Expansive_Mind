@@ -10,6 +10,7 @@ import {
     isScholarSnippetSource,
     logQuoteDecision,
     paperHasFullTextBody,
+    quoteGateReason,
     quoteLicenseFromHome,
     quoteLicenseResult,
     resolvableQuoteLink,
@@ -295,6 +296,12 @@ async function readPaperExcerpts(
                 ...(quoteExcerpt && quote.licenseUrl
                     ? { licenseUrl: quote.licenseUrl }
                     : {}),
+                quoteGate: quoteGateReason({
+                    eligibility: quote,
+                    abstractOnly,
+                    attributed: titlePresent && linkPresent,
+                    quoted: Boolean(quoteExcerpt && quote.licenseUrl),
+                }),
             };
 
             const synthesisPaper: PaperExcerptForSynthesis = {

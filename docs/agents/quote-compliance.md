@@ -31,6 +31,10 @@ A shown quote includes the paper title and a resolvable link: the DOI when the a
 
 Surfaces: `src/app/discover/PaperPreviewDrawer.tsx`, `src/app/discover/ClaimLedgerView.tsx` (also the shared brief at `src/app/brief/[slug]/page.tsx`), and founder quotes in `src/app/discover/FounderReportView.tsx` plus `founderReportMarkdown` in `src/app/lib/founder-report.ts`. CC-BY attribution here is the title and the link on the quote. It is separate from any other citation on the page.
 
+## Provenance panel
+
+The **Provenance** tab (`src/app/discover/ProvenancePanel.tsx`, rows from `paperProvenance` in `src/app/discover/paper-provenance.ts`) shows each paper's home source, the indexes that found it, its PMCID, a link, the report items that cite it, and its quote status. It shows no paper text. Status is **Allowed** only when the card's `licenseUrl` is commercial-friendly and `quoteGate` is `ok` or absent, or when `quoteGate` is `no_passage`. Every other `quoteGate` is **Blocked** with its reason. Runs saved before `quoteGate` existed read **Not quoted · Reason not recorded for this run**.
+
 ## Provenance log
 
 When a paper is read for Discover, and again when a ledger is built, the server writes one `quote_decision` line. Fields: `paperId`, `licenseResult` (`allowed`, `fail-closed`, or `unknown`), `quoteOmitted`, `titlePresent`, `linkPresent`. The quote text is not logged.

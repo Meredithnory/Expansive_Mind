@@ -79,6 +79,7 @@ const OpportunityReportView = dynamic(
 );
 const PaperPreviewDrawer = dynamic(() => import("./PaperPreviewDrawer"));
 const FounderReportView = dynamic(() => import("./FounderReportView"));
+const ProvenancePanel = dynamic(() => import("./ProvenancePanel"));
 
 const handoffHandledQueries = new Set<string>();
 
@@ -105,6 +106,8 @@ type DiscoverPaper = {
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
     scholarCitesId?: string;
+    licenseUrl?: string;
+    quoteGate?: import("../lib/quote-eligibility").QuoteGateReason;
 };
 
 type DiscoverResponse = {
@@ -188,7 +191,7 @@ const EXAMPLE_QUESTIONS = [
     "Do senolytic therapies improve outcomes in age-related pulmonary fibrosis?",
 ];
 
-type ReportView = "state" | "gaps" | "papers" | "ledger" | "opportunity";
+type ReportView = "state" | "gaps" | "papers" | "provenance" | "ledger" | "opportunity";
 
 const READS_FROM = [
     { label: "NIH PMC", color: "#0ab1ff" },
@@ -580,7 +583,7 @@ function DiscoverClient({
         [result, structuredReport],
     );
 
-    // The report reads as tabs: summary, gaps, papers, ledger, opportunity.
+    // The report reads as tabs: summary, gaps, papers, provenance, ledger, opportunity.
     const reportViews = useMemo(() => {
         if (!result) return [] as Array<{ id: ReportView; label: string; short?: string }>;
         const views: Array<{ id: ReportView; label: string; short?: string }> = [
@@ -589,6 +592,7 @@ function DiscoverClient({
         const gapCount = structuredReport?.sections.gaps.length ?? 0;
         if (gapCount > 0) views.push({ id: "gaps", label: `Gaps · ${gapCount}` });
         views.push({ id: "papers", label: `Papers · ${result.papers.length}` });
+        views.push({ id: "provenance", label: "Provenance" });
         if (claimLedger?.rows.length) {
             views.push({ id: "ledger", label: "Claim ledger", short: "Ledger" });
         }
@@ -597,9 +601,9 @@ function DiscoverClient({
         }
         return views;
     }, [claimLedger, result, structuredReport]);
-    const defaultReportView: ReportView = structuredReport?.sections.gaps.length
-        ? "gaps"
-        : "state";
+    // A report opens on the state of the science. A reader "Your report" link
+    // still reopens the tab it came from.
+    const defaultReportView: ReportView = "state";
     const activeView: ReportView =
         reportView &&
         reportView.id === result?.id &&
@@ -2285,6 +2289,24 @@ function DiscoverClient({
                             })}
                         </ul>
                     </section>
+                    </div>
+
+                    <div
+                        id="report-panel-provenance"
+                        role="tabpanel"
+                        aria-labelledby="report-tab-provenance"
+                        hidden={activeView !== "provenance"}
+                        className={styles.reportPanel}
+                    >
+                        {activeView === "provenance" && (
+                            <ProvenancePanel
+                                papers={result.papers}
+                                report={structuredReport}
+                                brief={result.brief}
+                                activePaperIndex={activePaperIndex}
+                                onOpenPaper={openPaperPreview}
+                            />
+                        )}
                     </div>
 
                     {claimLedger?.rows.length ? (

@@ -1,6 +1,7 @@
 // Shared Discover contract. Client HTTP types: src/app/discover/discover-types.ts
 import type { SourceDatabase } from "../../lib/paper-sources";
 import type { PaperImpact } from "../../lib/paper-impact";
+import type { QuoteGateReason } from "../../lib/quote-eligibility";
 
 /** Cited paper card returned by Discover and stored on SavedDiscovery. */
 export interface DiscoverPaperCard extends PaperImpact {
@@ -20,6 +21,8 @@ export interface DiscoverPaperCard extends PaperImpact {
     indexedBy?: string[];
     /** Canonical commercial-friendly license URI when the paper is quote-eligible. */
     licenseUrl?: string;
+    /** Why the passage was quoted or left out. Never authorizes a quote. */
+    quoteGate?: QuoteGateReason;
 }
 
 export type EvidenceType =

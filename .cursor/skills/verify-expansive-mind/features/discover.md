@@ -7,7 +7,7 @@ Discover takes a biomedical question, searches Springer Nature, NIH PubMed Centr
 - `discover-open` reaches `/discover` from nav and from a direct URL.
 - `discover-ask` submits `#discover-question` with **Run discovery**.
 - `discover-progress` shows the live steps while the request runs (often 1–2 minutes).
-- `discover-report` renders the report tabs **State of the science**, **Gaps · N**, **Papers · N**, and **Claim ledger**, or the markdown fallback under **State of the science**.
+- `discover-report` renders the report tabs **State of the science**, **Gaps · N**, **Papers · N**, **Provenance**, and **Claim ledger**, or the markdown fallback under **State of the science**.
 - `discover-claim-ledger` lists every gap, problem, and venture claim as a row with a source excerpt. A complete row click opens the cited paper preview.
 - `discover-empty` shows **No papers found** / **Nothing I can synthesize yet** when the agent returns `noResults`.
 - `discover-quota` shows the guest remaining count or the locked **Continue discovering with Researcher Pro** control.
@@ -33,7 +33,7 @@ Preconditions:
 - **Focus the question.** Find `#discover-question`. The label is **Research question**. Placeholder example mentions GLP-1 and type 2 diabetes.
 - **Enter a question.** Fill `#discover-question` with a real biomedical question. **Run discovery** enables.
 - **Submit.** Click **Run discovery**. An `aria-live` region appears with **Discovery in progress**, the question, and steps **Turning your question into searches**, **Searching NIH PMC, Springer Nature, Europe PMC, Crossref**, **Picking the most relevant open-access papers**, **Reading and extracting findings, methods, limits**, **Writing your cited report**.
-- **Read the report.** Wait until the live region is gone and the eyebrow **Your discovery** appears with the question as the `h1`. Structured reports open on **Gaps · N** (the chosen gap large, **Paper N · open paper chat →**, **Start a project**), with tabs **State of the science**, **Papers · N** (`id="discover-paper-{index}"`, 1-based), and **Claim ledger**. A ledger row or citation chip opens the cited paper preview.
+- **Read the report.** Wait until the live region is gone and the eyebrow **Your discovery** appears with the question as the `h1`. Reports open on **State of the science**, with tabs **Gaps · N** (the chosen gap large, **Paper N · open paper chat →**, **Start a project**), **Papers · N** (`id="discover-paper-{index}"`, 1-based), **Provenance** (`id="provenance-paper-{index}"`: source, PMCID, link, **Cited in**, quote status), and **Claim ledger**. A ledger row or citation chip opens the cited paper preview.
 - **Confirm save state.** The report footnote ends **Saved to your library.** when signed in and **Preview only.** for a guest. The saved run is the lead card on `/savedpapers` (Syntheses tab).
 - **Share affordance.** Signed-in with a 24-char hex `id`: **Share brief** is visible and opens **Share your brief**. Guest: the button is absent. There is no `#discover-share-lock`.
 - **Empty state.** If the body is **No papers found**, that is `discover-empty`, not a crash. Quota refunds on `noResults`.

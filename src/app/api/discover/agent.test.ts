@@ -268,6 +268,7 @@ describe("runDiscoverAgent", () => {
 
         expect(result.papers).toHaveLength(1);
         expect(result.papers[0]?.licenseUrl).toBeUndefined();
+        expect(result.papers[0]?.quoteGate).toBe("abstract_only");
         expect(selectPaperContext).not.toHaveBeenCalled();
         const sent = extractPaperFindings.mock.calls[0]?.[0];
         expect(sent).toMatchObject({

@@ -1,0 +1,287 @@
+@use "../variables" as *;
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    padding-top: 8px;
+}
+
+.heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.kicker {
+    margin: 0 0 5px;
+    color: $main-pink;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: #d7ebff;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.lead {
+    margin: 6px 0 0;
+    max-width: 58ch;
+    color: rgba(215, 235, 255, 0.52);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.summary {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.55);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid rgba(215, 235, 255, 0.09);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.018);
+    scroll-margin-top: 24px;
+}
+
+.rowActive {
+    border-color: rgba(255, 0, 132, 0.55);
+    background: rgba(255, 0, 132, 0.06);
+}
+
+.rowHead {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+}
+
+.number {
+    flex: 0 0 auto;
+    color: rgba(215, 235, 255, 0.3);
+    font-size: 0.7rem;
+    font-weight: 600;
+    // One title line tall, so the number sits beside the first line.
+    line-height: calc(0.98rem * 1.4);
+    font-variant-numeric: tabular-nums;
+}
+
+.paperTitle {
+    margin: 0;
+    min-width: 0;
+    color: #fff;
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.4;
+
+    button {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            color: #ff8ec4;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #0ab1ff;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    }
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin: 0;
+    padding: 12px 0;
+    border-block: 1px solid rgba(215, 235, 255, 0.07);
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    dt {
+        color: rgba(215, 235, 255, 0.42);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    dd {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+        margin: 0;
+        min-width: 0;
+        color: rgba(215, 235, 255, 0.86);
+        font-size: 0.84rem;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+}
+
+.sub {
+    color: rgba(215, 235, 255, 0.52);
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.muted {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.42);
+    font-size: 0.82rem;
+}
+
+.link {
+    max-width: 100%;
+    overflow: hidden;
+    color: rgba(215, 235, 255, 0.86);
+    text-decoration: underline;
+    text-decoration-color: rgba(215, 235, 255, 0.25);
+    text-underline-offset: 3px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+        color: #fff;
+        text-decoration-color: currentColor;
+    }
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.statusAllowed {
+    color: #8be8b8;
+    border-color: rgba(99, 211, 153, 0.35);
+    background: rgba(99, 211, 153, 0.1);
+}
+
+.statusBlocked {
+    color: #ffc37a;
+    border-color: rgba(255, 176, 80, 0.38);
+    background: rgba(255, 176, 80, 0.1);
+}
+
+.statusUnrecorded {
+    color: rgba(215, 235, 255, 0.62);
+    border-color: rgba(215, 235, 255, 0.16);
+    background: rgba(215, 235, 255, 0.06);
+}
+
+.claims {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        display: flex;
+        gap: 10px;
+        color: rgba(215, 235, 255, 0.78);
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+}
+
+.claimsLabel {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.42);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.where {
+    // Fits the longest label, "What we could not verify".
+    flex: 0 0 14em;
+    white-space: nowrap;
+    color: #ff8ec4;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .summary {
+        white-space: normal;
+    }
+
+    .facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .row {
+        padding: 14px 12px;
+    }
+
+    .claims li {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .where {
+        flex-basis: auto;
+        white-space: normal;
+    }
+}

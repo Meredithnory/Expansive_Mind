@@ -102,6 +102,39 @@ export function quoteLicenseResult(
     return "fail-closed";
 }
 
+/**
+ * Why Discover quoted a paper or left its passage out. Display only: showing
+ * a quote still goes through `licenseUrl` and `visiblePaperQuote`.
+ */
+export type QuoteGateReason =
+    | QuoteBlockReason
+    | "missing_attribution"
+    | "no_passage";
+
+export const QUOTE_GATE_REASONS = [
+    "ok",
+    "scholar_snippet",
+    "abstract_only",
+    "null_license",
+    "license_not_commercial_friendly",
+    "license_conflict",
+    "missing_attribution",
+    "no_passage",
+] as const satisfies readonly QuoteGateReason[];
+
+/** The license gate first, then the body, attribution, and passage checks after it. */
+export function quoteGateReason(input: {
+    eligibility: QuoteEligibility;
+    abstractOnly: boolean;
+    attributed: boolean;
+    quoted: boolean;
+}): QuoteGateReason {
+    if (!input.eligibility.allowed) return input.eligibility.reason;
+    if (input.abstractOnly) return "abstract_only";
+    if (!input.attributed) return "missing_attribution";
+    return input.quoted ? "ok" : "no_passage";
+}
+
 export function logQuoteDecision(input: {
     paperId: string;
     licenseResult: QuoteLicenseResult;
