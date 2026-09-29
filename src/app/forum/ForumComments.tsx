@@ -111,31 +111,33 @@ export default function ForumComments({
 
             {signedIn ? (
                 <form className={styles.replyForm} onSubmit={submit}>
-                    {post.highlights.length > 0 && (
-                        <select
-                            aria-label="Comment on"
-                            value={replyTo ?? ""}
-                            onChange={(event) => setReplyTo(event.target.value || null)}
-                        >
-                            <option value="">On the post</option>
-                            {post.highlights.map((highlight, index) => (
-                                <option key={highlight.id} value={highlight.id}>
-                                    On highlight {index + 1}
-                                </option>
-                            ))}
-                        </select>
-                    )}
                     <textarea
                         value={draft}
-                        rows={3}
+                        rows={2}
                         maxLength={2000}
                         placeholder="Add to the discussion…"
                         aria-label="Comment"
                         onChange={(event) => setDraft(event.target.value)}
                     />
-                    <button type="submit" disabled={!draft.trim()}>
-                        Post comment
-                    </button>
+                    <div className={styles.replyActions}>
+                        {post.highlights.length > 0 && (
+                            <select
+                                aria-label="Comment on"
+                                value={replyTo ?? ""}
+                                onChange={(event) => setReplyTo(event.target.value || null)}
+                            >
+                                <option value="">The whole post</option>
+                                {post.highlights.map((highlight, index) => (
+                                    <option key={highlight.id} value={highlight.id}>
+                                        On highlight {index + 1}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        <button type="submit" disabled={!draft.trim()}>
+                            Post comment
+                        </button>
+                    </div>
                     {notice && <p className={styles.notice} role="alert">{notice}</p>}
                 </form>
             ) : (
