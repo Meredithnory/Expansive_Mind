@@ -268,7 +268,7 @@ describe("opening a claim in the paper", () => {
         const href = claimReaderHref(
             paper(),
             { context: "Clearing senescent cells improved gait in aged mice.", evidence: extractions[0].evidence[1] },
-            { report: "0123456789abcdef01234567", view: "provenance" },
+            { report: "0123456789abcdef01234567", view: "papers" },
         );
         const url = new URL(href, "https://expansivemind.ai");
         expect(url.pathname).toBe("/paperchatbot/nih/1234567");
@@ -278,7 +278,7 @@ describe("opening a claim in the paper", () => {
         expect(url.searchParams.get("claim")).toBe("Clearing senescent cells improved gait in aged mice.");
         expect(url.searchParams.get("from")).toBe("report");
         expect(url.searchParams.get("paper")).toBe("1");
-        expect(url.searchParams.get("view")).toBe("provenance");
+        expect(url.searchParams.get("view")).toBe("papers");
     });
 
     it("sends no paper text for a sentence it may not quote, and still opens without one", () => {
