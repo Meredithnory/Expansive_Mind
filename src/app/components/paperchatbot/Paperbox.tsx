@@ -15,6 +15,14 @@ import { formatQuoteWithCitation } from "../../lib/quote-citation";
 import PaperContents from "./PaperContents";
 import PaperSignificance from "./PaperSignificance";
 import PaperAuthors from "./PaperAuthors";
+import {
+    HIGHLIGHT_SHEET_ATTR,
+    HighlightActionBar,
+    HighlightActionSheet,
+    HighlightHint,
+    keepAboveSheet,
+    type HighlightActionHandlers,
+} from "./HighlightActions";
 import { scrollRangeIntoView } from "../../lib/scroll-to-range";
 import type { PaperCitation } from "../../lib/paper-citation";
 import {
@@ -37,7 +45,6 @@ import {
     deletePaperHighlight,
     fetchPaperHighlights,
     type HighlightColor,
-    HIGHLIGHT_COLORS,
     parseHighlightColor,
     type PaperHighlightRecord,
     savePaperHighlight,
@@ -58,12 +65,6 @@ const INK_COLOR_CLASS: Record<HighlightColor, string> = {
     pink: styles.inkColor_pink,
     blue: styles.inkColor_blue,
     yellow: styles.inkColor_yellow,
-};
-
-const INK_SWATCH_CLASS: Record<HighlightColor, string> = {
-    pink: styles.inkSwatch_pink,
-    blue: styles.inkSwatch_blue,
-    yellow: styles.inkSwatch_yellow,
 };
 
 /** "2026-09-07" → "Sep 7, 2026"; anything else is shown as given. */
@@ -444,6 +445,25 @@ const Paperbox = ({
         };
     }, []);
 
+    // Phones: keep the highlight in view above its action sheet.
+    const sheetMarkId =
+        coarsePointer && inkMarks.some((mark) => mark.id === openMarkId)
+            ? openMarkId
+            : null;
+    useEffect(() => {
+        if (!sheetMarkId) return;
+        const frame = window.requestAnimationFrame(() => {
+            const lines = paperRef.current?.querySelectorAll<HTMLElement>(
+                `[data-ink-mark="${CSS.escape(sheetMarkId)}"] > span`,
+            );
+            const sheet = document.querySelector<HTMLElement>(
+                `[${HIGHLIGHT_SHEET_ATTR}]`,
+            );
+            if (lines && sheet) keepAboveSheet([...lines], sheet.offsetHeight);
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [sheetMarkId]);
+
     useEffect(() => {
         if (!paper || !paperRef.current) return;
         if (!focusExcerpt && !locateMethod && !focusCitation) {
@@ -724,6 +744,20 @@ const Paperbox = ({
         }
     };
 
+    const markActions = (mark: InkMark): HighlightActionHandlers => ({
+        color: parseHighlightColor(mark.color),
+        copied: copiedMarkId === mark.id,
+        onColor: (color) => setMarkColor(mark, color),
+        onCopy: () => copyMarkWithCitation(mark),
+        onAddToChat: () => {
+            sendMarkToChat(mark);
+            setOpenMarkId(null);
+        },
+        onRemove: () => removeMark(mark),
+    });
+    const openMark = inkMarks.find((mark) => mark.id === openMarkId) || null;
+    const sheetMark = coarsePointer ? openMark : null;
+
     const showsBody = Boolean(
         paper.access.canDisplayFullText || paper.bodyLoadedInBrowser,
     );
@@ -856,12 +890,13 @@ const Paperbox = ({
                               ))
                             : null}
                         {inkMarks.map((mark) => {
+                            const first = mark.rects[0];
                             const end = mark.rects[mark.rects.length - 1];
                             const color = parseHighlightColor(mark.color);
                             return (
                                 <div
                                     key={mark.id}
-                                    data-ink-mark=""
+                                    data-ink-mark={mark.id}
                                     data-ink-color={color}
                                     className={clsx(
                                         styles.inkMark,
@@ -919,108 +954,21 @@ const Paperbox = ({
                                                     )
                                                 }
                                             />
-                                            <div
-                                                className={styles.inkActions}
-                                                role="toolbar"
-                                                aria-label="Highlight actions"
-                                            >
-                                                <div
-                                                    className={styles.inkColors}
-                                                    role="group"
-                                                    aria-label="Highlight color"
-                                                >
-                                                    {HIGHLIGHT_COLORS.map(
-                                                        (swatch) => (
-                                                            <button
-                                                                key={swatch}
-                                                                type="button"
-                                                                className={clsx(
-                                                                    styles.inkColorSwatch,
-                                                                    INK_SWATCH_CLASS[
-                                                                        swatch
-                                                                    ],
-                                                                    {
-                                                                        [styles.inkColorSwatchActive]:
-                                                                            color ===
-                                                                            swatch,
-                                                                    },
-                                                                )}
-                                                                aria-label={
-                                                                    HIGHLIGHT_COLOR_LABELS[
-                                                                        swatch
-                                                                    ]
-                                                                }
-                                                                aria-pressed={
-                                                                    color ===
-                                                                    swatch
-                                                                }
-                                                                onClick={() =>
-                                                                    setMarkColor(
-                                                                        mark,
-                                                                        swatch,
-                                                                    )
-                                                                }
-                                                            />
-                                                        ),
-                                                    )}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className={styles.inkSend}
-                                                    onClick={() =>
-                                                        copyMarkWithCitation(mark)
-                                                    }
-                                                    aria-label={
-                                                        copiedMarkId === mark.id
-                                                            ? "Copied with citation"
-                                                            : "Copy with citation"
-                                                    }
-                                                    title={
-                                                        copiedMarkId === mark.id
-                                                            ? "Copied"
-                                                            : "Copy with citation"
-                                                    }
-                                                >
-                                                    {copiedMarkId === mark.id ? (
-                                                        "✓"
-                                                    ) : (
-                                                        <svg
-                                                            width="14"
-                                                            height="14"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
-                                                            <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="2" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.inkSend}
-                                                    onClick={() =>
-                                                        sendMarkToChat(mark)
-                                                    }
-                                                    aria-label="Add highlight to chat"
-                                                    title="Add to chat"
-                                                >
-                                                    ¶
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.inkDismiss}
-                                                    onClick={() =>
-                                                        removeMark(mark)
-                                                    }
-                                                    aria-label="Remove highlight"
-                                                    title="Remove highlight"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
                                         </div>
                                     )}
+                                    {openMarkId === mark.id &&
+                                        !coarsePointer &&
+                                        first &&
+                                        end && (
+                                            <HighlightActionBar
+                                                anchor={{
+                                                    left: first.left,
+                                                    top: first.top,
+                                                    bottom: end.top + end.height,
+                                                }}
+                                                {...markActions(mark)}
+                                            />
+                                        )}
                                 </div>
                             );
                         })}
@@ -1088,6 +1036,12 @@ const Paperbox = ({
                 />
             </h1>
             <PaperAuthors key={paper.paperId} authors={paper.authors} />
+            {activeTool === "highlight" && !coarsePointer && (
+                <HighlightHint
+                    count={inkMarks.length}
+                    saved={Boolean(persistHighlights)}
+                />
+            )}
             {paper.citationCount ? (
                 <PaperImpactBadge
                     citationCount={paper.citationCount}
@@ -1168,7 +1122,24 @@ const Paperbox = ({
             </div>
             </div>
             </div>
-            {activeTool === "highlight" && coarsePointer && (
+            {sheetMark && (
+                <HighlightActionSheet
+                    {...markActions(sheetMark)}
+                    sectionTitle={sheetMark.citation.sectionTitle}
+                    saved={Boolean(persistHighlights)}
+                    highlightCount={inkMarks.length}
+                    onShowHighlights={
+                        onShowHighlights
+                            ? () => {
+                                  setOpenMarkId(null);
+                                  onShowHighlights();
+                              }
+                            : undefined
+                    }
+                    onClose={() => setOpenMarkId(null)}
+                />
+            )}
+            {activeTool === "highlight" && coarsePointer && !sheetMark && (
                 <div className={styles.touchHighlightBar} role="status">
                     {touchSelection ? (
                         <button
