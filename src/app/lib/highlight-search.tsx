@@ -68,20 +68,17 @@ const hasWholeWord = (text: string, term: string): boolean =>
     new RegExp(`\\b${escapeRegExp(term)}\\b`, "i").test(text);
 
 /**
- * Terms to highlight in a card abstract: meaningful query tokens that are
- * absent from the title (substring, matching title highlight) but present as
- * whole words in the abstract. Skips stopwords and tokens under 3 characters.
+ * Terms to highlight in a piece of card text: meaningful query tokens present
+ * as whole words in the text. Skips stopwords and tokens under 3 characters.
  */
-export const getAbstractHighlightTerms = (
+export const getTextHighlightTerms = (
     searchValue: string,
-    title: string | null | undefined,
-    abstract: string | null | undefined,
+    text: string | null | undefined,
 ): string[] => {
-    if (!searchValue.trim() || !abstract?.trim()) {
+    if (!searchValue.trim() || !text?.trim()) {
         return [];
     }
 
-    const lowerTitle = (title || "").toLowerCase();
     const tokens =
         searchValue
             .trim()
@@ -95,14 +92,28 @@ export const getAbstractHighlightTerms = (
         if (token.length < 3) continue;
         if (ABSTRACT_HIGHLIGHT_STOP_WORDS.has(token)) continue;
         if (seen.has(token)) continue;
-        if (lowerTitle.includes(token)) continue;
-        if (!hasWholeWord(abstract, token)) continue;
+        if (!hasWholeWord(text, token)) continue;
 
         seen.add(token);
         terms.push(token);
     }
 
     return terms;
+};
+
+/**
+ * Terms to highlight in a card abstract: text highlight terms that are absent
+ * from the title (substring, matching title highlight).
+ */
+export const getAbstractHighlightTerms = (
+    searchValue: string,
+    title: string | null | undefined,
+    abstract: string | null | undefined,
+): string[] => {
+    const lowerTitle = (title || "").toLowerCase();
+    return getTextHighlightTerms(searchValue, abstract).filter(
+        (term) => !lowerTitle.includes(term),
+    );
 };
 
 interface HighlightSearchTitleProps {
@@ -163,15 +174,46 @@ export const HighlightSearchAbstract = ({
     searchValue,
     title,
     highlightClass,
-}: HighlightSearchAbstractProps) => {
-    const terms = getAbstractHighlightTerms(searchValue, title, abstract);
+}: HighlightSearchAbstractProps) => (
+    <HighlightedTerms
+        text={abstract}
+        terms={getAbstractHighlightTerms(searchValue, title, abstract)}
+        highlightClass={highlightClass}
+    />
+);
 
+interface HighlightSearchTextProps {
+    text: string;
+    searchValue: string;
+    highlightClass: string;
+}
+
+/** Marks whole-word query terms in any card text (e.g. a result title). */
+export const HighlightSearchText = ({
+    text,
+    searchValue,
+    highlightClass,
+}: HighlightSearchTextProps) => (
+    <HighlightedTerms
+        text={text}
+        terms={getTextHighlightTerms(searchValue, text)}
+        highlightClass={highlightClass}
+    />
+);
+
+interface HighlightedTermsProps {
+    text: string;
+    terms: string[];
+    highlightClass: string;
+}
+
+const HighlightedTerms = ({ text, terms, highlightClass }: HighlightedTermsProps) => {
     if (!terms.length) {
-        return <>{abstract}</>;
+        return <>{text}</>;
     }
 
     const pattern = terms.map((term) => `\\b${escapeRegExp(term)}\\b`).join("|");
-    const parts = abstract.split(new RegExp(`(${pattern})`, "gi"));
+    const parts = text.split(new RegExp(`(${pattern})`, "gi"));
 
     return (
         <>

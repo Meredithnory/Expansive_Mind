@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAbstractHighlightTerms } from "./highlight-search";
+import { getAbstractHighlightTerms, getTextHighlightTerms } from "./highlight-search";
 
 describe("getAbstractHighlightTerms", () => {
     it("returns terms present in the abstract but missing from the title", () => {
@@ -60,5 +60,22 @@ describe("getAbstractHighlightTerms", () => {
                 "Patients with vitiligo were enrolled.",
             ),
         ).toEqual(["vitiligo"]);
+    });
+});
+
+describe("getTextHighlightTerms", () => {
+    it("returns meaningful query terms found as whole words in a title", () => {
+        expect(
+            getTextHighlightTerms(
+                "the role of CRISPR in melanoma",
+                "CRISPR-Cas9 screens in Melanoma cell lines",
+            ),
+        ).toEqual(["crispr", "melanoma"]);
+    });
+
+    it("does not mark partial words or stopwords", () => {
+        expect(
+            getTextHighlightTerms("gene of the", "Genetic factors of the skin"),
+        ).toEqual([]);
     });
 });
