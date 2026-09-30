@@ -30,6 +30,8 @@ import type {
 } from "../api/discover/report-types";
 import { questionChecks } from "../lib/discover-question-checks";
 import ClaimLedgerView from "./ClaimLedgerView";
+import RouteLoading from "../components/RouteLoading";
+import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
 import {
     buildClaimLedger,
     toLedgerExtractions,
@@ -1468,6 +1470,21 @@ function DiscoverClient({
                     </div>
             </form>
         ) : null;
+
+    // Opening a saved report (from the Library): show a loading screen until
+    // it is ready, not the empty Discover landing.
+    if (
+        isOpeningSavedSynthesis({
+            savedParam,
+            hasResult: Boolean(result),
+            hasError: Boolean(error),
+            sessionLoading,
+            historyLoading,
+            isLoggedIn,
+        })
+    ) {
+        return <RouteLoading label="Opening your report…" />;
+    }
 
     return (
         <div
