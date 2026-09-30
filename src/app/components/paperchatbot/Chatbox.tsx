@@ -1117,18 +1117,6 @@ const Chatbox = ({
                                     “{highlight.excerpt}”
                                 </p>
                                 <div className={styles.highlightActions}>
-                                    {chatMode === "full" && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                attachCitation(
-                                                    highlight.citation,
-                                                )
-                                            }
-                                        >
-                                            Add to chat
-                                        </button>
-                                    )}
                                     {locateCitation && (
                                         <button
                                             type="button"
@@ -1139,6 +1127,19 @@ const Chatbox = ({
                                             }
                                         >
                                             Show in paper
+                                        </button>
+                                    )}
+                                    {chatMode === "full" && (
+                                        <button
+                                            type="button"
+                                            className={styles.highlightChat}
+                                            onClick={() =>
+                                                attachCitation(
+                                                    highlight.citation,
+                                                )
+                                            }
+                                        >
+                                            Add to chat
                                         </button>
                                     )}
                                 </div>

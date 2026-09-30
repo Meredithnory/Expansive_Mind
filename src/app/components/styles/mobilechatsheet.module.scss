@@ -73,6 +73,14 @@
         visibility: hidden;
     }
 
+    /* Touch screens: while Highlight is on, the reader's select prompt takes
+       this bar's place (Paperbox .touchHighlightBar). */
+    @media (pointer: coarse) {
+        .panel.toolActive:not(.expanded) {
+            visibility: hidden;
+        }
+    }
+
     .handle {
         display: flex;
         align-items: center;

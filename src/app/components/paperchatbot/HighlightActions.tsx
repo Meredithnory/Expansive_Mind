@@ -75,15 +75,21 @@ export function HighlightActionBar({
 }) {
     const barRef = useRef<HTMLDivElement>(null);
     const [flipped, setFlipped] = useState(false);
+    // A narrow paper column: Copy and Remove become icon buttons.
+    const [compact, setCompact] = useState(false);
     const above = !flipped && anchor.top >= BAR_CLEARANCE;
 
     useLayoutEffect(() => {
         const bar = barRef.current;
         const layer = bar?.closest<HTMLElement>("[data-ink-layer]");
         if (!bar || !layer) return;
+        const width = layer.clientWidth;
+        if (!compact && bar.offsetWidth > width) {
+            setCompact(true);
+            return;
+        }
         // Keep the bar inside the paper column when a highlight starts near
         // its right edge.
-        const width = layer.clientWidth;
         bar.style.maxWidth = `${width}px`;
         const room = width - bar.offsetWidth;
         bar.style.left = `${Math.max(0, Math.min(anchor.left, room))}px`;
@@ -96,7 +102,7 @@ export function HighlightActionBar({
             rect.top + 4,
         );
         if (!probe || !bar.contains(probe)) setFlipped(true);
-    }, [anchor.left, anchor.top, anchor.bottom, above]);
+    }, [anchor.left, anchor.top, anchor.bottom, above, compact]);
 
     return (
         <div
@@ -127,9 +133,15 @@ export function HighlightActionBar({
                 ))}
             </div>
             <span className={styles.barDivider} aria-hidden="true" />
-            <button type="button" className={styles.barButton} onClick={onCopy}>
+            <button
+                type="button"
+                className={clsx(styles.barButton, compact && styles.barIconButton)}
+                onClick={onCopy}
+                aria-label={compact ? (copied ? "Copied with citation" : "Copy with citation") : undefined}
+                title={compact ? "Copy with citation" : undefined}
+            >
                 <CopyIcon size={14} />
-                {copied ? "Copied" : "Copy with citation"}
+                {compact ? null : copied ? "Copied" : "Copy with citation"}
             </button>
             <button
                 type="button"
@@ -141,11 +153,17 @@ export function HighlightActionBar({
             </button>
             <button
                 type="button"
-                className={clsx(styles.barButton, styles.barButtonRemove)}
+                className={clsx(
+                    styles.barButton,
+                    styles.barButtonRemove,
+                    compact && styles.barIconButton,
+                )}
                 onClick={onRemove}
+                aria-label={compact ? "Remove highlight" : undefined}
+                title={compact ? "Remove highlight" : undefined}
             >
                 <TrashIcon size={14} />
-                Remove
+                {compact ? null : "Remove"}
             </button>
         </div>
     );

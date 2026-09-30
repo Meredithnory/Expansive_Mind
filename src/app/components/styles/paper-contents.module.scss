@@ -148,8 +148,20 @@
     position: sticky;
     z-index: 6;
     margin: 0 0 4px;
-    padding: 10px 0 0;
-    background: linear-gradient(#000 78%, rgba(0, 0, 0, 0));
+    padding: 10px 0 8px;
+    // Solid through the progress line; the fade sits below the bar.
+    background: #000;
+
+    &::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        height: 14px;
+        background: linear-gradient(#000, rgba(0, 0, 0, 0));
+        pointer-events: none;
+    }
 
     // Phones and tablets: the reader toolbar sticks too, so dock right under
     // it (PaperChatClient measures where it ends). Desktop scrolls the paper
@@ -158,7 +170,7 @@
 
     @media (max-width: 720px) {
         margin: 0 -4px 4px;
-        padding: 8px 4px 0;
+        padding: 8px 4px;
     }
 }
 

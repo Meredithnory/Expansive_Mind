@@ -63,6 +63,13 @@ const ResponsiveChatPanel = ({
         if (activeTool) setExpanded(false);
     }, [activeTool]);
 
+    // "Your highlights" (Contents menu, highlight sheet) opens the sheet on
+    // its Highlights tab; on a phone a tab switch alone stays out of sight.
+    const showHighlightsRequest = chatboxProps.showHighlightsRequest ?? 0;
+    useEffect(() => {
+        if (showHighlightsRequest > 0) setExpanded(true);
+    }, [showHighlightsRequest]);
+
     useEffect(() => {
         if (expanded) setShowingCite(false);
     }, [expanded]);
@@ -142,7 +149,9 @@ const ResponsiveChatPanel = ({
     return (
         <section
             ref={panelRef}
-            className={`${styles.panel} ${expanded ? styles.expanded : ""}`}
+            className={`${styles.panel} ${expanded ? styles.expanded : ""} ${
+                activeTool ? styles.toolActive : ""
+            }`}
             style={{ "--sheet-drag-offset": "0px" } as React.CSSProperties}
             aria-label="Paper chat"
         >
