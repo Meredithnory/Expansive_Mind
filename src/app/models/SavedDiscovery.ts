@@ -231,6 +231,20 @@ const savedDiscoverySchema = new Schema(
             correctedQuery: { type: String },
             subQueriesUsed: { type: [String] },
             extractionFailureCount: { type: Number, min: 0 },
+            extractionFailures: {
+                type: [
+                    new Schema(
+                        {
+                            index: Number,
+                            source: String,
+                            reason: String,
+                            cutOff: Boolean,
+                        },
+                        { _id: false },
+                    ),
+                ],
+                default: undefined,
+            },
             additionalIndexes: { type: [new Schema({
                 name: String,
                 status: { type: String, enum: ["ok", "partial", "unavailable"] },

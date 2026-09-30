@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAdmin } from "../../../lib/admin";
 import connectDB from "../../../db/connectDB";
 import {
+    describeFailedRun,
     funnelSteps,
     parsePulseRange,
     questionTopics,
@@ -39,6 +40,12 @@ type Run = {
     extractions?: unknown;
     meta?: {
         extractionFailureCount?: number;
+        extractionFailures?: Array<{
+            index?: number;
+            source?: string;
+            reason?: string;
+            cutOff?: boolean;
+        }>;
         additionalIndexes?: Array<{ status?: string }>;
     };
 };
@@ -169,6 +176,9 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const sourceDown: string[] = [];
     let noGapCount = 0;
     let failedCount = 0;
+    // A repeat of a question within a day returns the cached run, failure
+    // and all, so count each question once.
+    const failedQuestions = new Set<string>();
     let downCount = 0;
     for (const run of runs) {
         const report = parseOpportunityReport(run.report);
@@ -189,9 +199,11 @@ export const GET = withAdmin(async (request: NextRequest) => {
                 if (noGaps.length < EXAMPLES) noGaps.push(run.question);
             }
         }
-        if ((run.meta?.extractionFailureCount ?? 0) > 0) {
+        const failedKey = run.question.toLowerCase().replace(/\s+/g, " ").trim();
+        if ((run.meta?.extractionFailureCount ?? 0) > 0 && !failedQuestions.has(failedKey)) {
+            failedQuestions.add(failedKey);
             failedCount += 1;
-            if (failedPapers.length < EXAMPLES) failedPapers.push(run.question);
+            if (failedPapers.length < EXAMPLES) failedPapers.push(describeFailedRun(run));
         }
         if (run.meta?.additionalIndexes?.some((index) => index.status === "unavailable")) {
             downCount += 1;
@@ -250,7 +262,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
                 {
                     id: "failed",
                     label: "Runs with a paper that failed to read",
-                    detail: "Extraction failures",
+                    detail: "Extraction failures · a repeated question counts once",
                     value: `${failedCount} ${failedCount === 1 ? "run" : "runs"}`,
                     examples: failedPapers,
                 },

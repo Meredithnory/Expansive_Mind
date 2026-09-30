@@ -187,4 +187,71 @@ describe("extractPaperFindings", () => {
         expect(result.usedFallback).toBe(true);
         expect(result.extraction.title).toBe(paper.title);
     });
+    describe("says why a paper fell back", () => {
+        const reply = (content: string | null, finish_reason = "stop") => ({
+            choices: [{ message: { content }, finish_reason }],
+        });
+        beforeEach(() => {
+            vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        });
+
+        it("a provider error", async () => {
+            createPrivateChatCompletion.mockRejectedValue(
+                Object.assign(new Error("Bad gateway"), { status: 502 }),
+            );
+            expect((await extractPaperFindings(paper)).failure).toEqual({
+                reason: "provider_error",
+                cutOff: false,
+            });
+        });
+
+        it("a timeout", async () => {
+            const error = new Error("Request timed out.");
+            error.name = "APIConnectionTimeoutError";
+            createPrivateChatCompletion.mockRejectedValue(error);
+            expect((await extractPaperFindings(paper)).failure?.reason).toBe(
+                "timeout",
+            );
+        });
+
+        it("an empty reply", async () => {
+            createPrivateChatCompletion.mockResolvedValue(reply(null));
+            expect((await extractPaperFindings(paper)).failure?.reason).toBe(
+                "empty_reply",
+            );
+        });
+
+        it("a reply that isn't JSON, and whether it was cut off", async () => {
+            createPrivateChatCompletion.mockResolvedValue(
+                reply("I cannot help with that.", "length"),
+            );
+            expect((await extractPaperFindings(paper)).failure).toEqual({
+                reason: "unreadable_reply",
+                cutOff: true,
+            });
+        });
+
+        it("JSON with no findings or methods", async () => {
+            createPrivateChatCompletion.mockResolvedValue(
+                reply(JSON.stringify({ keyFindings: [], limitations: [] })),
+            );
+            expect((await extractPaperFindings(paper)).failure?.reason).toBe(
+                "no_findings",
+            );
+        });
+
+        it("nothing, when the extraction works", async () => {
+            createPrivateChatCompletion.mockResolvedValue(
+                reply(
+                    JSON.stringify({
+                        keyFindings: [{ finding: "Events fell 12%", quote: "" }],
+                        methods: "Trial",
+                    }),
+                ),
+            );
+            const result = await extractPaperFindings(paper);
+            expect(result.usedFallback).toBe(false);
+            expect(result.failure).toBeUndefined();
+        });
+    });
 });

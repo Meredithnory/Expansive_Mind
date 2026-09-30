@@ -224,6 +224,36 @@ describe("runDiscoverAgent", () => {
         expect(suggestSearchQueryNihOnly).not.toHaveBeenCalled();
     });
 
+    it("records which paper failed to read and why", async () => {
+        judgeResearchQuestion.mockResolvedValue("research");
+        mockPaperHit();
+        extractPaperFindings.mockResolvedValue({
+            extraction: {
+                index: 1,
+                title: "GLP-1 and cardiovascular outcomes",
+                sourceLabel: "Springer Nature",
+                authors: ["A. Author"],
+                publicationDate: "2024",
+                keyFindings: ["Events fell."],
+                methods: "",
+                limitations: [],
+                openQuestions: [],
+                evidenceType: "other",
+            },
+            usedFallback: true,
+            failure: { reason: "unreadable_reply", cutOff: true },
+        });
+
+        const result = await runDiscoverAgent(
+            "How does pulmonary arterial hypertension remodel the right ventricle?",
+        );
+
+        expect(result.meta.extractionFailureCount).toBe(1);
+        expect(result.meta.extractionFailures).toEqual([
+            { index: 1, source: "Springer Nature", reason: "unreadable_reply", cutOff: true },
+        ]);
+    });
+
     it("uses only the abstract for a paper whose license blocks its body", async () => {
         judgeResearchQuestion.mockResolvedValue("research");
         mockPaperHit();

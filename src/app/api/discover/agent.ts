@@ -39,6 +39,8 @@ import { synthesizeOpportunityReport } from "./synthesize";
 import {
     extractPaperFindings,
     fallbackPaperExtraction,
+    type ExtractionFailure,
+    type ExtractionFailureReason,
 } from "./analyze";
 import { expandDiscoveryQueries } from "./expand-queries";
 import type {
@@ -83,8 +85,17 @@ export interface DiscoverAgentResult {
         correctedQuery?: string;
         subQueriesUsed: string[];
         extractionFailureCount: number;
+        /** Why each failed paper fell back (see analyze.ts). */
+        extractionFailures?: ExtractionFailureRecord[];
     };
 }
+
+export type ExtractionFailureRecord = {
+    index: number;
+    source: string;
+    reason: ExtractionFailureReason;
+    cutOff?: boolean;
+};
 
 export class DiscoverAgentError extends Error {
     status: number;
@@ -360,15 +371,30 @@ function collectExtractions(
     settled: PromiseSettledResult<{
         extraction: PaperExtraction;
         usedFallback: boolean;
+        failure?: ExtractionFailure;
     }>[],
-): { extractions: PaperExtraction[]; extractionFailureCount: number } {
+): {
+    extractions: PaperExtraction[];
+    extractionFailureCount: number;
+    extractionFailures: ExtractionFailureRecord[];
+} {
     const extractions: PaperExtraction[] = [];
+    const extractionFailures: ExtractionFailureRecord[] = [];
     let extractionFailureCount = 0;
 
     excerpts.forEach((paper, index) => {
         const result = settled[index];
         if (result?.status === "fulfilled") {
-            if (result.value.usedFallback) extractionFailureCount += 1;
+            if (result.value.usedFallback) {
+                extractionFailureCount += 1;
+                const failure = result.value.failure;
+                extractionFailures.push({
+                    index: paper.index,
+                    source: paper.sourceLabel,
+                    reason: failure?.reason ?? "provider_error",
+                    ...(failure?.cutOff ? { cutOff: true } : {}),
+                });
+            }
             extractions.push({
                 ...result.value.extraction,
                 index: paper.index,
@@ -376,10 +402,15 @@ function collectExtractions(
             return;
         }
         extractionFailureCount += 1;
+        extractionFailures.push({
+            index: paper.index,
+            source: paper.sourceLabel,
+            reason: "provider_error",
+        });
         extractions.push(fallbackPaperExtraction(paper));
     });
 
-    return { extractions, extractionFailureCount };
+    return { extractions, extractionFailureCount, extractionFailures };
 }
 
 function emptyDiscoveryResult(question: string): DiscoverAgentResult {
@@ -483,7 +514,7 @@ export async function runDiscoverAgent(
     const extractionSettled = await Promise.allSettled(
         excerpts.map((paper) => extractPaperFindings(paper, usageContext)),
     );
-    const { extractions, extractionFailureCount } = collectExtractions(
+    const { extractions, extractionFailureCount, extractionFailures } = collectExtractions(
         excerpts,
         extractionSettled,
     );
@@ -534,6 +565,7 @@ export async function runDiscoverAgent(
             correctedQuery,
             subQueriesUsed,
             extractionFailureCount,
+            ...(extractionFailures.length ? { extractionFailures } : {}),
         },
     };
 }
