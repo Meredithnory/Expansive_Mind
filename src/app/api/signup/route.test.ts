@@ -189,6 +189,19 @@ describe("POST /api/signup", () => {
         expect(mocks.save).toHaveBeenCalled();
     });
 
+    it("opts in to product email only when the box was ticked, with a consent record", async () => {
+        await POST(signupRequest(validFields));
+        const unticked = mocks.save.mock.calls[0]?.[0] as Record<string, unknown>;
+        expect(unticked.productEmailOptIn).toBeUndefined();
+        expect(unticked.productEmailOptInAt).toBeUndefined();
+
+        await POST(signupRequest({ ...validFields, productEmailOptIn: "true" }));
+        const ticked = mocks.save.mock.calls[1]?.[0] as Record<string, unknown>;
+        expect(ticked.productEmailOptIn).toBe(true);
+        expect(ticked.productEmailOptInSource).toBe("signup");
+        expect(ticked.productEmailOptInAt).toBeInstanceOf(Date);
+    });
+
     it("returns 500 when the account cannot be saved", async () => {
         mocks.save.mockRejectedValueOnce(new Error("db down"));
 

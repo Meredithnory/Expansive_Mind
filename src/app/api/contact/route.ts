@@ -9,6 +9,8 @@ import {
     contactNotificationEmail,
 } from "../../lib/contact-mail";
 import { sendEmail } from "../../lib/send-email";
+import connectDB from "../../db/connectDB";
+import ContactMessage from "../../models/ContactMessage";
 import {
     DEVELOPER_EMAIL,
     DEVELOPER_NAME,
@@ -95,6 +97,16 @@ export async function POST(request: NextRequest) {
         const delivered = (await deliver(request, parsed.fields))
             ? "inbox"
             : "mailto";
+        // Kept for the admin feedback inbox. A storage hiccup never loses the email.
+        try {
+            await connectDB();
+            await ContactMessage.create({
+                ...parsed.fields,
+                emailed: delivered === "inbox",
+            });
+        } catch {
+            console.error("Contact message was not stored");
+        }
 
         return NextResponse.json({
             success: true,

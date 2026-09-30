@@ -1,0 +1,168 @@
+// A paper card's provenance section (Papers tab). Matches the card's
+// "Evidence used" block in discover.module.scss.
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 6px 0 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(215, 235, 255, 0.07);
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 10px 14px;
+    margin: 0;
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    dt {
+        color: rgba(215, 235, 255, 0.42);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    dd {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+        margin: 0;
+        min-width: 0;
+        color: rgba(215, 235, 255, 0.86);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+}
+
+.sub {
+    color: rgba(215, 235, 255, 0.52);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.muted {
+    margin: 0;
+    color: rgba(215, 235, 255, 0.42);
+    font-size: 0.8rem;
+}
+
+.link {
+    color: rgba(215, 235, 255, 0.86);
+    text-decoration: underline;
+    text-decoration-color: rgba(215, 235, 255, 0.25);
+    text-underline-offset: 3px;
+
+    &:hover {
+        color: #fff;
+        text-decoration-color: currentColor;
+    }
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.statusAllowed {
+    color: #8be8b8;
+    border-color: rgba(99, 211, 153, 0.35);
+    background: rgba(99, 211, 153, 0.1);
+}
+
+.statusBlocked {
+    color: #ffc37a;
+    border-color: rgba(255, 176, 80, 0.38);
+    background: rgba(255, 176, 80, 0.1);
+}
+
+.statusUnrecorded {
+    color: rgba(215, 235, 255, 0.62);
+    border-color: rgba(215, 235, 255, 0.16);
+    background: rgba(215, 235, 255, 0.06);
+}
+
+.citedIn {
+    summary {
+        width: fit-content;
+        color: #ff5aa9;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid #0ab1ff;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    }
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+}
+
+.where {
+    color: rgba(255, 142, 196, 0.85);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.claimLink {
+    color: #d7e3f1;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: #fff;
+
+        .claimCue {
+            color: #ff8ec4;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+.claimCue {
+    margin-left: 6px;
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}

@@ -225,7 +225,7 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
         const discovery = await cached({
             // v8: every evidence sentence has a fingerprint, so citations of
             // papers we can't quote highlight too.
-            namespace: `discovery-v8-evidence-anchors-${getContentAccessMode()}`,
+            namespace: `discovery-v9-scholar-homing-${getContentAccessMode()}`,
             key: question.toLowerCase().replace(/\s+/g, " ").trim(),
             ttlSeconds: 24 * 60 * 60,
             load: () => runDiscoverAgent(question, usageContext),

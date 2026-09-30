@@ -8,6 +8,7 @@ import {
     isCommercialFriendlyLicenseUri,
     isScholarSnippetSource,
     paperHasFullTextBody,
+    quoteGateReason,
     quoteLicenseFromHome,
     quoteLicenseResult,
     visiblePaperQuote,
@@ -299,5 +300,41 @@ describe("isCommercialFriendlyLicenseUri", () => {
             ),
         ).toBe(false);
         expect(isCommercialFriendlyLicenseUri(null)).toBe(false);
+    });
+});
+
+describe("quoteGateReason", () => {
+    const allowed = evaluateQuoteEligibility({
+        database: "nih",
+        hasFullTextBody: true,
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+    });
+    const unknown = evaluateQuoteEligibility({
+        database: "nih",
+        hasFullTextBody: true,
+        rawLicense: "unknown",
+    });
+
+    it("reports the license gate's own reason when it blocks", () => {
+        expect(
+            quoteGateReason({
+                eligibility: unknown,
+                abstractOnly: false,
+                attributed: true,
+                quoted: false,
+            }),
+        ).toBe("null_license");
+    });
+
+    it("names the check after the license that left the passage out", () => {
+        const base = { eligibility: allowed, attributed: true, quoted: false };
+        expect(quoteGateReason({ ...base, abstractOnly: true })).toBe("abstract_only");
+        expect(
+            quoteGateReason({ ...base, abstractOnly: false, attributed: false }),
+        ).toBe("missing_attribution");
+        expect(quoteGateReason({ ...base, abstractOnly: false })).toBe("no_passage");
+        expect(
+            quoteGateReason({ ...base, abstractOnly: false, quoted: true }),
+        ).toBe("ok");
     });
 });

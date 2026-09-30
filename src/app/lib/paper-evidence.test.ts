@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     citedEvidenceQuote,
+    closestSentence,
     evidenceAnchor,
     evidenceFocusHref,
     evidencePassage,
@@ -169,5 +170,69 @@ describe("Show method", () => {
         );
         expect(verifiedSentence({ excerpt: text, quotable: false, quote: "Mice were dosed daily for 21 days with the study drug." })?.quote).toBeUndefined();
         expect(verifiedSentence({ excerpt: text, quotable: true, quote: "A randomized trial of the study drug in mice." })).toBeNull();
+    });
+});
+
+describe("closestSentence", () => {
+    const paper = {
+        abstract:
+            "Base editing is a genome editing strategy that induces single nucleotide changes. It has been used widely for precise genome editing.",
+        paper: [
+            {
+                title: "Results",
+                content:
+                    "Cells were cultured for 48 hours before sequencing. Whole-genome sequencing revealed that cytosine base editors induced substantial off-target edits in DNA, while adenine base editors did not.\nRNA off-target editing was also detected for both editor classes.",
+                subSections: [],
+            },
+            {
+                title: "References",
+                content:
+                    "Off-target editing by CRISPR-guided DNA base editors and off-target RNA edits of adenine base editors. Biochemistry 2019.",
+                subSections: [],
+            },
+        ],
+    };
+
+    it("finds the paper's sentence that best matches the claim", () => {
+        expect(
+            closestSentence(
+                paper,
+                "Cytosine base editors cause off-target DNA edits that adenine editors avoid",
+            ),
+        ).toBe(
+            "Whole-genome sequencing revealed that cytosine base editors induced substantial off-target edits in DNA, while adenine base editors did not.",
+        );
+    });
+
+    it("matches across hyphenation and prefers the claim's rare words", () => {
+        const review = {
+            paper: [
+                {
+                    title: "Introduction",
+                    content:
+                        "However, off-target editing by DNA base editors has been observed in many studies. More recent reports suggest that promiscuous deaminase domains in base editors can lead to guide RNA-independent off target editing in DNA and RNA. Base editors are widely used.",
+                    subSections: [],
+                },
+            ],
+        };
+        expect(
+            closestSentence(
+                review,
+                "Genotoxicity checks miss guide-independent base editor off-target edits",
+            ),
+        ).toContain("guide RNA-independent");
+    });
+
+    it("never picks a reference-list entry", () => {
+        const match = closestSentence(
+            paper,
+            "Off-target RNA edits by CRISPR-guided adenine base editors",
+        );
+        expect(match).not.toContain("Biochemistry");
+    });
+
+    it("returns null when nothing clearly matches", () => {
+        expect(closestSentence(paper, "Insulin dosing in pediatric type 1 diabetes")).toBeNull();
+        expect(closestSentence(paper, "editing")).toBeNull();
     });
 });

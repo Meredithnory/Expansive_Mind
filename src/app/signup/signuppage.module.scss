@@ -326,6 +326,30 @@
     }
 }
 
+.optIn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    cursor: pointer;
+
+    input {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        margin: 1px 0 0;
+        accent-color: $main-pink;
+        cursor: pointer;
+    }
+
+    input:focus-visible {
+        outline: 2px solid $highlight-blue;
+        outline-offset: 2px;
+    }
+}
+
 .agreement {
     margin: 0;
     color: rgba(255, 255, 255, 0.45);

@@ -30,12 +30,16 @@ import type {
 } from "../api/discover/report-types";
 import { questionChecks } from "../lib/discover-question-checks";
 import ClaimLedgerView from "./ClaimLedgerView";
+import RouteLoading from "../components/RouteLoading";
+import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
 import {
     buildClaimLedger,
     toLedgerExtractions,
     toLedgerPapers,
 } from "../api/discover/claim-ledger";
 import ShareBriefDialog from "./ShareBriefDialog";
+import PaperProvenanceSection from "./PaperProvenanceSection";
+import { paperProvenance, type PaperProvenance } from "./paper-provenance";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import {
     extractionForPaper,
@@ -105,6 +109,8 @@ type DiscoverPaper = {
     citationCount?: number;
     citationSource?: "crossref" | "europepmc" | "scholar";
     scholarCitesId?: string;
+    licenseUrl?: string;
+    quoteGate?: import("../lib/quote-eligibility").QuoteGateReason;
 };
 
 type DiscoverResponse = {
@@ -575,6 +581,7 @@ function DiscoverClient({
                       structuredReport,
                       toLedgerPapers(result.papers),
                       toLedgerExtractions(result.extractions),
+                      result.question,
                   )
                 : undefined,
         [result, structuredReport],
@@ -597,9 +604,9 @@ function DiscoverClient({
         }
         return views;
     }, [claimLedger, result, structuredReport]);
-    const defaultReportView: ReportView = structuredReport?.sections.gaps.length
-        ? "gaps"
-        : "state";
+    // A report opens on the state of the science. A reader "Your report" link
+    // still reopens the tab it came from.
+    const defaultReportView: ReportView = "state";
     const activeView: ReportView =
         reportView &&
         reportView.id === result?.id &&
@@ -683,6 +690,7 @@ function DiscoverClient({
                                   ?.supportingExcerpt || ""),
                     anchor: citedQuote ? null : (cited?.anchor ?? null),
                     citedFor: cited?.finding ?? null,
+                    claim: cite?.context || null,
                     requestId: (current?.requestId ?? 0) + 1,
                     origin: rect
                         ? {
@@ -763,6 +771,19 @@ function DiscoverClient({
         }),
         [activeView, hasSavedDiscoveryId, result?.id],
     );
+
+    // Per paper card: PMCID, quote status, and the report claims that cite it.
+    const provenanceByPaper = useMemo(() => {
+        if (!result) return new Map<number, PaperProvenance>();
+        return new Map(
+            paperProvenance(
+                result.papers,
+                structuredReport,
+                result.brief,
+                result.extractions,
+            ).map((row) => [row.index, row]),
+        );
+    }, [result, structuredReport]);
 
     const previewPaper = useMemo(
         () =>
@@ -1469,6 +1490,21 @@ function DiscoverClient({
             </form>
         ) : null;
 
+    // Opening a saved report (from the Library): show a loading screen until
+    // it is ready, not the empty Discover landing.
+    if (
+        isOpeningSavedSynthesis({
+            savedParam,
+            hasResult: Boolean(result),
+            hasError: Boolean(error),
+            sessionLoading,
+            historyLoading,
+            isLoggedIn,
+        })
+    ) {
+        return <RouteLoading label="Opening your report…" />;
+    }
+
     return (
         <div
             ref={pageRef}
@@ -2135,7 +2171,7 @@ function DiscoverClient({
                                 );
                                 return (
                                 <li
-                                    key={`${paper.database}-${paper.paperId}`}
+                                    key={`${paper.index}-${paper.database}-${paper.paperId}`}
                                     id={`discover-paper-${paper.index}`}
                                     className={clsx(styles.paperItem, {
                                         [styles.paperItemHighlighted]:
@@ -2252,6 +2288,13 @@ function DiscoverClient({
                                                 ))}
                                             </ul>
                                         </div>
+                                    ) : null}
+                                    {provenanceByPaper.get(paper.index) ? (
+                                        <PaperProvenanceSection
+                                            paper={paper}
+                                            row={provenanceByPaper.get(paper.index) as PaperProvenance}
+                                            reportReturn={reportReturn}
+                                        />
                                     ) : null}
                                     <div className={styles.paperActions}>
                                         <Link

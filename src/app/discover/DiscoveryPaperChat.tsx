@@ -2,12 +2,18 @@
 import clsx from "clsx";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Chatbox from "../components/paperchatbot/Chatbox";
+import Loading from "../components/Loading";
 import Paperbox from "../components/paperchatbot/Paperbox";
 import type { FormattedPaper } from "../api/general-interfaces";
 import { buildChatMessages, type ChatMessage } from "../lib/chat-messages";
 import { locateExcerptInPaper, type PaperCitation } from "../lib/paper-citation";
 import { withReportOrigin, type ReportReturn } from "../lib/paper-sources";
-import { findAnchoredSentence, paperSearchText } from "../lib/paper-evidence";
+import { sendProductSignal } from "../lib/product-signals";
+import {
+    closestSentence,
+    findAnchoredSentence,
+    paperSearchText,
+} from "../lib/paper-evidence";
 import type { EvidenceAnchor } from "../api/discover/report-types";
 import styles from "./discovery-paper-chat.module.scss";
 
@@ -19,12 +25,17 @@ export type PaperChatFocus = {
     citedFor?: string | null;
     /** For a paper we can't quote: the evidence sentence's fingerprint. */
     anchor?: EvidenceAnchor | null;
+    /** The report's claim, matched against the paper when no sentence was recorded. */
+    claim?: string | null;
     requestId: number;
     origin: { x: number; y: number } | null;
 };
 
 /** Matches the .popup transition; hidden is applied after the close animation. */
 const CLOSE_MS = 280;
+
+/** After this long, the loader says the full text is still on its way. */
+const SLOW_LOAD_MS = 4_000;
 
 /** Space kept between the panel and the nav above it. */
 const EDGE_GAP = 12;
@@ -52,6 +63,59 @@ type Paper = {
     href: string;
 };
 
+const SKELETON_LINES = ["96%", "100%", "88%", "93%", "71%", "97%", "84%", "62%"];
+
+/** The panel's own layout, drawn in shimmer, with the real title up front. */
+function PaperLoading({ title }: { title: string }) {
+    const [slow, setSlow] = useState(false);
+    useEffect(() => {
+        const timer = window.setTimeout(() => setSlow(true), SLOW_LOAD_MS);
+        return () => window.clearTimeout(timer);
+    }, []);
+    const label = slow ? "Still fetching the full text…" : "Opening the paper…";
+    return (
+        <div className={styles.split} role="status" aria-live="polite" aria-label={label}>
+            <div className={clsx(styles.paperPane, styles.loadingPane)} aria-hidden="true">
+                <div className={styles.loadingBadge}>
+                    <Loading />
+                    <span>{label}</span>
+                </div>
+                <div className={styles.skeletonRow}>
+                    <span className={clsx(styles.skeletonChip, "loading-skeleton")} />
+                    <span className={clsx(styles.skeletonChip, "loading-skeleton")} />
+                    <span className={clsx(styles.skeletonChip, "loading-skeleton")} />
+                </div>
+                <p className={styles.loadingTitle}>{title}</p>
+                <span className={clsx(styles.skeletonLine, styles.skeletonShort, "loading-skeleton")} />
+                <span className={clsx(styles.skeletonHeading, "loading-skeleton")} />
+                {SKELETON_LINES.map((width, index) => (
+                    <span
+                        key={index}
+                        className={clsx(styles.skeletonLine, "loading-skeleton")}
+                        style={{ width }}
+                    />
+                ))}
+            </div>
+            <div className={clsx(styles.chatPane, styles.loadingChat)} aria-hidden="true">
+                <div className={styles.skeletonRow}>
+                    <span className={clsx(styles.skeletonAvatar, "loading-skeleton")} />
+                    <span className={styles.skeletonStack}>
+                        <span className={clsx(styles.skeletonLine, "loading-skeleton")} style={{ width: "46%" }} />
+                        <span className={clsx(styles.skeletonLine, "loading-skeleton")} style={{ width: "64%" }} />
+                    </span>
+                </div>
+                <span className={clsx(styles.skeletonLine, "loading-skeleton")} style={{ width: "92%" }} />
+                <span className={clsx(styles.skeletonLine, "loading-skeleton")} style={{ width: "78%" }} />
+                <span className={styles.skeletonSpacer} />
+                {[0, 1, 2].map((index) => (
+                    <span key={index} className={clsx(styles.skeletonPrompt, "loading-skeleton")} />
+                ))}
+                <span className={clsx(styles.skeletonInput, "loading-skeleton")} />
+            </div>
+        </div>
+    );
+}
+
 function PaperConversation({
     paper,
     context,
@@ -61,12 +125,14 @@ function PaperConversation({
     focusKey,
     citedFor,
     focusAnchor,
+    focusClaim,
     returnTo,
 }: {
     paper: Paper;
     context: string;
     citedFor?: string | null;
     focusAnchor?: EvidenceAnchor | null;
+    focusClaim?: string | null;
     returnTo?: ReportReturn;
     pendingQuestion?: string | null;
     onPendingQuestionHandled?: () => void;
@@ -115,40 +181,61 @@ function PaperConversation({
     // Same path as a chat citation: locate the excerpt, then Paperbox scrolls
     // to it and paints the highlight. A paper we can't quote has no stored
     // sentence, only its fingerprint; find the sentence in the loaded text.
-    const [passageMissing, setPassageMissing] = useState(false);
+    // With neither, highlight the paper's sentence closest to the claim and
+    // say it is a match, not the report's evidence.
+    const [passageKind, setPassageKind] = useState<"exact" | "closest" | "none">(
+        "exact",
+    );
     const anchorKey = focusAnchor ? `${focusAnchor.hash}.${focusAnchor.length}` : "";
     useEffect(() => {
         if (!loaded || !focusKey) return;
-        const passage =
+        const exact =
             focusExcerpt ||
             (focusAnchor ? findAnchoredSentence(paperSearchText(loaded), focusAnchor) : null);
-        setPassageMissing(!passage);
+        const passage = exact || (focusClaim ? closestSentence(loaded, focusClaim) : null);
+        setPassageKind(exact ? "exact" : passage ? "closest" : "none");
+        if (!exact) {
+            sendProductSignal(passage ? "citation_closest_match" : "citation_no_match");
+        }
         if (!passage) return;
         setFocusCitation(locateExcerptInPaper(loaded, passage));
         setFocusRequestId((current) => current + 1);
         // focusAnchor is read through anchorKey so a new object with the same
         // fingerprint doesn't repaint.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loaded, focusExcerpt, anchorKey, focusKey]);
-    const noPassage = Boolean(focusKey) && passageMissing;
+    }, [loaded, focusExcerpt, anchorKey, focusClaim, focusKey]);
+    const focused = Boolean(focusKey);
+    // "Find it with the assistant": the chat quotes the passage, and its
+    // citation highlights in the paper like any other.
+    const [askedForPassage, setAskedForPassage] = useState<string | null>(null);
 
     if (error) {
         return (
-            <div role="alert">
-                {error}{" "}
-                <button type="button" onClick={() => setAttempt((value) => value + 1)}>
-                    Retry
-                </button>
+            <div className={styles.loadError} role="alert">
+                <p className={styles.loadErrorTitle}>This paper didn’t open.</p>
+                <p>{error}</p>
+                <div className={styles.loadErrorActions}>
+                    <button type="button" onClick={() => setAttempt((value) => value + 1)}>
+                        Try again
+                    </button>
+                    <a
+                        href={withReportOrigin(paper.href, paper.index, null, returnTo)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Open in the reader
+                    </a>
+                </div>
             </div>
         );
     }
     if (!loaded) {
-        return <p role="status">Loading paper and your conversation…</p>;
+        return <PaperLoading title={paper.title} />;
     }
     return (
         <div className={styles.split}>
             <div className={styles.paperPane}>
-                {citedFor && (focusExcerpt || focusAnchor) && !passageMissing ? (
+                {focused && passageKind === "exact" && citedFor ? (
                     <div className={styles.citedFor}>
                         <span className={styles.citedForLabel}>Cited for</span>
                         <p>{citedFor}</p>
@@ -157,12 +244,35 @@ function PaperConversation({
                         </span>
                     </div>
                 ) : null}
-                {noPassage && (
-                    <p className={styles.noPassage} role="status">
-                        There’s no exact passage to highlight for this citation.
-                        Ask the chat where the paper supports the claim.
-                    </p>
-                )}
+                {focused && passageKind === "closest" && focusClaim ? (
+                    <div className={clsx(styles.citedFor, styles.citedForMatch)} role="status">
+                        <span className={styles.citedForLabel}>Closest match</span>
+                        <p>{focusClaim}</p>
+                        <span className={styles.citedForNote}>
+                            The report didn’t record a sentence for this citation.
+                            The pink sentence is the closest one we found in the
+                            paper. Check that it says what the claim says.
+                        </span>
+                    </div>
+                ) : null}
+                {focused && passageKind === "none" ? (
+                    <div className={styles.noPassage} role="status">
+                        <p>No sentence in this paper clearly matches the claim.</p>
+                        {focusClaim ? (
+                            <button
+                                type="button"
+                                className={styles.findPassage}
+                                onClick={() =>
+                                    setAskedForPassage(
+                                        `Which passage in this paper supports this claim: "${focusClaim}"? Quote it, or say that the paper doesn't support it.`,
+                                    )
+                                }
+                            >
+                                Ask the paper assistant to find it
+                            </button>
+                        ) : null}
+                    </div>
+                ) : null}
                 <Paperbox
                     paper={loaded}
                     searchTerm={null}
@@ -193,8 +303,11 @@ function PaperConversation({
                     allMessages={messages}
                     setAllMessages={setMessages}
                     researchContext={context}
-                    pendingQuestion={pendingQuestion}
-                    onPendingQuestionHandled={onPendingQuestionHandled}
+                    pendingQuestion={askedForPassage ?? pendingQuestion}
+                    onPendingQuestionHandled={() => {
+                        if (askedForPassage) setAskedForPassage(null);
+                        else onPendingQuestionHandled?.();
+                    }}
                     onLocateCitation={(citation) => {
                         setFocusCitation(citation);
                         setFocusRequestId((current) => current + 1);
@@ -355,7 +468,7 @@ export default function DiscoveryPaperChat({
                     .filter((paper) => visited.includes(paper.index))
                     .map((paper) => (
                         <div
-                            key={`${paper.database}-${paper.paperId}`}
+                            key={`${paper.index}-${paper.database}-${paper.paperId}`}
                             hidden={paper.index !== selected}
                             className={styles.conversation}
                         >
@@ -385,6 +498,11 @@ export default function DiscoveryPaperChat({
                                 focusAnchor={
                                     focus?.paperIndex === paper.index
                                         ? focus.anchor
+                                        : null
+                                }
+                                focusClaim={
+                                    focus?.paperIndex === paper.index
+                                        ? focus.claim
                                         : null
                                 }
                             />

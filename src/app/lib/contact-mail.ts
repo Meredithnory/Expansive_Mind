@@ -1,6 +1,6 @@
 import type { ContactFields } from "./contact";
 import { DEVELOPER_NAME } from "./contact";
-import { EMAIL_THEME, emailPanel, escapeHtml, renderEmail, singleLine } from "./email-layout";
+import { EMAIL_CLASS, EMAIL_THEME, emailPanel, escapeHtml, renderEmail, singleLine } from "./email-layout";
 
 type Mail = { subject: string; text: string; html: string };
 
@@ -36,14 +36,15 @@ export function contactNotificationEmail(
     const name = singleLine(fields.name, 80);
     const firstName = greetingName(name) ?? "them";
     const t = EMAIL_THEME;
+    const c = EMAIL_CLASS;
     const row = (label: string, valueHtml: string) =>
-        `<tr><td style="padding:0 12px 8px 0;width:64px;vertical-align:top;font-size:14px;font-weight:700;color:${t.muted};">${label}</td><td style="padding:0 0 8px;font-size:14px;color:#e6eef8;">${valueHtml}</td></tr>`;
+        `<tr><td class="${c.muted}" style="padding:0 12px 8px 0;width:64px;vertical-align:top;font-size:14px;font-weight:700;color:${t.muted};">${label}</td><td class="${c.heading}" style="padding:0 0 8px;font-size:14px;color:${t.heading};">${valueHtml}</td></tr>`;
     const details = `<table role="presentation" cellpadding="0" cellspacing="0">${row(
         "From",
-        `${escapeHtml(name)} · <a href="mailto:${escapeHtml(fields.email)}" style="color:${t.link};text-decoration:none;">${escapeHtml(fields.email)}</a>`,
+        `${escapeHtml(name)} · <a href="mailto:${escapeHtml(fields.email)}" class="${c.link}" style="color:${t.link};text-decoration:none;">${escapeHtml(fields.email)}</a>`,
     )}${row("Topic", escapeHtml(fields.topic))}${row("Sent", escapeHtml(formatSent(sentAt)))}</table>`;
     const message = emailPanel(
-        `<div style="font-size:15px;line-height:1.65;color:#f2f7ff;white-space:pre-wrap;">${escapeHtml(fields.message)}</div>`,
+        `<div class="${c.heading}" style="font-size:15px;line-height:1.65;color:${t.heading};white-space:pre-wrap;">${escapeHtml(fields.message)}</div>`,
     );
     const replyHref = `mailto:${fields.email}?subject=${encodeURIComponent(`Re: Expansive Mind · ${fields.topic}`)}`;
     return {

@@ -73,6 +73,7 @@ describe("GET /api/session", () => {
                 plan: "free",
                 isAdmin: false,
                 subscriptionStatus: "active",
+                productEmailOptIn: false,
             },
             quotas,
         });

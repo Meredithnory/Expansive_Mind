@@ -16,7 +16,7 @@ App Router lives under `src/app/`. Alias: `@/*` → `src/*`. Styles: SCSS module
 | `/pricing` | public | Researcher Pro |
 | `/login`, `/signup` | public; redirect if logged in | Auth |
 | `/about`, `/get-started`, `/contact` | public | Marketing / contact |
-| `/admin`, `/admin/usage` | **admin_session** (API also requires `ADMIN_EMAILS`) | Owner portal |
+| `/admin` (pulse), `/admin/people`, `/admin/email`, `/admin/feedback`, `/admin/usage`, `/admin/billing`, `/admin/reports`, `/admin/audit` | **admin_session** (API also requires `ADMIN_EMAILS`) | Owner portal, framed by `AdminShell` in `(protected)/layout.tsx` |
 
 Middleware (`src/middleware.ts`) only matches `/savedpapers`, `/projects`, `/admin`, `/login`, `/signup`. API routes enforce auth themselves via `withAuth` / `withOptionalAuth` / `withAdmin`.
 
@@ -59,7 +59,7 @@ Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [cl
 
 ## Models (`src/app/models/`)
 
-User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog.
+User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog, ContactMessage (feedback inbox), AdminEmail (sent admin email), ProductSignal (daily counts for the pulse).
 
 ## Key server helpers
 

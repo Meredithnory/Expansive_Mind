@@ -64,6 +64,10 @@ const NavBar = () => {
     if (pathname === "/") {
         return <div className={styles.homeSpacer} aria-hidden="true" />;
     }
+    // The admin portal has its own sidebar and phone bar.
+    if (pathname?.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+        return null;
+    }
 
     return (
         <header className={styles.navbarShell} data-app-nav>

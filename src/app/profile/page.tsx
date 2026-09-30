@@ -5,9 +5,11 @@ import Link from "next/link";
 import ForumPostCard from "../forum/ForumPostCard";
 import { type ForumPost, send } from "../forum/forum-client";
 import { EMPTY_BADGE, badgeTagLine, describeOutfit } from "../lib/lab-badge";
+import { NEWSLETTER_OPT_IN_VISIBLE } from "../lib/newsletter";
 import { coatColor } from "../lib/profile-colors";
 import { useSession } from "../lib/use-session";
 import BadgeStage, { tagName } from "./BadgeStage";
+import ProductEmailToggle from "./ProductEmailToggle";
 import styles from "./profile.module.scss";
 
 type Stats = { posts: number; followers: number; following: number };
@@ -137,6 +139,7 @@ export default function ProfilePage() {
                             <span className={styles.detailLabel}>Plan</span>
                             <span>{user.plan === "pro" ? "Researcher Pro" : "Free"}</span>
                         </div>
+                        {NEWSLETTER_OPT_IN_VISIBLE && <ProductEmailToggle />}
                         <nav className={styles.accountLinks} aria-label="Account">
                             <Link href="/pricing">
                                 Plan and billing <span aria-hidden="true">›</span>

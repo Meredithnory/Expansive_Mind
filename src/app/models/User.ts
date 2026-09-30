@@ -103,6 +103,29 @@ const userSchema = new mongoose.Schema({
     subscriptionCurrentPeriodEnd: {
         type: Date,
     },
+    /** Where the account came from, when we know ("brief": a shared brief's sign-up link). */
+    signupSource: {
+        type: String,
+        enum: ["brief"],
+    },
+    /** Agreed to product email from /admin/email. Account email ignores this. */
+    productEmailOptIn: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+    /** Consent record: when and where product email was last turned on. */
+    productEmailOptInAt: {
+        type: Date,
+    },
+    productEmailOptInSource: {
+        type: String,
+        enum: ["signup", "profile"],
+    },
+    /** When product email was last turned off (profile or unsubscribe link). */
+    productEmailOptOutAt: {
+        type: Date,
+    },
     adminTotpEnabled: {
         type: Boolean,
         default: false,

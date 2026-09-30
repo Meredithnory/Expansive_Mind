@@ -5,7 +5,7 @@ import { hasValidMutationOrigin } from "../../../lib/request-security";
 import { parseProfileColor } from "../../../lib/profile-colors";
 import { cleanBio, parseBadgePatch } from "../../../lib/lab-badge";
 
-// Saves any of: profileColor (the coat), badge fields, bio. Only the keys
+// Saves any of: profileColor (the coat), badge fields, bio, productEmailOptIn. Only the keys
 // sent are written; every value is validated first.
 export const PATCH = withAuth(async (request: NextRequest) => {
     if (!hasValidMutationOrigin(request)) {
@@ -42,6 +42,19 @@ export const PATCH = withAuth(async (request: NextRequest) => {
             return NextResponse.json({ error: "Bio must be text." }, { status: 400 });
         }
         set.bio = bio;
+    }
+    if ("productEmailOptIn" in body) {
+        if (typeof body.productEmailOptIn !== "boolean") {
+            return NextResponse.json({ error: "Choose on or off." }, { status: 400 });
+        }
+        set.productEmailOptIn = body.productEmailOptIn;
+        // Keep a consent record: when it was turned on and where, or when off.
+        if (body.productEmailOptIn) {
+            set.productEmailOptInAt = new Date();
+            set.productEmailOptInSource = "profile";
+        } else {
+            set.productEmailOptOutAt = new Date();
+        }
     }
     if (Object.keys(set).length === 0) {
         return NextResponse.json({ error: "Nothing to update." }, { status: 400 });

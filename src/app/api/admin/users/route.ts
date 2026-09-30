@@ -10,12 +10,15 @@ function escapeRegExp(value: string) {
 
 export const GET = withAdmin(async (request: NextRequest) => {
     const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 100);
+    const id = request.nextUrl.searchParams.get("id") ?? "";
     const page = Math.max(
         1,
         Number.parseInt(request.nextUrl.searchParams.get("page") || "1", 10) || 1,
     );
     const limit = 25;
-    const filter = query
+    const filter = /^[a-f0-9]{24}$/i.test(id)
+        ? { _id: id }
+        : query
         ? {
               $or: [
                   { email: { $regex: escapeRegExp(query), $options: "i" } },
@@ -28,7 +31,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const [users, total] = await Promise.all([
         User.find(filter)
             .select(
-                "firstName lastName email plan accessOverride subscriptionStatus stripeCustomerId stripeSubscriptionId stripePriceId subscriptionCurrentPeriodEnd submittedAt",
+                "firstName lastName email plan accessOverride subscriptionStatus stripeCustomerId stripeSubscriptionId stripePriceId subscriptionCurrentPeriodEnd submittedAt signupSource productEmailOptIn",
             )
             .sort({ submittedAt: -1 })
             .skip((page - 1) * limit)

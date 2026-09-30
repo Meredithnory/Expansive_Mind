@@ -8,7 +8,13 @@ import {
     normalizePmcid,
 } from "../../lib/research-citation";
 import type { DiscoverCandidate } from "../discover/select-candidates";
-import type { WorkLead } from "./types";
+import type { WorkIndexId, WorkLead } from "./types";
+
+/** Names the index that found a paper ("Found via"). Provenance only; not ranked on. */
+const INDEX_LABELS: Record<WorkIndexId, string> = {
+    openalex: "OpenAlex",
+    europepmc: "Europe PMC",
+};
 
 export function homeLead(lead: WorkLead): DiscoverCandidate | null {
     const pmcid = normalizePmcid(lead.pmcid);
@@ -27,6 +33,7 @@ export function homeLead(lead: WorkLead): DiscoverCandidate | null {
         `https://pmc.ncbi.nlm.nih.gov/articles/PMC${pmcid}/`;
     const title = citation.title;
     const authors = citation.authors;
+    const indexLabel = INDEX_LABELS[lead.producer];
     const access = evaluateContentAccess({
         source: "nih",
         rawLicense: lead.licenseHint || null,
@@ -54,6 +61,7 @@ export function homeLead(lead: WorkLead): DiscoverCandidate | null {
         sourceLabel: PAPER_SOURCES.nih.label,
         sourceUrl,
         doi: citation.doi || normalizeDoi(lead.citation.doi) || undefined,
+        ...(indexLabel ? { indexedBy: [indexLabel] } : {}),
         access,
     };
 }

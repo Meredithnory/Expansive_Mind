@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import {
+    EMAIL_CLASS,
     EMAIL_THEME,
     emailFromAddress,
     emailPanel,
@@ -95,7 +96,7 @@ export function passwordResetHtml(link: string, year = new Date().getFullYear())
             "Choose a new password with the button below. The link works once and expires in one hour.",
         button: { label: "Choose a new password", href: link },
         afterButtonHtml: emailPanel(
-            `<span style="display:block;margin:0 0 6px;font-size:12px;font-weight:700;color:${EMAIL_THEME.muted};">Or paste this link into your browser</span><a href="${safeLink}" style="font-size:13px;line-height:1.5;color:${EMAIL_THEME.link};word-break:break-all;text-decoration:none;">${safeLink}</a>`,
+            `<span class="${EMAIL_CLASS.muted}" style="display:block;margin:0 0 6px;font-size:12px;font-weight:700;color:${EMAIL_THEME.muted};">Or paste this link into your browser</span><a href="${safeLink}" class="${EMAIL_CLASS.link}" style="font-size:13px;line-height:1.5;color:${EMAIL_THEME.link};word-break:break-all;text-decoration:none;">${safeLink}</a>`,
             0,
         ),
         footerNote:

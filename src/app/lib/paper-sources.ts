@@ -194,6 +194,40 @@ export function reportReturnHref({
     return query ? `/discover?${query}` : "/discover";
 }
 
+/** A shared brief's slug: 12 URL-safe chars today, 10–24 accepted. */
+export const SHARE_SLUG_PATTERN = /^[A-Za-z0-9_-]{10,24}$/;
+
+/** The claim a brief cites a paper for, as carried in a reader URL. */
+export const BRIEF_CLAIM_MAX_CHARS = 280;
+
+export function parseBriefSlug(value: string | null | undefined) {
+    return value && SHARE_SLUG_PATTERN.test(value) ? value : null;
+}
+
+export function parseBriefClaim(value: string | null | undefined) {
+    const text = (value ?? "").replace(/\s+/g, " ").trim();
+    return text ? text.slice(0, BRIEF_CLAIM_MAX_CHARS) : null;
+}
+
+/**
+ * A reader link opened from a shared brief: the reader offers "Back to the
+ * brief" and says which claim the brief cited the paper for.
+ */
+export function withBriefOrigin(
+    href: string,
+    slug: string,
+    claim?: string | null,
+) {
+    if (!href.startsWith("/paperchatbot/") || !parseBriefSlug(slug)) return href;
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    params.set("from", "brief");
+    params.set("brief", slug);
+    const text = parseBriefClaim(claim);
+    if (text) params.set("claim", text);
+    return `${path}?${params}`;
+}
+
 /** A report paper or gap number from a reader URL param, if valid. */
 export function parseReportPaperNumber(value: string | null | undefined) {
     if (!value || !/^\d{1,3}$/.test(value)) return null;

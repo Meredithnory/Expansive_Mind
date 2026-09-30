@@ -540,6 +540,7 @@ Lead with what has been tried (model, method, readout), what failed or was under
 Every substantive claim must be grounded in the extractions and cited with paper indexes (1-based).
 Extractions may carry evidence items {id, finding, quote}; the quote is the paper's own sentence. When a claim rests on an evidence item, cite its id in square brackets right after the claim, like [E3.2], or several like [E1.1, E6.3]. Write [Paper N] only when no evidence item supports the claim. Never invent an id. The "citations" arrays stay paper numbers.
 Confidence: "established" if multiple papers agree; "suggested" if evidence is limited; "speculative" if inferred.
+A number, percentage, or count keeps the scope it was measured in. Name that paper's population, species, or setting in the same sentence (for example "in a review of rodent studies, 40% …"). Never present one paper's figure as true of the whole field.
 projectSeeds are next experiments: name a model or system, a comparison, and a readout when the papers support it.
 venturePotential is optional translation notes, not startup pitches. Omit it when the evidence is only methodological.
 Do not give medical or investment advice. Prefer recency and human evidence when dates and evidence types are present.

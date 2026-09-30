@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { AdminOverview } from "../../AdminOverview";
 import styles from "./usage.module.scss";
 
 type GuestNetworkUsage = {
@@ -62,12 +62,7 @@ export default function AdminUsagePage() {
                 <p>Internal · last {summary.rangeDays} days</p>
                 <h1>Usage and contribution margin</h1>
             </header>
-            <nav className={styles.portalNav} aria-label="Admin pages">
-                <Link href="/admin">Billing</Link>
-                <Link href="/admin/usage" aria-current="page">
-                    Usage
-                </Link>
-            </nav>
+            <AdminOverview usage={summary} />
             <section className={styles.metrics}>
                 <div>
                     <strong>${summary.estimatedCostUsd.toFixed(2)}</strong>

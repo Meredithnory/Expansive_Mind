@@ -157,7 +157,21 @@
     font-size: 0.74rem;
 }
 
+.citedForMatch {
+    border-color: rgba(255, 196, 120, 0.32);
+    background: rgba(255, 176, 80, 0.05);
+
+    .citedForLabel {
+        color: rgba(255, 214, 160, 0.95);
+    }
+}
+
 .noPassage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
     margin: 0 0 8px;
     padding: 8px 12px;
     border: 1px solid rgba(255, 196, 120, 0.22);
@@ -166,6 +180,28 @@
     color: rgba(255, 214, 160, 0.92);
     font-size: 0.8rem;
     line-height: 1.45;
+
+    p {
+        margin: 0;
+    }
+}
+
+.findPassage {
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 0, 132, 0.4);
+    border-radius: 999px;
+    background: rgba(255, 0, 132, 0.12);
+    color: #ffd1e6;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background: rgba(255, 0, 132, 0.22);
+    }
 }
 
 .openFullPaper {
@@ -381,3 +417,193 @@
         padding-top: 52px;
     }
 }
+
+/* Opening a paper: the panel's layout in shimmer, the real title first. */
+.loadingPane,
+.loadingChat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.loadingPane {
+    padding: 18px 20px;
+}
+
+.loadingChat {
+    padding: 18px 16px;
+    border: 1px solid rgba(215, 235, 255, 0.06);
+    border-radius: 16px;
+}
+
+.loadingBadge {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 14px 4px 6px;
+    border: 1px solid rgba(255, 0, 132, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 0, 132, 0.07);
+    color: #ffb3d6;
+    font-size: 0.8rem;
+    font-weight: 650;
+
+    :global(.loader) {
+        width: 44px;
+        min-height: 26px;
+    }
+}
+
+.loadingTitle {
+    margin: 4px 0 0;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+
+.skeletonRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.skeletonStack {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skeletonChip {
+    width: 112px;
+    height: 26px;
+    border-radius: 999px;
+
+    &:nth-child(2) {
+        width: 138px;
+    }
+
+    &:nth-child(3) {
+        width: 96px;
+    }
+}
+
+.skeletonLine {
+    display: block;
+    height: 12px;
+    border-radius: 6px;
+}
+
+.skeletonShort {
+    width: 38%;
+}
+
+.skeletonHeading {
+    display: block;
+    width: 30%;
+    height: 20px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+.skeletonAvatar {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+.skeletonSpacer {
+    flex: 1;
+}
+
+.skeletonPrompt {
+    display: block;
+    height: 44px;
+    border-radius: 14px;
+}
+
+.skeletonInput {
+    display: block;
+    height: 56px;
+    margin-top: 4px;
+    border-radius: 18px;
+}
+
+.loadError {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    padding: 32px;
+    color: rgba(215, 235, 255, 0.72);
+    font-size: 0.9rem;
+    line-height: 1.5;
+
+    p {
+        margin: 0;
+    }
+}
+
+.loadErrorTitle {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.loadErrorActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+
+    button,
+    a {
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 999px;
+        font: inherit;
+        font-size: 0.86rem;
+        font-weight: 650;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    button {
+        border: 0;
+        background: #ff0084;
+        color: #fff;
+    }
+
+    a {
+        border: 1px solid rgba(215, 235, 255, 0.2);
+        color: #e4f1ff;
+    }
+}
+
+@media (max-width: 720px) {
+    .loadingPane {
+        padding: 12px;
+    }
+
+    .loadingTitle {
+        font-size: 1.05rem;
+    }
+
+    .skeletonHeading,
+    .skeletonLine:nth-of-type(n + 6) {
+        display: none;
+    }
+
+    .skeletonPrompt + .skeletonPrompt {
+        display: none;
+    }
+}
+
