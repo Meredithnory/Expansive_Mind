@@ -322,8 +322,18 @@ async function readPaperExcerpts(
     const cards: DiscoverPaperCard[] = [];
     const excerpts: PaperExcerptForSynthesis[] = [];
 
+    // A Scholar result often shows its home (a PMCID) only once loaded, so two
+    // picks can turn out to be one paper. Keep the first, higher-ranked one.
+    const seen = new Set<string>();
     for (const result of settled) {
         if (result.status !== "fulfilled") continue;
+        const { card } = result.value;
+        const keys = [
+            `${card.database}:${card.paperId.trim().toLowerCase()}`,
+            ...(card.doi ? [`doi:${card.doi.trim().toLowerCase()}`] : []),
+        ];
+        if (keys.some((key) => seen.has(key))) continue;
+        keys.forEach((key) => seen.add(key));
         const nextIndex = cards.length + 1;
         cards.push({ ...result.value.card, index: nextIndex });
         excerpts.push({

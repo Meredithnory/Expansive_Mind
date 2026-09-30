@@ -468,7 +468,7 @@ export default function DiscoveryPaperChat({
                     .filter((paper) => visited.includes(paper.index))
                     .map((paper) => (
                         <div
-                            key={`${paper.database}-${paper.paperId}`}
+                            key={`${paper.index}-${paper.database}-${paper.paperId}`}
                             hidden={paper.index !== selected}
                             className={styles.conversation}
                         >
