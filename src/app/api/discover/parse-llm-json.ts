@@ -5,11 +5,47 @@ export function stripCodeFences(text: string): string {
     return trimmed;
 }
 
+/**
+ * Drops closing brackets that don't match the open one, outside strings.
+ * gpt-4.1-mini sometimes ends a string field with a stray "]", as in
+ * `"methodsQuote":"...cells."],"limitations":[...]`; one such character made
+ * the whole Discover extraction unreadable (seen 2026-09-30 on 3–5 of 7 papers
+ * in a run). A mismatched closer is never valid JSON, so removing it only
+ * restores what the model meant.
+ */
+export function removeStrayClosers(text: string): string {
+    const stack: Array<"{" | "["> = [];
+    let inString = false;
+    let escape = false;
+    let out = "";
+    for (const character of text) {
+        if (inString) {
+            out += character;
+            if (escape) escape = false;
+            else if (character === "\\") escape = true;
+            else if (character === '"') inString = false;
+            continue;
+        }
+        if (character === '"') inString = true;
+        else if (character === "{" || character === "[") stack.push(character);
+        else if (character === "}" || character === "]") {
+            const opener = character === "}" ? "{" : "[";
+            if (stack[stack.length - 1] !== opener) continue;
+            stack.pop();
+        }
+        out += character;
+    }
+    return out;
+}
+
 export function parseJsonFromLlm(text: string): unknown | null {
     if (!text || typeof text !== "string") return null;
     const stripped = stripCodeFences(text);
 
-    const parsed = parseJsonSlice(stripped) ?? repairTruncatedJson(stripped);
+    const parsed =
+        parseJsonSlice(stripped) ??
+        parseJsonSlice(removeStrayClosers(stripped)) ??
+        repairTruncatedJson(removeStrayClosers(stripped));
     if (typeof parsed === "string" && parsed.trim().startsWith("{")) {
         return parseJsonSlice(parsed) ?? repairTruncatedJson(parsed) ?? parsed;
     }
