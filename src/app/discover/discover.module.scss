@@ -3976,6 +3976,40 @@
     line-height: 1.5;
 }
 
+.reportFootNote[hidden] {
+    display: none;
+}
+
+// A discovery that found no papers: say so instead of an empty report.
+.noPapers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 28px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    background: #0a0a0f;
+
+    h2 {
+        margin: 0;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    p {
+        margin: 0;
+        color: #c9d1dc;
+        font-size: 15px;
+        line-height: 1.55;
+    }
+}
+
+.noPapersHint {
+    color: #9aa3b2 !important;
+    font-size: 14px !important;
+}
+
 .reportFootLink {
     flex-shrink: 0;
     padding: 0;
