@@ -30,6 +30,19 @@ export const when = (value: string) =>
         new Date(value),
     );
 
+/** "Joined September 2026" for a profile; month and year only, in UTC. */
+export function joinedLabel(value?: string | null): string | null {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const month = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+    }).format(date);
+    return `Joined ${month}`;
+}
+
 export async function send(url: string, method: string, body?: unknown) {
     const response = await fetch(url, {
         method,

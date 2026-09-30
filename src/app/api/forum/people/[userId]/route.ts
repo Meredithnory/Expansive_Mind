@@ -28,13 +28,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
             ForumPost.countDocuments({ authorID: userId, status: "visible" }),
             viewer.id ? Follow.exists({ followerID: viewer.id, followeeID: userId }) : null,
             viewer.id ? Block.exists({ blockerID: viewer.id, blockedID: userId }) : null,
-            User.findById(userId).select("bio").lean() as Promise<{ bio?: string } | null>,
+            User.findById(userId).select("bio submittedAt").lean() as Promise<{
+                bio?: string;
+                submittedAt?: Date;
+            } | null>,
         ]);
         return NextResponse.json(
             {
                 person: {
                     ...profile,
                     bio: typeof bioDoc?.bio === "string" ? bioDoc.bio : "",
+                    // Sign-up date; accounts without it fall back to when the
+                    // record was created (the id's timestamp).
+                    joinedAt: (
+                        bioDoc?.submittedAt ??
+                        new mongoose.Types.ObjectId(userId).getTimestamp()
+                    ).toISOString(),
                     followers,
                     following,
                     posts,

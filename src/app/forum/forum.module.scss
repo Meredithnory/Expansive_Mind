@@ -863,15 +863,32 @@
 }
 
 .personCharacter {
+    position: relative;
     display: grid;
     place-items: center;
     width: 180px;
     height: 200px;
-    margin-bottom: 4px;
+    margin-bottom: 18px;
     border-radius: 24px;
     background-color: #0d0d13;
     background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.3px);
     background-size: 22px 22px;
+}
+
+// "Joined September 2026", tucked onto the bottom edge of the photo.
+.personJoined {
+    position: absolute;
+    bottom: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: #15151c;
+    color: #c9d1dc;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .personTag {

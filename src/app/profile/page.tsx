@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ForumPostCard from "../forum/ForumPostCard";
-import { type ForumPost, send } from "../forum/forum-client";
+import { type ForumPost, joinedLabel, send } from "../forum/forum-client";
 import { EMPTY_BADGE, badgeTagLine, describeOutfit } from "../lib/lab-badge";
 import { NEWSLETTER_OPT_IN_VISIBLE } from "../lib/newsletter";
 import { coatColor } from "../lib/profile-colors";
@@ -19,6 +19,7 @@ type Tab = "posts" | "highlights" | "groups";
 export default function ProfilePage() {
     const { user } = useSession();
     const [stats, setStats] = useState<Stats | null>(null);
+    const [joinedAt, setJoinedAt] = useState<string | null>(null);
     const [posts, setPosts] = useState<ForumPost[] | null>(null);
     const [groups, setGroups] = useState<GroupRow[] | null>(null);
     const [tab, setTab] = useState<Tab>("posts");
@@ -35,6 +36,7 @@ export default function ProfilePage() {
         const feed = await postsResponse.json().catch(() => ({}));
         const groupList = await groupsResponse.json().catch(() => ({}));
         if (person.person) {
+            setJoinedAt(person.person.joinedAt ?? null);
             setStats({
                 posts: person.person.posts ?? 0,
                 followers: person.person.followers ?? 0,
@@ -72,6 +74,9 @@ export default function ProfilePage() {
                 <div className={styles.heroStrip} style={{ background: coat.hex }} aria-hidden="true" />
                 <div className={styles.heroStage}>
                     <BadgeStage color={user.profileColor} badge={badge} label={`${name}'s character`} />
+                    {joinedLabel(joinedAt) && (
+                        <span className={styles.heroJoined}>{joinedLabel(joinedAt)}</span>
+                    )}
                 </div>
                 <div className={styles.heroInfo}>
                     <span className={styles.eyebrow}>Expansive Mind · Member</span>
