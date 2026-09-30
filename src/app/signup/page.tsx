@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { LoadingOverlay } from "../components/Loading";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
+import { NEWSLETTER_OPT_IN_VISIBLE } from "../lib/newsletter";
 import { safeInternalPath } from "../lib/safe-internal-path";
 import {
     ContinueWithGoogle,
@@ -18,12 +19,6 @@ const perks = [
     { label: "Save", detail: "Keep papers in one place" },
     { label: "Chat", detail: "Ask the paper anything" },
 ];
-
-/**
- * Hidden until newsletters start (Meredith, 2026-09-29), so nobody signs up
- * expecting email that isn't coming. Set to true to show the opt-in box.
- */
-const SHOW_NEWSLETTER_OPT_IN = false;
 
 function signupDestination() {
     return safeInternalPath(
@@ -261,7 +256,7 @@ const SignupPage = () => {
                     </div>
 
                     {/* Unticked by default: only an explicit tick opts in. */}
-                    {SHOW_NEWSLETTER_OPT_IN && (
+                    {NEWSLETTER_OPT_IN_VISIBLE && (
                         <label className={styles.optIn}>
                             <input
                                 type="checkbox"

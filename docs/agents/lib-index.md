@@ -45,6 +45,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `highlight-search.tsx` | client | Highlight search UI helper |
 | `lab-badge.ts` | both | Lab badge roles, extras slots, validation, tag line |
 | `license-extract.ts` | both | JATS license / DOI extract |
+| `newsletter.ts` | both | `NEWSLETTER_OPT_IN_VISIBLE`: shows the newsletter opt-in on signup and Profile (off until newsletters start) |
 | `openrouter-policy.ts` | both | ZDR + deny data collection |
 | `paper-citation.ts` | both | Locate excerpts / encode citations |
 | `paper-context.ts` | both | Truncate paper text for the model |
