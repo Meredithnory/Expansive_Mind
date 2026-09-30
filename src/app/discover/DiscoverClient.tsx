@@ -587,9 +587,13 @@ function DiscoverClient({
         [result, structuredReport],
     );
 
+    // Nothing was found: show that plainly instead of an empty report.
+    const noPapers = Boolean(result && result.papers.length === 0);
     // The report reads as tabs: summary, gaps, papers, ledger, opportunity.
     const reportViews = useMemo(() => {
-        if (!result) return [] as Array<{ id: ReportView; label: string; short?: string }>;
+        if (!result || result.papers.length === 0) {
+            return [] as Array<{ id: ReportView; label: string; short?: string }>;
+        }
         const views: Array<{ id: ReportView; label: string; short?: string }> = [
             { id: "state", label: "State of the science", short: "Summary" },
         ];
@@ -1867,7 +1871,7 @@ function DiscoverClient({
                             >
                                 New question
                             </button>
-                            {hasSavedDiscoveryId && (
+                            {hasSavedDiscoveryId && !noPapers && (
                                 <button
                                     ref={shareTriggerRef}
                                     type="button"
@@ -1898,6 +1902,20 @@ function DiscoverClient({
                             />
                             {composerForm}
                         </>
+                    ) : null}
+
+                    {noPapers ? (
+                        <section className={styles.noPapers} role="status">
+                            <h2>No summary for this question</h2>
+                            <p>
+                                No papers were found, so there is nothing to
+                                summarize or show here.
+                            </p>
+                            <p className={styles.noPapersHint}>
+                                Try a clearer research question, something that
+                                can be looked up in the literature.
+                            </p>
+                        </section>
                     ) : null}
 
                     {reportViews.length > 1 && (
@@ -1956,7 +1974,7 @@ function DiscoverClient({
                         id="report-panel-state"
                         role={reportViews.length > 1 ? "tabpanel" : undefined}
                         aria-labelledby={reportViews.length > 1 ? "report-tab-state" : undefined}
-                        hidden={activeView !== "state"}
+                        hidden={noPapers || activeView !== "state"}
                         className={styles.reportPanel}
                     >
                         {structuredReport ? (
@@ -2055,7 +2073,7 @@ function DiscoverClient({
                             id="report-panel-gaps"
                             role="tabpanel"
                             aria-labelledby="report-tab-gaps"
-                            hidden={activeView !== "gaps"}
+                            hidden={noPapers || activeView !== "gaps"}
                             className={styles.reportPanel}
                         >
                             <OpportunityReportView
@@ -2132,7 +2150,7 @@ function DiscoverClient({
                         id="report-panel-papers"
                         role={reportViews.length > 1 ? "tabpanel" : undefined}
                         aria-labelledby={reportViews.length > 1 ? "report-tab-papers" : undefined}
-                        hidden={activeView !== "papers"}
+                        hidden={noPapers || activeView !== "papers"}
                         className={styles.reportPanel}
                     >
                     <section
@@ -2335,7 +2353,7 @@ function DiscoverClient({
                             id="report-panel-ledger"
                             role="tabpanel"
                             aria-labelledby="report-tab-ledger"
-                            hidden={activeView !== "ledger"}
+                            hidden={noPapers || activeView !== "ledger"}
                             className={styles.reportPanel}
                         >
                             <ClaimLedgerView
@@ -2351,7 +2369,7 @@ function DiscoverClient({
                             id="report-panel-opportunity"
                             role="tabpanel"
                             aria-labelledby="report-tab-opportunity"
-                            hidden={activeView !== "opportunity"}
+                            hidden={noPapers || activeView !== "opportunity"}
                             className={styles.reportPanel}
                         >
                             <FounderReportView key={result.id} report={structuredReport.founder} />
@@ -2371,7 +2389,7 @@ function DiscoverClient({
                         </div>
                     )}
 
-                    <div className={styles.reportFootNote}>
+                    <div className={styles.reportFootNote} hidden={noPapers}>
                         <span>
                             Every claim in this report links to the passage it
                             came from. Open a paper to check it.
@@ -2387,7 +2405,8 @@ function DiscoverClient({
                             {`See all ${result.papers.length} ${result.papers.length === 1 ? "paper" : "papers"}`}
                         </button>
                     </div>
-                    <p className={styles.reportFine}>
+                    {/* Empty results are not saved, so there is nothing to note or discard. */}
+                    <p className={styles.reportFine} hidden={noPapers}>
                         Confidence is agreement among selected papers, not a
                         field-wide finding. This is not medical or investment
                         advice. {isLoggedIn ? "Saved to your library." : "Preview only."}{" "}

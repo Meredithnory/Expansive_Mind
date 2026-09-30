@@ -231,7 +231,9 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
             load: () => runDiscoverAgent(question, usageContext),
         });
         let result = discovery.value;
-        {
+        // No papers, no report: a founder section alone would read as a
+        // finished analysis of nothing.
+        if (!result.noResults && result.papers.length > 0) {
             const founder = await buildFounderReport({
                 question,
                 scope: founderScope,

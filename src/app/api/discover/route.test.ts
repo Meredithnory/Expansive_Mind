@@ -22,7 +22,7 @@ vi.mock("../../lib/guest-discovery-log", () => ({ recordGuestDiscovery: mocks.re
 vi.mock("./agent", () => ({ runDiscoverAgent: mocks.agent, DiscoverAgentError: class extends Error { status = 400; } }));
 vi.mock("./assess-query", () => ({ UNCLEAR_QUESTION_ERROR: "Unclear" }));
 vi.mock("../../lib/query-quality", () => ({ looksLikeUnclearResearchQuestion: () => false }));
-vi.mock("../../lib/entitlements", () => ({ consumeQuota: mocks.quota, getQuotaSnapshot: mocks.snapshot, refundQuota: vi.fn(), resolvePlan: () => "guest" }));
+vi.mock("../../lib/entitlements", () => ({ consumeQuota: mocks.quota, getQuotaSnapshot: mocks.snapshot, refundQuota: vi.fn(async () => undefined), resolvePlan: () => "guest" }));
 vi.mock("../../lib/provider-cache", () => ({ cached: mocks.cache, getCachedValue: vi.fn(), setCachedValue: vi.fn() }));
 vi.mock("../../lib/usage-meter", () => ({ deferUsageRecording: vi.fn() }));
 vi.mock("../../lib/admin", () => ({ isAdminUser: () => false }));
@@ -33,7 +33,7 @@ import { parseFounderReport } from "../../lib/founder-report";
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.quota.mockResolvedValue({ allowed: true });
-    mocks.agent.mockResolvedValue({ question: "assay", brief: "Scientific report", papers: [], extractions: [], meta: {} });
+    mocks.agent.mockResolvedValue({ question: "assay", brief: "Scientific report", papers: [{ title: "Assay paper", sourceId: "1" }], extractions: [], meta: {} });
     mocks.cache.mockImplementation(async ({ load }) => ({ value: await load(), cacheHit: false }));
     mocks.retrieve.mockResolvedValue({ sources: [], limitations: [] });
     mocks.build.mockResolvedValue(parseFounderReport({ version: 1, scope: "Unspecified", sources: [], areas: [], options: [] }));
@@ -51,6 +51,17 @@ describe("one-question discovery workflow", () => {
         }
         expect(mocks.retrieve).toHaveBeenCalledTimes(2);
         expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ scope: "" }));
+    });
+    it("adds no founder analysis when no papers were found", async () => {
+        mocks.agent.mockResolvedValue({ question: "assay", brief: "", papers: [], extractions: [], noResults: true, message: "No papers", meta: {} });
+        mocks.snapshot.mockResolvedValue({ discover: { limit: 3, used: 0 } });
+        const response = await POST(request({ question: "assay" }));
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.report?.founder).toBeUndefined();
+        expect(data.brief).not.toContain("Founder diligence");
+        expect(data.brief).not.toContain("Decision status");
+        expect(mocks.build).not.toHaveBeenCalled();
     });
     it("passes optional context without changing the research question", async () => {
         await POST(request({ question: "assay", founderScope: " US labs, idea stage " }));
