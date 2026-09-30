@@ -131,6 +131,27 @@ export type ExtractionFailure = {
     cutOff: boolean;
 };
 
+/**
+ * Time one paper's extraction may take, retry included. Measured 2026-09-30
+ * (gpt-4.1-mini via Azure, 7 papers at once): 5–10 s each, about 1 s per
+ * 100 output tokens. The old 12 s client default left little room for a
+ * long reply or a slow patch; 25 s keeps a Discover run inside its 120 s cap.
+ */
+export const EXTRACT_BUDGET_MS = 25_000;
+/** A fast failure (rate limit, server error, dropped connection) within this window gets one retry. */
+export const EXTRACT_RETRY_WINDOW_MS = 10_000;
+export const EXTRACT_RETRY_DELAY_MS = 750;
+
+function isRetryableError(error: unknown) {
+    if (isTimeoutError(error)) return false;
+    const value = error as { status?: number; message?: string } | null;
+    const status = value?.status;
+    if (typeof status === "number") {
+        return status === 408 || status === 409 || status === 429 || status >= 500;
+    }
+    return /connection|network|socket|ECONNRESET|fetch failed/i.test(value?.message ?? "");
+}
+
 function isTimeoutError(error: unknown) {
     const value = error as { name?: string; message?: string; code?: string } | null;
     return Boolean(
@@ -213,16 +234,37 @@ evidenceType: pick the closest match.`,
             },
         ];
 
-        completion = await createPrivateChatCompletion(
-            {
-                model: EXTRACT_MODEL,
-                messages,
-                // Room for a supporting sentence per finding.
-                max_tokens: 1_300,
-                temperature: 0.1,
-            },
-            usageContext,
-        );
+        const started = Date.now();
+        for (let attempt = 1; ; attempt += 1) {
+            try {
+                completion = await createPrivateChatCompletion(
+                    {
+                        model: EXTRACT_MODEL,
+                        messages,
+                        // Room for a supporting sentence per finding.
+                        max_tokens: 1_300,
+                        temperature: 0.1,
+                    },
+                    usageContext,
+                    { timeoutMs: EXTRACT_BUDGET_MS - (Date.now() - started) },
+                );
+                break;
+            } catch (error) {
+                // Timeouts don't retry: a second full wait could push the
+                // whole run past its cap.
+                if (
+                    attempt === 1 &&
+                    isRetryableError(error) &&
+                    Date.now() - started < EXTRACT_RETRY_WINDOW_MS
+                ) {
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, EXTRACT_RETRY_DELAY_MS),
+                    );
+                    continue;
+                }
+                throw error;
+            }
+        }
     } catch (error) {
         return fellBack(
             isTimeoutError(error) ? "timeout" : "provider_error",
