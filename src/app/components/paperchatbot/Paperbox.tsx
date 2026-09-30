@@ -455,7 +455,7 @@ const Paperbox = ({
         if (!sheetMarkId) return;
         const frame = window.requestAnimationFrame(() => {
             const lines = paperRef.current?.querySelectorAll<HTMLElement>(
-                `[data-ink-mark="${CSS.escape(sheetMarkId)}"] > span`,
+                `[data-ink-stroke="${CSS.escape(sheetMarkId)}"] > span`,
             );
             const sheet = document.querySelector<HTMLElement>(
                 `[${HIGHLIGHT_SHEET_ATTR}]`,
@@ -816,6 +816,30 @@ const Paperbox = ({
                     [styles.highlighting]: activeTool === "highlight",
                 })}
                 ref={paperRef}
+                onClick={(event) => {
+                    const root = paperRef.current;
+                    const selection = window.getSelection();
+                    if (
+                        !root ||
+                        (selection && !selection.isCollapsed) ||
+                        (event.target as HTMLElement).closest("[data-ink-mark]")
+                    ) {
+                        return;
+                    }
+                    const box = root.getBoundingClientRect();
+                    const x = event.clientX - box.left + root.scrollLeft;
+                    const y = event.clientY - box.top + root.scrollTop;
+                    const hit = inkMarks.find((mark) =>
+                        mark.rects.some(
+                            (rect) =>
+                                x >= rect.left &&
+                                x <= rect.left + rect.width &&
+                                y >= rect.top &&
+                                y <= rect.top + rect.height,
+                        ),
+                    );
+                    if (hit) setOpenMarkId(hit.id);
+                }}
                 onPointerDown={(event) => {
                     if (event.pointerType === "touch") {
                         fingerDown.current = true;
@@ -869,6 +893,39 @@ const Paperbox = ({
                     scheduleTouchCommitRef.current();
                 }}
             >
+                {/* Highlight strokes sit behind the paper text, so the words
+                    read on top of the ink. Handles and the bar stay above. */}
+                {inkMarks.length > 0 && (
+                    <div className={styles.inkUnderlay} aria-hidden="true">
+                        {inkMarks.map((mark) => (
+                            <div
+                                key={mark.id}
+                                data-ink-stroke={mark.id}
+                                className={clsx(
+                                    styles.inkMark,
+                                    INK_COLOR_CLASS[parseHighlightColor(mark.color)],
+                                    {
+                                        [styles.inkMarkOpen]:
+                                            openMarkId === mark.id,
+                                    },
+                                )}
+                            >
+                                {mark.rects.map((rect, index) => (
+                                    <span
+                                        key={`${mark.id}-${index}`}
+                                        className={styles.ink}
+                                        style={{
+                                            left: rect.left,
+                                            top: rect.top,
+                                            width: rect.width,
+                                            height: rect.height,
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
                 {(inkMarks.length > 0 ||
                     (focusMark && focusMark.rects.length > 0)) && (
                     <div className={styles.inkLayer} data-ink-layer="">
@@ -911,19 +968,6 @@ const Paperbox = ({
                                         },
                                     )}
                                 >
-                                    {mark.rects.map((rect, index) => (
-                                        <span
-                                            key={`${mark.id}-${index}`}
-                                            className={styles.ink}
-                                            style={{
-                                                left: rect.left,
-                                                top: rect.top,
-                                                width: rect.width,
-                                                height: rect.height,
-                                            }}
-                                            onClick={() => setOpenMarkId(mark.id)}
-                                        />
-                                    ))}
                                     {end && (
                                         <div
                                             data-ink-end=""
