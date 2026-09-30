@@ -33,7 +33,7 @@ Surfaces: `src/app/discover/PaperPreviewDrawer.tsx`, `src/app/discover/ClaimLedg
 
 ## Provenance panel
 
-The **Provenance** tab (`src/app/discover/ProvenancePanel.tsx`, rows from `paperProvenance` in `src/app/discover/paper-provenance.ts`) shows each paper's home source, the indexes that found it, its PMCID, a link, the report items that cite it, and its quote status. It shows no paper text. Status is **Allowed** only when the card's `licenseUrl` is commercial-friendly and `quoteGate` is `ok` or absent, or when `quoteGate` is `no_passage`. Every other `quoteGate` is **Blocked** with its reason. Runs saved before `quoteGate` existed read **Not quoted · Reason not recorded for this run**.
+The **Provenance** tab (`src/app/discover/ProvenancePanel.tsx`, rows from `paperProvenance` in `src/app/discover/paper-provenance.ts`) shows each paper's home source, the indexes that found it, its PMCID, a link, the report items that cite it, and its quote status. It shows no paper text. Each citing claim links into the reader (`claimReaderHref`) at the sentence the report recorded for it, with `?chat=off` (paper only) and `?claim=` ("Cited in your report for"). A sentence we can't quote travels as its fingerprint (`?anchor=`), so the link carries no paper text; the reader highlights it only in text it already displays under its own access rules. Status is **Allowed** only when the card's `licenseUrl` is commercial-friendly and `quoteGate` is `ok` or absent, or when `quoteGate` is `no_passage`. Every other `quoteGate` is **Blocked** with its reason. Runs saved before `quoteGate` existed read **Not quoted · Reason not recorded for this run**.
 
 ## Provenance log
 

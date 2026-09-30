@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { OpportunityReport } from "../api/discover/report-types";
 import {
+    claimReaderHref,
     claimsByPaper,
     paperProvenance,
     quoteStatus,
+    type ProvenanceClaim,
     type ProvenancePaper,
 } from "./paper-provenance";
+
+const whereText = (claims: ProvenanceClaim[] | undefined) =>
+    claims?.map(({ where, text }) => ({ where, text }));
 
 function paper(overrides: Partial<ProvenancePaper> = {}): ProvenancePaper {
     return {
@@ -57,13 +62,13 @@ const report: OpportunityReport = {
 describe("claimsByPaper", () => {
     it("lists every place the write-up cites a paper, in reading order", () => {
         const claims = claimsByPaper(report, "", 2);
-        expect(claims.get(1)).toEqual([
+        expect(whereText(claims.get(1))).toEqual([
             { where: "State of the science", text: "Clearing senescent cells improved gait in aged mice." },
             { where: "State of the science", text: "Human data are thin." },
             { where: "Gap 1", text: "Dosing in older adults is untested" },
             { where: "What we could not verify", text: "Whether the gait effect lasts past 12 weeks." },
         ]);
-        expect(claims.get(2)).toEqual([
+        expect(whereText(claims.get(2))).toEqual([
             { where: "State of the science", text: "Human data are thin." },
             { where: "Gap 1", text: "Dosing in older adults is untested" },
             { where: "Translation 1", text: "Dose-finding biomarker" },
@@ -83,7 +88,7 @@ describe("claimsByPaper", () => {
 
     it("reads a markdown brief when the discovery has no structured report", () => {
         const claims = claimsByPaper(null, "## Summary\n- **Gait improved** in mice [Paper 1].", 1);
-        expect(claims.get(1)).toEqual([{ where: "Brief", text: "Gait improved in mice." }]);
+        expect(whereText(claims.get(1))).toEqual([{ where: "Brief", text: "Gait improved in mice." }]);
     });
 });
 
@@ -216,5 +221,74 @@ describe("paperProvenance", () => {
         expect(row.source).toBe("Google Scholar");
         expect(row.foundVia).toEqual([]);
         expect(row.pmcid).toBeNull();
+    });
+});
+
+describe("opening a claim in the paper", () => {
+    const evidenceReport: OpportunityReport = {
+        sections: {
+            ...report.sections,
+            citationEvidence: {
+                // Chips across the whole field, in order: [Paper 1], then [Papers 1, 2].
+                stateOfScience: ["E1.2", null, "E2.1"],
+                "gaps.0.description": ["E2.3"],
+            },
+        },
+    };
+    const extractions = [
+        {
+            index: 1,
+            evidence: [
+                { id: "E1.1", finding: "Dosing schedules in older adults are untested", anchor: { hash: "aa11", length: 80 } },
+                { id: "E1.2", finding: "Gait improved", anchor: { hash: "bb22", length: 64 } },
+            ],
+        },
+        { index: 2, evidence: [{ id: "E2.1", finding: "Human data", quote: "Only two pilot trials enrolled adults." }] },
+    ];
+
+    it("keeps the evidence the report recorded for each citation", () => {
+        const claims = claimsByPaper(evidenceReport, "", 2);
+        expect(claims.get(1)?.[0]).toMatchObject({ where: "State of the science", evidenceId: "E1.2" });
+        expect(claims.get(2)?.[0]).toMatchObject({ where: "State of the science", evidenceId: "E2.1" });
+        expect(claims.get(2)?.find((claim) => claim.where === "Gap 1")).toMatchObject({ evidenceId: "E2.3", gapNumber: 1 });
+    });
+
+    it("uses the recorded sentence, else only a clear match, else none", () => {
+        const [first] = paperProvenance([paper()], evidenceReport, "", extractions);
+        const byWhere = new Map(first.claims.map((claim) => [claim.where + claim.text, claim]));
+        expect(byWhere.get("State of the scienceClearing senescent cells improved gait in aged mice.")?.evidence?.id).toBe("E1.2");
+        // Gap 1 recorded no sentence for paper 1; its words clearly match E1.1.
+        expect(byWhere.get("Gap 1Dosing in older adults is untested")?.evidence?.id).toBe("E1.1");
+        // Nothing clearly matches "the gait effect lasts past 12 weeks" beyond the recorded one.
+        const unmatched = paperProvenance([paper()], evidenceReport, "", [{ index: 1, evidence: [] }])[0];
+        expect(unmatched.claims.every((claim) => claim.evidence === null)).toBe(true);
+    });
+
+    it("opens the reader at the sentence, with chat off and the claim shown", () => {
+        const href = claimReaderHref(
+            paper(),
+            { context: "Clearing senescent cells improved gait in aged mice.", evidence: extractions[0].evidence[1] },
+            { report: "0123456789abcdef01234567", view: "provenance" },
+        );
+        const url = new URL(href, "https://expansivemind.ai");
+        expect(url.pathname).toBe("/paperchatbot/nih/1234567");
+        expect(url.searchParams.get("anchor")).toBe("bb22.64");
+        expect(url.searchParams.get("focus")).toBeNull();
+        expect(url.searchParams.get("chat")).toBe("off");
+        expect(url.searchParams.get("claim")).toBe("Clearing senescent cells improved gait in aged mice.");
+        expect(url.searchParams.get("from")).toBe("report");
+        expect(url.searchParams.get("paper")).toBe("1");
+        expect(url.searchParams.get("view")).toBe("provenance");
+    });
+
+    it("sends no paper text for a sentence it may not quote, and still opens without one", () => {
+        const noEvidence = new URL(claimReaderHref(paper(), { context: "A claim", evidence: null }), "https://x.test");
+        expect(noEvidence.searchParams.get("anchor")).toBeNull();
+        expect(noEvidence.searchParams.get("chat")).toBe("off");
+        const gap = new URL(
+            claimReaderHref(paper(), { context: "Gap title", evidence: null, gapNumber: 2 }),
+            "https://x.test",
+        );
+        expect(gap.searchParams.get("gap")).toBe("2");
     });
 });

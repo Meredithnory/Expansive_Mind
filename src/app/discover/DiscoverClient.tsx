@@ -2305,6 +2305,8 @@ function DiscoverClient({
                                 papers={result.papers}
                                 report={structuredReport}
                                 brief={result.brief}
+                                extractions={result.extractions}
+                                reportReturn={reportReturn}
                                 activePaperIndex={activePaperIndex}
                                 onOpenPaper={openPaperPreview}
                             />

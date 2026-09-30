@@ -342,6 +342,14 @@
         grid-template-columns: minmax(0, 1fr) minmax(280px, 22rem);
     }
 
+    /* Opened from a report's Provenance tab: the paper alone, no chat. */
+    .readingContainer {
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+        max-width: 960px;
+        margin-inline: auto;
+    }
+
     .restrictedChat {
         align-self: stretch;
         display: flex;
@@ -777,7 +785,8 @@
         }
 
         .paperchatcontainer,
-        .restrictedContainer {
+        .restrictedContainer,
+        .readingContainer {
             display: flex;
             flex-direction: column;
             height: auto;

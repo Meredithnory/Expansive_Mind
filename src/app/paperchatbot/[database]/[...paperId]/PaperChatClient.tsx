@@ -141,6 +141,10 @@ type PaperChatClientProps = {
     briefSlug?: string | null;
     /** The claim that brief cited this paper for (`?claim=`). */
     briefClaim?: string | null;
+    /** The report claim this paper was opened for, from Provenance (`?claim=`). */
+    reportClaim?: string | null;
+    /** Just the paper, no chat column (`?chat=off`, from a report's Provenance tab). */
+    readingOnly?: boolean;
 };
 
 const PaperChatClient = ({
@@ -160,6 +164,8 @@ const PaperChatClient = ({
     focusAnchor = null,
     briefSlug = null,
     briefClaim = null,
+    reportClaim = null,
+    readingOnly = false,
 }: PaperChatClientProps) => {
     const router = useRouter();
     const sourceConfig = getSourceByDatabase(database);
@@ -699,9 +705,11 @@ const PaperChatClient = ({
             )}
             <div
                 className={`${styles.paperchatcontainer} ${
-                    researchPaper && !chatMode
-                        ? styles.restrictedContainer
-                        : ""
+                    readingOnly
+                        ? styles.readingContainer
+                        : researchPaper && !chatMode
+                          ? styles.restrictedContainer
+                          : ""
                 }`}
             >
                 {initialLoading ? (
@@ -716,10 +724,12 @@ const PaperChatClient = ({
                             <span className={`${styles.skelBar} ${styles.skelLine} loading-skeleton`} />
                             <span className={`${styles.skelBar} ${styles.skelLineShort} loading-skeleton`} />
                         </div>
-                        <div
-                            className={`${styles.chatSkeleton} loading-skeleton`}
-                            aria-hidden="true"
-                        />
+                        {readingOnly ? null : (
+                            <div
+                                className={`${styles.chatSkeleton} loading-skeleton`}
+                                aria-hidden="true"
+                            />
+                        )}
                     </>
                 ) : (
                     <>
@@ -727,15 +737,21 @@ const PaperChatClient = ({
                             <div className={styles.loadError}>{loadError}</div>
                         ) : (
                             <div className={`${styles.paperColumn} ${styles.fadeIn}`}>
-                                {briefClaim ? (
+                                {briefClaim || reportClaim ? (
                                     <div className={styles.citedInBrief} role="note">
                                         <span className={styles.citedInBriefLabel}>
-                                            Cited in the brief for
+                                            {briefClaim ? "Cited in the brief for" : "Cited in your report for"}
                                         </span>
-                                        <p>{briefClaim}</p>
-                                        {focusExcerpt || focusAnchor ? (
+                                        <p>{briefClaim ?? reportClaim}</p>
+                                        {focusExcerpt || anchoredExcerpt ? (
                                             <span className={styles.citedInBriefNote}>
-                                                The pink sentence is the passage the brief cites.
+                                                {briefClaim
+                                                    ? "The pink sentence is the passage the brief cites."
+                                                    : "The pink sentence is the passage your report cites."}
+                                            </span>
+                                        ) : focusAnchor ? (
+                                            <span className={styles.citedInBriefNote}>
+                                                The cited sentence isn&apos;t in the text shown here.
                                             </span>
                                         ) : null}
                                     </div>
@@ -744,19 +760,21 @@ const PaperChatClient = ({
                                     paper={researchPaper}
                                     browserBodyLoading={browserBodyLoading}
                                     searchTerm={qParam}
-                                    isPro={canAnalyzeFigures}
+                                    isPro={canAnalyzeFigures && !readingOnly}
                                     activeTool={activeTool}
                                     persistHighlights={persistHighlights}
                                     onAnalyzeFigure={handleAnalyzeFigure}
                                     onHighlight={handleHighlight}
                                     onMarksChange={setHighlights}
                                     onSummarize={
-                                        authenticated && chatMode
+                                        authenticated && chatMode && !readingOnly
                                             ? () => setPendingQuestion(SUMMARY_QUESTION)
                                             : undefined
                                     }
-                                    onShowHighlights={() =>
-                                        setShowHighlightsRequest((count) => count + 1)
+                                    onShowHighlights={
+                                        readingOnly
+                                            ? undefined
+                                            : () => setShowHighlightsRequest((count) => count + 1)
                                     }
                                     focusExcerpt={focusExcerpt ?? anchoredExcerpt}
                                     locateMethod={locateMethod}
@@ -765,7 +783,7 @@ const PaperChatClient = ({
                                 />
                             </div>
                         )}
-                        {authenticated && (chatMode || canAnalyzeFigures) ? (
+                        {readingOnly ? null : authenticated && (chatMode || canAnalyzeFigures) ? (
                             <div className={`${styles.chatColumn} ${styles.fadeInLate}`}>
                                 <ResponsiveChatPanel
                                     wholePaper={researchPaper}

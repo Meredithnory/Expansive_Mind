@@ -235,6 +235,33 @@
     }
 }
 
+.claimLink {
+    color: rgba(215, 235, 255, 0.86);
+    text-decoration: none;
+
+    &:hover {
+        color: #fff;
+
+        .claimCue {
+            color: #ff8ec4;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid #0ab1ff;
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+.claimCue {
+    margin-left: 8px;
+    color: rgba(215, 235, 255, 0.5);
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 .claimsLabel {
     margin: 0;
     color: rgba(215, 235, 255, 0.42);

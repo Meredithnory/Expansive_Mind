@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import clsx from "clsx";
-import type { OpportunityReport } from "../api/discover/report-types";
+import type { OpportunityReport, PaperExtraction } from "../api/discover/report-types";
+import type { ReportReturn } from "../lib/paper-sources";
 import {
+    claimReaderHref,
     paperProvenance,
     type ProvenancePaper,
     type QuoteStatus,
@@ -38,19 +41,25 @@ export default function ProvenancePanel({
     papers,
     report,
     brief,
+    extractions,
+    reportReturn,
     activePaperIndex,
     onOpenPaper,
 }: {
     papers: ProvenancePaper[];
     report?: OpportunityReport | null;
     brief: string;
+    extractions?: Array<Pick<PaperExtraction, "index" | "evidence">>;
+    /** The saved report and tab, for the reader's "Your report" link. */
+    reportReturn?: ReportReturn;
     activePaperIndex?: number | null;
     onOpenPaper?: OpenPaper;
 }) {
     const rows = useMemo(
-        () => paperProvenance(papers, report, brief),
-        [papers, report, brief],
+        () => paperProvenance(papers, report, brief, extractions),
+        [papers, report, brief, extractions],
     );
+    const hrefFor = new Map(papers.map((paper) => [paper.index, paper]));
     const allowed = rows.filter((row) => row.quote.status === "allowed").length;
     const blocked = rows.filter((row) => row.quote.status === "blocked").length;
     const unrecorded = rows.length - allowed - blocked;
@@ -174,12 +183,33 @@ export default function ProvenancePanel({
                             </p>
                             {row.claims.length ? (
                                 <ul>
-                                    {row.claims.map((claim) => (
-                                        <li key={`${claim.where}-${claim.text}`}>
-                                            <span className={styles.where}>{claim.where}</span>
-                                            <span>{claim.text}</span>
-                                        </li>
-                                    ))}
+                                    {row.claims.map((claim) => {
+                                        const paper = hrefFor.get(row.index);
+                                        return (
+                                            <li key={`${claim.where}-${claim.text}`}>
+                                                <span className={styles.where}>{claim.where}</span>
+                                                {paper ? (
+                                                    <Link
+                                                        href={claimReaderHref(paper, claim, reportReturn)}
+                                                        className={styles.claimLink}
+                                                        title={
+                                                            claim.evidence
+                                                                ? "Open the paper at the sentence this cites"
+                                                                : "Open the paper (no sentence recorded for this citation)"
+                                                        }
+                                                    >
+                                                        {claim.text}
+                                                        <span className={styles.claimCue}>
+                                                            {claim.evidence ? "Show in paper" : "Open paper"}
+                                                            <span aria-hidden="true"> →</span>
+                                                        </span>
+                                                    </Link>
+                                                ) : (
+                                                    <span>{claim.text}</span>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             ) : (
                                 <p className={styles.muted}>Not cited in the write-up.</p>

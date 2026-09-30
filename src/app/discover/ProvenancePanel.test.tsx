@@ -64,6 +64,11 @@ describe("ProvenancePanel", () => {
         expect(html).toMatch(/href="https:\/\/doi\.org\/10\.1000\/seno" target="_blank" rel="noopener noreferrer"/);
     });
 
+    it("links each citing claim into the paper with chat off", () => {
+        expect(html).toMatch(/href="\/paperchatbot\/nih\/1234567\?[^"]*chat=off/);
+        expect(html).toContain("Open paper");
+    });
+
     it("renders no paper text", () => {
         expect(html).not.toContain("<blockquote");
     });

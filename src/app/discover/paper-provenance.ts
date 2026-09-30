@@ -1,10 +1,18 @@
 import type {
     DiscoverPaperCard,
     OpportunityReport,
+    PaperEvidence,
+    PaperExtraction,
 } from "../api/discover/report-types";
 import { normalizeLicense } from "../lib/content-access-policy";
-import { splitCitedText } from "../lib/cited-text";
-import { PAPER_SOURCES } from "../lib/paper-sources";
+import { evidencePaper, splitCitedText } from "../lib/cited-text";
+import { citedEvidence, evidenceFocusHref } from "../lib/paper-evidence";
+import {
+    BRIEF_CLAIM_MAX_CHARS,
+    PAPER_SOURCES,
+    withReportOrigin,
+    type ReportReturn,
+} from "../lib/paper-sources";
 import {
     isCommercialFriendlyLicenseUri,
     resolvableQuoteLink,
@@ -31,8 +39,21 @@ export type ProvenancePaper = Pick<
 export interface ProvenanceClaim {
     /** "Gap 2", "State of the science". */
     where: string;
-    /** The write-up's own words, citations removed. */
+    /** The write-up's own words, citations removed, shortened for the list. */
     text: string;
+    /** The claim in full: what the reader shows as "Cited in your report for". */
+    context: string;
+    /** The item's words to match against the paper's evidence when no id was recorded. */
+    match: string;
+    /** The evidence the report recorded for this citation, when it did. */
+    evidenceId: string | null;
+    /** The gap it belongs to, for the reader's way back. */
+    gapNumber?: number;
+}
+
+/** A citing claim and the sentence of the paper it relies on, when known. */
+export interface ProvenanceClaimLink extends ProvenanceClaim {
+    evidence: PaperEvidence | null;
 }
 
 export type QuoteStatus = "allowed" | "blocked" | "unrecorded";
@@ -46,7 +67,7 @@ export interface PaperProvenance {
     foundVia: string[];
     pmcid: { id: string; href: string } | null;
     link: { href: string; label: string; external: boolean } | null;
-    claims: ProvenanceClaim[];
+    claims: ProvenanceClaimLink[];
     quote: { status: QuoteStatus; label: string; detail: string };
 }
 
@@ -84,49 +105,93 @@ function plainText(text: string, paperCount: number): string {
 }
 
 type ClaimSink = (paper: number, claim: ProvenanceClaim) => void;
+type CitationRefs = Record<string, Array<string | null>> | undefined;
+
+/** The evidence a chip for `paper` recorded, among a field's chips. */
+function refFor(ids: Array<string | null>, cited: number[], paper: number) {
+    for (let at = 0; at < cited.length; at += 1) {
+        if (cited[at] === paper && ids[at]) return ids[at];
+    }
+    return null;
+}
 
 function addProse(
     add: ClaimSink,
     text: string,
     where: string,
     paperCount: number,
+    refs?: Array<string | null>,
 ) {
+    // Evidence ids are recorded per chip across the whole field, in order.
+    let chip = 0;
     for (const paragraph of splitParagraphs(text)) {
         for (const sentence of paragraph.split(SENTENCE_BREAK)) {
             const cited = citedIn(sentence, paperCount);
+            const ids = cited.map(() => refs?.[chip++] ?? null);
             if (cited.length === 0) continue;
             const plain = plainText(sentence, paperCount);
             if (!plain) continue;
-            for (const paper of cited) add(paper, { where, text: clip(plain) });
+            for (const paper of new Set(cited)) {
+                add(paper, {
+                    where,
+                    text: clip(plain),
+                    context: plain,
+                    match: plain,
+                    evidenceId: refFor(ids, cited, paper),
+                });
+            }
         }
     }
 }
 
 function addItem(
     add: ClaimSink,
-    where: string,
-    title: string,
-    fields: Array<string | undefined>,
-    citations: number[],
+    item: {
+        where: string;
+        /** Citation-evidence key prefix, e.g. "gaps.0". */
+        key: string;
+        title: string;
+        fields: Record<string, string | undefined>;
+        citations?: number[];
+        gapNumber?: number;
+    },
     paperCount: number,
+    refs: CitationRefs,
 ) {
     const cited = new Set(
-        citations.filter(
+        (item.citations ?? []).filter(
             (index) => Number.isInteger(index) && index >= 1 && index <= paperCount,
         ),
     );
-    for (const field of [title, ...fields]) {
+    const texts = [item.title, ...Object.values(item.fields)];
+    for (const field of texts) {
         for (const index of citedIn(field, paperCount)) cited.add(index);
     }
-    const text = clip(plainText(title, paperCount));
-    if (!text) return;
-    for (const paper of cited) add(paper, { where, text });
+    const title = plainText(item.title, paperCount);
+    if (!title) return;
+    // The item's text fields first (where chips usually sit), then its title.
+    const keys = [...Object.keys(item.fields), "title"].map((name) => `${item.key}.${name}`);
+    for (const paper of cited) {
+        const evidenceId =
+            keys
+                .flatMap((key) => refs?.[key] ?? [])
+                .find((id): id is string => Boolean(id) && evidencePaper(id as string) === paper) ?? null;
+        add(paper, {
+            where: item.where,
+            text: clip(title),
+            context: title,
+            match: plainText(texts.filter(Boolean).join(" "), paperCount),
+            evidenceId,
+            ...(item.gapNumber ? { gapNumber: item.gapNumber } : {}),
+        });
+    }
 }
 
 /**
  * Every place in the write-up that cites each paper, in reading order: an
  * explicit citation list or a "Paper N" chip in the item's text. A problem
- * that only points at a gap does not cite that gap's papers itself.
+ * that only points at a gap does not cite that gap's papers itself. Each
+ * claim keeps the evidence id the report recorded for that citation.
  */
 export function claimsByPaper(
     report: OpportunityReport | null | undefined,
@@ -148,37 +213,100 @@ export function claimsByPaper(
     }
 
     const { sections } = report;
-    addProse(add, sections.stateOfScience, "State of the science", paperCount);
+    const refs = sections.citationEvidence;
+    addProse(add, sections.stateOfScience, "State of the science", paperCount, refs?.stateOfScience);
     sections.gaps.forEach((gap, index) =>
         addItem(
             add,
-            `Gap ${index + 1}`,
-            gap.title,
-            [gap.description, gap.whyItMatters, gap.scopeNote],
-            gap.citations ?? [],
+            {
+                where: `Gap ${index + 1}`,
+                key: `gaps.${index}`,
+                title: gap.title,
+                fields: {
+                    description: gap.description,
+                    whyItMatters: gap.whyItMatters,
+                    scopeNote: gap.scopeNote,
+                },
+                citations: gap.citations,
+                gapNumber: index + 1,
+            },
             paperCount,
+            refs,
         ),
     );
     sections.problems.forEach((problem, index) =>
-        addItem(add, `Problem ${index + 1}`, problem.title, [problem.description], [], paperCount),
+        addItem(
+            add,
+            {
+                where: `Problem ${index + 1}`,
+                key: `problems.${index}`,
+                title: problem.title,
+                fields: { description: problem.description },
+            },
+            paperCount,
+            refs,
+        ),
     );
     sections.projectSeeds.forEach((seed, index) =>
-        addItem(add, `Experiment ${index + 1}`, seed.title, [seed.oneLiner], [], paperCount),
+        addItem(
+            add,
+            {
+                where: `Experiment ${index + 1}`,
+                key: `projectSeeds.${index}`,
+                title: seed.title,
+                fields: { oneLiner: seed.oneLiner },
+            },
+            paperCount,
+            refs,
+        ),
     );
     sections.venturePotential.forEach((item, index) =>
         addItem(
             add,
-            `Translation ${index + 1}`,
-            item.title,
-            [item.thesis, item.feasibilitySignals, item.risks],
-            item.citations ?? [],
+            {
+                where: `Translation ${index + 1}`,
+                key: `venturePotential.${index}`,
+                title: item.title,
+                fields: {
+                    thesis: item.thesis,
+                    feasibilitySignals: item.feasibilitySignals,
+                    risks: item.risks,
+                },
+                citations: item.citations,
+            },
             paperCount,
+            refs,
         ),
     );
-    sections.couldNotVerify.forEach((item) =>
-        addProse(add, item, "What we could not verify", paperCount),
+    sections.couldNotVerify.forEach((item, index) =>
+        addProse(add, item, "What we could not verify", paperCount, refs?.[`couldNotVerify.${index}`]),
     );
     return claims;
+}
+
+/**
+ * Opens the paper in the reader at the sentence the claim relies on,
+ * highlighted, with chat hidden (`chat=off`) and the claim shown above the
+ * paper. The sentence travels as its fingerprint when the paper can't be
+ * quoted, so no paper text is added to the link.
+ */
+export function claimReaderHref(
+    paper: Pick<ProvenancePaper, "href" | "index">,
+    claim: Pick<ProvenanceClaimLink, "context" | "evidence" | "gapNumber">,
+    returnTo?: ReportReturn,
+): string {
+    const href = withReportOrigin(
+        evidenceFocusHref(paper.href, claim.evidence),
+        paper.index,
+        claim.gapNumber ?? null,
+        returnTo,
+    );
+    if (!href.startsWith("/paperchatbot/")) return href;
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    params.set("chat", "off");
+    params.set("claim", claim.context.slice(0, BRIEF_CLAIM_MAX_CHARS));
+    return `${path}?${params}`;
 }
 
 const BLOCKED_DETAIL: Record<Exclude<QuoteGateReason, "ok" | "no_passage">, string> = {
@@ -257,10 +385,12 @@ export function paperProvenance(
     papers: ProvenancePaper[],
     report: OpportunityReport | null | undefined,
     brief: string,
+    extractions: Array<Pick<PaperExtraction, "index" | "evidence">> = [],
 ): PaperProvenance[] {
     const claims = claimsByPaper(report, brief, papers.length);
     return papers.map((paper) => {
         const source = PAPER_SOURCES[paper.database]?.label ?? paper.database;
+        const evidence = extractions.find((item) => item.index === paper.index)?.evidence;
         return {
             index: paper.index,
             title: paper.title,
@@ -270,7 +400,15 @@ export function paperProvenance(
             ),
             pmcid: paperPmcid(paper),
             link: paperLink(paper),
-            claims: claims.get(paper.index) ?? [],
+            // The recorded evidence, else the paper's evidence that clearly
+            // matches the claim's words; never a guess.
+            claims: (claims.get(paper.index) ?? []).map((claim) => ({
+                ...claim,
+                evidence: citedEvidence(evidence, paper.index, {
+                    evidenceId: claim.evidenceId,
+                    context: claim.match,
+                }),
+            })),
             quote: quoteStatus(paper),
         };
     });
