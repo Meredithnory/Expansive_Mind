@@ -132,7 +132,7 @@ export function buildPaperPath(
 
 /** Marks a reader link as opened from a Discover report, so the reader can
  * offer the way back ("Your report · Gap 1 › Paper 3"). */
-export const REPORT_VIEWS = ["state", "gaps", "papers", "provenance", "ledger", "opportunity"] as const;
+export const REPORT_VIEWS = ["state", "gaps", "papers", "ledger", "opportunity"] as const;
 export type ReportViewId = (typeof REPORT_VIEWS)[number];
 
 /** The report a reader link came from, so "Your report" can reopen it. */
