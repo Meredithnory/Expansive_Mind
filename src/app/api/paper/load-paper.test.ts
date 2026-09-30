@@ -47,7 +47,7 @@ describe("cached paper loading", () => {
 
         expect(mocks.cached).toHaveBeenCalledWith(
             expect.objectContaining({
-                namespace: "paper-detail-v5-legacy",
+                namespace: "paper-detail-v6-legacy",
                 key: "springer:10.1000/example:doi",
                 ttlSeconds: 6 * 60 * 60,
                 load: expect.any(Function),
@@ -63,7 +63,7 @@ describe("cached paper loading", () => {
         process.env.CONTENT_ACCESS_MODE = "strict";
         await loadCachedPaperBySource("springer", "10.1000/example", "doi");
         expect(mocks.cached).toHaveBeenLastCalledWith(
-            expect.objectContaining({ namespace: "paper-detail-v5-strict" }),
+            expect.objectContaining({ namespace: "paper-detail-v6-strict" }),
         );
         if (previousMode === undefined) delete process.env.CONTENT_ACCESS_MODE;
         else process.env.CONTENT_ACCESS_MODE = previousMode;

@@ -37,9 +37,11 @@ import {
 } from "../../lib/pmc-media";
 import { buildSpringerImageUrl } from "../../lib/springer-media";
 import {
+    findPmcIdForDoiViaEuropePmc,
     loadOpenFullTextForSpringerDoi,
     paperHasBodySections,
 } from "./springer-body-fallback";
+import { homeScholarResult } from "./scholar-homing";
 //Base URL and NIH KEY
 const NIH_API_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 const NIH_EUTILS_BASE =
@@ -972,44 +974,21 @@ const resolveScholarPaper = async (
         record && parseScholarAuthors(record).length > 0
             ? parseScholarAuthors(record)
             : fallback?.authors || [];
-    const abstract = record?.snippet || fallback?.abstract || "";
     const doi = extractDoiFromScholarRecord(record);
 
-    const pmcid = await findPmcIdForScholarRecord(title, doi).catch(
-        () => null,
-    );
-    if (pmcid) {
-        const paper = await getPaperDetails(
-            pmcid,
-            "NIH PubMed Central",
-            "pmcid",
-        ).catch(() => null);
-        if (paper?.paper.length) {
-            return {
-                ...paper,
-                contentNotice:
-                    "This Google Scholar result was resolved to its NIH PubMed Central full-text record.",
-            };
-        }
-    }
-
-    if (doi && SPRINGER_API_KEY) {
-        const paper = await getSpringerPaperDetails(
-            doi,
-            "Springer Nature",
-            "doi",
-            { title, authors, abstract },
-        ).catch(() => null);
-        if (paper?.paper.length) {
-            return {
-                ...paper,
-                contentNotice:
-                    "This Google Scholar result was resolved to its Springer Nature full-text record.",
-            };
-        }
-    }
-
-    return null;
+    // PMC by search or exact DOI, then Springer only for a DOI Springer has.
+    // The Scholar snippet is never passed on as an abstract.
+    return homeScholarResult({
+        doi,
+        findPmcidBySearch: () => findPmcIdForScholarRecord(title, doi),
+        findPmcidByDoi: (value) => findPmcIdForDoiViaEuropePmc(value),
+        loadPmc: (pmcid) => getPaperDetails(pmcid, "NIH PubMed Central", "pmcid"),
+        springerHasDoi: async (value) =>
+            Boolean(SPRINGER_API_KEY) &&
+            Boolean((await getSpringerPaperMetadata([value]))[0]),
+        loadSpringer: (value) =>
+            getSpringerPaperDetails(value, "Springer Nature", "doi", { title, authors }),
+    });
 };
 
 export const getScholarPaperDetails = async (
