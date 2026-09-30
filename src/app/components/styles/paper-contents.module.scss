@@ -239,6 +239,10 @@
 .percent {
     flex: none;
     margin-left: auto;
+    // Same width from 9% to 10%, so the row doesn't nudge while scrolling.
+    min-width: 5.5em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     color: rgba(215, 235, 255, 0.5);
     font-size: 0.75rem;
     font-weight: 700;
