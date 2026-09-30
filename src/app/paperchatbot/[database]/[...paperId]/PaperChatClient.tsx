@@ -804,6 +804,7 @@ const PaperChatClient = ({
                                     }
                                     onLocateCitation={handleLocateCitation}
                                     highlights={highlights}
+                                    highlightsSaved={Boolean(persistHighlights)}
                                     showHighlightsRequest={showHighlightsRequest}
                                     pendingQuestion={pendingQuestion}
                                     onPendingQuestionHandled={() =>

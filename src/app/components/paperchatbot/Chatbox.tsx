@@ -23,7 +23,10 @@ import {
     paperChatPrompts,
     splitFollowUps,
 } from "../../lib/chat-messages";
-import type { PaperHighlightRecord } from "../../lib/paper-highlights";
+import {
+    MAX_HIGHLIGHTS_PER_PAPER,
+    type PaperHighlightRecord,
+} from "../../lib/paper-highlights";
 import { FIGURE_RIGHTS_ATTESTATION_VERSION } from "../../lib/figure-capture";
 import { MAX_CAPTURE_BYTES } from "../../lib/canvas-image";
 import { formatExcerptQuestion } from "../../lib/region-capture";
@@ -567,6 +570,8 @@ interface ChatboxProps {
     onLocateCitation?: (citation: PaperCitation) => void;
     /** The reader's highlights; when given, the panel gets a Highlights tab. */
     highlights?: PaperHighlightRecord[];
+    /** Highlights are saved to the reader's account for this paper. */
+    highlightsSaved?: boolean;
     /** Bump to open the Highlights tab (from the paper's Contents rail). */
     showHighlightsRequest?: number;
     /** Shows a close button in the header (the phone sheet). */
@@ -593,6 +598,7 @@ const Chatbox = ({
     hideComposer = false,
     onLocateCitation,
     highlights,
+    highlightsSaved = false,
     showHighlightsRequest = 0,
     onClose,
 }: ChatboxProps) => {
@@ -1108,7 +1114,7 @@ const Chatbox = ({
                                     {highlight.citation.sectionTitle}
                                 </span>
                                 <p className={styles.highlightExcerpt}>
-                                    {highlight.excerpt}
+                                    “{highlight.excerpt}”
                                 </p>
                                 <div className={styles.highlightActions}>
                                     {chatMode === "full" && (
@@ -1138,6 +1144,12 @@ const Chatbox = ({
                                 </div>
                             </article>
                         ))
+                    )}
+                    {highlightsSaved && sortedHighlights.length > 0 && (
+                        <p className={styles.highlightFootnote}>
+                            Saved to this paper · {sortedHighlights.length} of{" "}
+                            {MAX_HIGHLIGHTS_PER_PAPER}
+                        </p>
                     )}
                 </div>
             )}
