@@ -16,6 +16,59 @@ export function selectedTextFromRange(range: Range) {
         .slice(0, MAX_REGION_EXCERPT_CHARS);
 }
 
+const WORD_CHAR = /[\p{L}\p{N}'\u2019]/u;
+
+/**
+ * Widens [start, end) so neither edge cuts through a word: a drag that stops
+ * at "inte|rpretation" covers "interpretation". Edges already between words
+ * stay put. Offsets index into `startText` and `endText` respectively.
+ */
+export function snapOffsetsToWords(
+    startText: string,
+    start: number,
+    endText: string,
+    end: number,
+) {
+    let from = start;
+    while (
+        from > 0 &&
+        WORD_CHAR.test(startText[from - 1]) &&
+        WORD_CHAR.test(startText[from] ?? "")
+    ) {
+        from -= 1;
+    }
+    let to = end;
+    while (
+        to > 0 &&
+        to < endText.length &&
+        WORD_CHAR.test(endText[to - 1]) &&
+        WORD_CHAR.test(endText[to])
+    ) {
+        to += 1;
+    }
+    return { start: from, end: to };
+}
+
+/** Snaps a range's text edges to whole words (see snapOffsetsToWords). */
+export function snapRangeToWords(range: Range) {
+    const { startContainer, endContainer } = range;
+    if (
+        startContainer.nodeType !== Node.TEXT_NODE ||
+        endContainer.nodeType !== Node.TEXT_NODE
+    ) {
+        return range;
+    }
+    const snapped = snapOffsetsToWords(
+        startContainer.textContent ?? "",
+        range.startOffset,
+        endContainer.textContent ?? "",
+        range.endOffset,
+    );
+    range.setStart(startContainer, snapped.start);
+    range.setEnd(endContainer, snapped.end);
+    return range;
+}
+
 export function selectionRectsRelativeTo(
     range: Range,
     element: HTMLElement,

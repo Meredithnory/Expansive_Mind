@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    snapOffsetsToWords,
     bestMatchingExcerpt,
     formatExcerptQuestion,
     locateNormalizedExcerpt,
@@ -92,5 +93,41 @@ describe("excerpt location in paper text", () => {
             startPieceIndex: 0,
             startOffset: 0,
         });
+    });
+});
+
+describe("snapOffsetsToWords", () => {
+    const text = "coding, analysis, interpretation, manuscript drafting";
+
+    it("finishes a word the selection stopped inside", () => {
+        const start = text.indexOf("analysis");
+        const cut = text.indexOf("interpretation") + 4; // "inte|rpretation"
+        const snapped = snapOffsetsToWords(text, start, text, cut);
+        expect(text.slice(snapped.start, snapped.end)).toBe(
+            "analysis, interpretation",
+        );
+    });
+
+    it("starts at the beginning of a word the selection began inside", () => {
+        const start = text.indexOf("analysis") + 3; // "ana|lysis"
+        const end = text.indexOf(",", start);
+        const snapped = snapOffsetsToWords(text, start, text, end);
+        expect(text.slice(snapped.start, snapped.end)).toBe("analysis");
+    });
+
+    it("leaves edges that already fall between words", () => {
+        const start = text.indexOf("analysis");
+        const end = text.indexOf("analysis") + "analysis,".length;
+        expect(snapOffsetsToWords(text, start, text, end)).toEqual({
+            start,
+            end,
+        });
+    });
+
+    it("works across two text nodes", () => {
+        const first = "the framework distin";
+        const second = "guishes disclosure from docu";
+        const snapped = snapOffsetsToWords(first, 4, second, second.length - 2);
+        expect(snapped).toEqual({ start: 4, end: second.length });
     });
 });
