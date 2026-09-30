@@ -601,9 +601,9 @@ const ProjectDetailClient = ({ projectId, loadingHeader }: ProjectDetailClientPr
                         <section className={`${styles.card} ${styles.sourcesCard}`}>
                             <h2 className={styles.sectionTitle}>Linked papers</h2>
                             <div className={styles.paperLinks}>
-                                {project.papers.map((paper) => (
+                                {project.papers.map((paper, position) => (
                                     <PaperAnchor
-                                        key={`${paper.database}-${paper.paperId}`}
+                                        key={`${position}-${paper.database}-${paper.paperId}`}
                                         href={paperHref(paper)}
                                     >
                                         [{paper.index}] {paper.title}

@@ -373,6 +373,76 @@ describe("runDiscoverAgent", () => {
         expect(extractPaperFindings).toHaveBeenCalled();
     });
 
+    it("lists a paper once when two Scholar results load as the same PMC paper", async () => {
+        judgeResearchQuestion.mockResolvedValue("research");
+        process.env.SERPAPI_KEY = "test";
+        const scholarHit = (clusterId: string, title: string) => ({
+            clusterId,
+            title,
+            authors: ["A. Author"],
+            date: "2024",
+            abstract: "A trial of GLP-1 receptor agonists.",
+            access: aiEligibleAccess,
+        });
+        searchGoogleScholarPapers.mockResolvedValue({
+            results: [
+                scholarHit("111", "GLP-1 and cardiovascular outcomes"),
+                scholarHit("222", "GLP-1 and cardiovascular outcomes (preprint)"),
+            ],
+        });
+        loadCachedPaperBySource.mockResolvedValue({
+            value: {
+                paperId: "1234567",
+                idName: "pmcid",
+                source: "nih",
+                title: "GLP-1 and cardiovascular outcomes",
+                authors: ["A. Author"],
+                publicationDate: "2024",
+                primarySource: "NIH PubMed Central",
+                access: aiEligibleAccess,
+            },
+        });
+        extractPaperFindings.mockResolvedValue({
+            extraction: {
+                index: 1,
+                title: "GLP-1 and cardiovascular outcomes",
+                sourceLabel: "NIH PubMed Central",
+                authors: ["A. Author"],
+                publicationDate: "2024",
+                keyFindings: ["Events fell."],
+                methods: "RCT",
+                limitations: [],
+                openQuestions: [],
+                evidenceType: "rct",
+            },
+            usedFallback: false,
+        });
+        synthesizeOpportunityReport.mockResolvedValue({
+            brief: "## Consensus\nGLP-1 agonists reduce events.",
+            report: {
+                sections: {
+                    stateOfScience: "Events fell.",
+                    gaps: [],
+                    problems: [],
+                    venturePotential: [],
+                    couldNotVerify: [],
+                    projectSeeds: [],
+                },
+            },
+        });
+
+        const result = await runDiscoverAgent(
+            "How does GLP-1 receptor agonism affect cardiovascular outcomes?",
+        );
+
+        expect(loadCachedPaperBySource).toHaveBeenCalledTimes(2);
+        expect(result.papers.map((paper) => `${paper.database}:${paper.paperId}`)).toEqual([
+            "nih:1234567",
+        ]);
+        expect(result.papers[0]?.index).toBe(1);
+        expect(extractPaperFindings).toHaveBeenCalledTimes(1);
+    });
+
     it("never sends unresolved Scholar snippets into extract or synthesize", async () => {
         const question =
             "How does GLP-1 receptor agonism affect cardiovascular outcomes?";

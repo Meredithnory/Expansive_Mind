@@ -2135,7 +2135,7 @@ function DiscoverClient({
                                 );
                                 return (
                                 <li
-                                    key={`${paper.database}-${paper.paperId}`}
+                                    key={`${paper.index}-${paper.database}-${paper.paperId}`}
                                     id={`discover-paper-${paper.index}`}
                                     className={clsx(styles.paperItem, {
                                         [styles.paperItemHighlighted]:
