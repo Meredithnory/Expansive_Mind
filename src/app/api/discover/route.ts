@@ -27,7 +27,10 @@ import { consumeGuestDailyCap } from "../../lib/guest-cost-cap";
 import { retrieveFounderSources, buildFounderReport } from "./founder-diligence";
 import { founderReportMarkdown } from "../../lib/founder-report";
 
-export const maxDuration = 120;
+// A fresh run takes about 2–2.5 minutes (measured 2026-09-30: 117–148 s,
+// most of it the two report-writing calls), so 120 s could cut runs off.
+// 300 s is Vercel's current default.
+export const maxDuration = 300;
 
 export const GET = withOptionalAuth(async (request: NextRequest) => {
     try {

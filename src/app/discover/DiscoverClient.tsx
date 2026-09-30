@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import clsx from "clsx";
+import DiscoveryCountdown from "./DiscoveryCountdown";
 import styles from "./discover.module.scss";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
@@ -341,6 +342,8 @@ function DiscoverClient({
     const [shareOpen, setShareOpen] = useState(false);
     const shareTriggerRef = useRef<HTMLButtonElement>(null);
     const [step, setStep] = useState<AgentStep>("idle");
+    // When the current question was sent, for the countdown.
+    const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showPlanLink, setShowPlanLink] = useState(false);
     const [result, setResult] = useState<DiscoverResponse | null>(null);
@@ -977,6 +980,7 @@ function DiscoverClient({
             // Keep the current brief visible while a follow-up discovery runs.
             if (!result) setResult(null);
             setStep("expanding");
+            setRunStartedAt(Date.now());
             discoveryCancelledRef.current = false;
             discoveryAbortRef.current?.abort();
             const controller = new AbortController();
@@ -1751,6 +1755,7 @@ function DiscoverClient({
                             </h1>
                         )}
                         <p className={styles.srOnly}>{statusLabel}</p>
+                        {runStartedAt ? <DiscoveryCountdown startedAt={runStartedAt} /> : null}
                     </div>
                     <ol className={styles.workingSteps} aria-label="Progress">
                         {WORKING_STEPS.map((workingStep) => {
