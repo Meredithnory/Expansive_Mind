@@ -18,14 +18,14 @@ If the first retrieval is empty, the agent may apply one NIH spelling suggestion
 
 The route then runs `src/app/api/discover/founder-diligence.ts` beside the literature run and merges `src/app/lib/founder-report.ts` into `report.founder` and the markdown `brief`. That merge stores `report` as `{ sections, founder }`. The public brief rebuilds the ledger. See [claim-ledger.md](claim-ledger.md).
 
-Provider cache: namespace `discovery-v8-evidence-anchors-{legacy|strict}` (one per `CONTENT_ACCESS_MODE`), 24 hours, keyed by the normalized question, in `src/app/lib/provider-cache.ts`. Quota is taken before that lookup.
+Provider cache: namespace `discovery-v9-scholar-homing-{legacy|strict}` (one per `CONTENT_ACCESS_MODE`), 24 hours, keyed by the normalized question, in `src/app/lib/provider-cache.ts`. Quota is taken before that lookup.
 
 Tests: `src/app/api/discover/agent.test.ts`, `src/app/api/discover/route-gates.test.ts`.
 
 ## Leave alone
 
 - Do not reconstruct this sequence from `DiscoverClient.tsx`.
-- Do not send Scholar snippets to the model, and do not treat SerpApi as a full-text home.
+- Do not send Scholar snippets to the model, and do not treat SerpApi as a full-text home. A Scholar result is read only from its home (`homeScholarResult` in `src/app/api/paper/scholar-homing.ts`): PubMed Central found by NCBI search or by exact DOI through Europe PMC, or Springer Nature when Springer has the DOI. Never a Springer guess for another publisher's DOI, and the snippet never stands in for an abstract.
 - Do not treat Unpaywall as enough to run Discover.
 - Do not fold founder diligence into `runDiscoverAgent`.
 - Do not persist article bodies. Cards store ids, metadata, and licensed excerpts.

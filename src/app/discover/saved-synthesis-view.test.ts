@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isOpeningSavedSynthesis } from "./saved-synthesis-view";
 
@@ -72,5 +74,18 @@ describe("isOpeningSavedSynthesis", () => {
                 isLoggedIn: false,
             }),
         ).toBe(false);
+    });
+});
+
+describe("Discover while a saved report opens", () => {
+    // A redesign once dropped this screen and the Library link showed an
+    // empty Discover page until the report loaded.
+    it("shows the loading screen, not the empty landing", () => {
+        const source = readFileSync(
+            join(process.cwd(), "src/app/discover/DiscoverClient.tsx"),
+            "utf8",
+        );
+        expect(source).toMatch(/isOpeningSavedSynthesis\(\{/);
+        expect(source).toContain('<RouteLoading label="Opening your report…" />');
     });
 });

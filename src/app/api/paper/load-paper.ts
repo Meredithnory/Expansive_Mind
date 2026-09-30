@@ -4,7 +4,7 @@ import { getContentAccessMode } from "../../lib/content-access-policy";
 import type { SourceDatabase } from "../../lib/paper-sources";
 import { fetchPaperBySource } from "./sources";
 
-export const PAPER_DETAIL_CACHE_NAMESPACE = "paper-detail-v5";
+export const PAPER_DETAIL_CACHE_NAMESPACE = "paper-detail-v6";
 
 // Strict and legacy results differ (strict never holds an unlicensed body),
 // so each mode reads only its own entries.
