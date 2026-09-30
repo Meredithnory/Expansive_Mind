@@ -6,7 +6,7 @@ import LabCharacter from "../../../components/LabCharacter";
 import { badgeTagLine, type Badge } from "../../../lib/lab-badge";
 import { useSession } from "../../../lib/use-session";
 import ForumPostCard from "../../ForumPostCard";
-import { type ForumPost, send } from "../../forum-client";
+import { type ForumPost, joinedLabel, send } from "../../forum-client";
 import styles from "../../forum.module.scss";
 
 type PersonProfile = {
@@ -15,6 +15,7 @@ type PersonProfile = {
     profileColor: string | null;
     badge: Badge;
     bio: string;
+    joinedAt?: string;
     followers: number;
     following: number;
     posts: number;
@@ -76,6 +77,11 @@ export default function ForumPersonPage({ params }: { params: Promise<{ userId: 
                         width={150}
                         label={`${person.name}'s character`}
                     />
+                    {joinedLabel(person.joinedAt) && (
+                        <span className={styles.personJoined}>
+                            {joinedLabel(person.joinedAt)}
+                        </span>
+                    )}
                 </div>
                 <h1>{person.name}</h1>
                 {badgeTagLine(person.badge) && (

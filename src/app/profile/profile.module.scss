@@ -344,8 +344,25 @@
 }
 
 .heroStage {
+    position: relative;
     align-self: stretch;
     border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+// "Joined September 2026", on the bottom of the photo.
+.heroJoined {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(13, 13, 19, 0.92);
+    color: #c9d1dc;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .heroInfo {
