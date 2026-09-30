@@ -30,14 +30,14 @@ import type {
 } from "../api/discover/report-types";
 import { questionChecks } from "../lib/discover-question-checks";
 import ClaimLedgerView from "./ClaimLedgerView";
-import PaperProvenanceSection from "./PaperProvenanceSection";
-import { paperProvenance, type PaperProvenance } from "./paper-provenance";
 import {
     buildClaimLedger,
     toLedgerExtractions,
     toLedgerPapers,
 } from "../api/discover/claim-ledger";
 import ShareBriefDialog from "./ShareBriefDialog";
+import PaperProvenanceSection from "./PaperProvenanceSection";
+import { paperProvenance, type PaperProvenance } from "./paper-provenance";
 import PaperImpactBadge from "../components/PaperImpactBadge";
 import {
     extractionForPaper,
