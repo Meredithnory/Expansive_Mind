@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styles from "../styles/paperbox.module.scss";
 import clsx from "clsx";
 import {
@@ -616,11 +617,14 @@ const Paperbox = ({
         const frame = window.requestAnimationFrame(remeasure);
         const observer = new ResizeObserver(remeasure);
         observer.observe(root);
+        // The pane keeps its size when content above a highlight grows (the
+        // Highlight hint, a figure loading), so watch the content too.
+        for (const child of Array.from(root.children)) observer.observe(child);
         return () => {
             window.cancelAnimationFrame(frame);
             observer.disconnect();
         };
-    }, [paperId, inkMarks.length]);
+    }, [paperId, inkMarks.length, activeTool]);
 
     if (!paper) {
         return null;
@@ -1122,44 +1126,49 @@ const Paperbox = ({
             </div>
             </div>
             </div>
-            {sheetMark && (
-                <HighlightActionSheet
-                    {...markActions(sheetMark)}
-                    sectionTitle={sheetMark.citation.sectionTitle}
-                    saved={Boolean(persistHighlights)}
-                    highlightCount={inkMarks.length}
-                    onShowHighlights={
-                        onShowHighlights
-                            ? () => {
-                                  setOpenMarkId(null);
-                                  onShowHighlights();
-                              }
-                            : undefined
-                    }
-                    onClose={() => setOpenMarkId(null)}
-                />
-            )}
+            {/* On the page root, so it covers the site's bottom navigation. */}
+            {sheetMark &&
+                createPortal(
+                    <HighlightActionSheet
+                        {...markActions(sheetMark)}
+                        sectionTitle={sheetMark.citation.sectionTitle}
+                        saved={Boolean(persistHighlights)}
+                        highlightCount={inkMarks.length}
+                        onShowHighlights={
+                            onShowHighlights
+                                ? () => {
+                                      setOpenMarkId(null);
+                                      onShowHighlights();
+                                  }
+                                : undefined
+                        }
+                        onClose={() => setOpenMarkId(null)}
+                    />,
+                    document.body,
+                )}
             {activeTool === "highlight" && coarsePointer && !sheetMark && (
                 <div className={styles.touchHighlightBar} role="status">
-                    {touchSelection ? (
-                        <button
-                            type="button"
-                            className={styles.touchHighlightButton}
-                            // Act on pointerdown and keep focus off the button,
-                            // or iOS clears the selection before the tap lands.
-                            onPointerDown={(event) => {
-                                event.preventDefault();
-                                commitHighlightRef.current();
-                            }}
-                        >
-                            Highlight selection
-                        </button>
-                    ) : (
-                        <p className={styles.touchHighlightHint}>
-                            Press and hold text, drag the handles, then tap
-                            Highlight selection.
-                        </p>
-                    )}
+                    <p className={styles.touchHighlightHint}>
+                        {touchSelection
+                            ? "Drag the handles to fit the passage, then tap Highlight selection."
+                            : "Press and hold a passage to select it, then tap Highlight selection."}
+                    </p>
+                    <button
+                        type="button"
+                        className={styles.touchHighlightButton}
+                        disabled={!touchSelection}
+                        // Act on pointerdown and keep focus off the button,
+                        // or iOS clears the selection before the tap lands.
+                        onPointerDown={(event) => {
+                            event.preventDefault();
+                            commitHighlightRef.current();
+                        }}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 20h6M14.5 5.5l4 4L9 19H5v-4Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+                        </svg>
+                        Highlight selection
+                    </button>
                 </div>
             )}
         </div>

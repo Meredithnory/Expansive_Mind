@@ -760,6 +760,18 @@
             z-index: 10;
             width: 100%;
             flex-wrap: wrap;
+            padding-block: 8px;
+
+            // The page scrolls under this row and the floating site nav, so
+            // paint black from the top of the screen to the row's bottom.
+            &::before {
+                content: "";
+                position: absolute;
+                inset: -72px -100vw 0;
+                z-index: -1;
+                background: #000;
+                pointer-events: none;
+            }
         }
 
         .searchbutton {

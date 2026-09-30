@@ -691,6 +691,7 @@
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     background: #15151c;
 }
@@ -698,17 +699,17 @@
 .highlightSection {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     min-width: 0;
-    color: #ff8ec4;
+    color: #c9d1dc;
     font-size: 12px;
     font-weight: 700;
 
     &::before {
         content: "";
         flex-shrink: 0;
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         border-radius: 999px;
     }
 }
@@ -740,28 +741,42 @@
 .highlightActions {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 16px;
+    gap: 8px;
 
     button {
-        min-height: 32px;
-        padding: 0;
-        border: 0;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
         background: transparent;
-        color: #ff8ec4;
+        color: #e6eef8;
         font: inherit;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
         cursor: pointer;
 
-        &:hover,
-        &:focus-visible {
-            color: #fff;
+        &:hover {
+            background: rgba(255, 255, 255, 0.06);
         }
 
         &:focus-visible {
             outline: 2px solid $highlight-blue;
             outline-offset: 2px;
-            border-radius: 4px;
+        }
+
+        @media (max-width: 720px) {
+            height: 40px;
+            padding: 0 14px;
+            font-size: 13px;
+        }
+    }
+
+    .highlightChat {
+        border-color: rgba(255, 90, 169, 0.5);
+        color: #ff8ec4;
+
+        &:hover {
+            background: rgba(255, 0, 132, 0.12);
         }
     }
 }
