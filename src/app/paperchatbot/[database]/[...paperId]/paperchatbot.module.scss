@@ -762,15 +762,18 @@
             flex-wrap: wrap;
             padding-block: 8px;
 
-            // The page scrolls under this row and the floating site nav, so
-            // paint black from the top of the screen to the row's bottom.
-            &::before {
-                content: "";
-                position: absolute;
-                inset: -72px -100vw 0;
-                z-index: -1;
-                background: #000;
-                pointer-events: none;
+            // Tablets: the page scrolls under this row and the floating site
+            // nav, so paint black from the top of the screen to the row's
+            // bottom. Phones give the row its own background (below).
+            @media (min-width: 721px) {
+                &::before {
+                    content: "";
+                    position: absolute;
+                    inset: -72px -100vw 0;
+                    z-index: -1;
+                    background: #000;
+                    pointer-events: none;
+                }
             }
         }
 
@@ -885,10 +888,10 @@
             margin-inline: -16px;
             padding: max(8px, env(safe-area-inset-top, 0px)) 16px 8px;
             width: calc(100% + 32px);
+            // Opaque, so no backdrop blur: on iPhone Safari a blurred sticky
+            // bar shakes while the address bar collapses during a scroll.
             background: #000;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
         }
 
         .searchbutton {
