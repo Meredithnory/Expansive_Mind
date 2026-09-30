@@ -6,6 +6,7 @@ const { createPrivateChatCompletion } = vi.hoisted(() => ({
 vi.mock("../openrouter", () => ({ createPrivateChatCompletion }));
 
 import {
+    EXTRACT_BUDGET_MS,
     extractPaperFindings,
     fallbackPaperExtraction,
     parsePaperExtraction,
@@ -187,6 +188,68 @@ describe("extractPaperFindings", () => {
         expect(result.usedFallback).toBe(true);
         expect(result.extraction.title).toBe(paper.title);
     });
+    describe("waits and retries within a budget", () => {
+        const ok = {
+            choices: [
+                {
+                    message: {
+                        content: JSON.stringify({
+                            keyFindings: [{ finding: "Events fell 12%", quote: "" }],
+                            methods: "Trial",
+                        }),
+                    },
+                    finish_reason: "stop",
+                },
+            ],
+        };
+        beforeEach(() => {
+            createPrivateChatCompletion.mockReset();
+            vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        });
+
+        it("gives the call the whole budget, not the 12 s client default", async () => {
+            createPrivateChatCompletion.mockResolvedValue(ok);
+            await extractPaperFindings(paper);
+            const options = createPrivateChatCompletion.mock.calls[0][2];
+            expect(options.timeoutMs).toBeGreaterThan(24_000);
+            expect(options.timeoutMs).toBeLessThanOrEqual(EXTRACT_BUDGET_MS);
+        });
+
+        it("retries once after a rate limit and keeps the result", async () => {
+            createPrivateChatCompletion
+                .mockRejectedValueOnce(Object.assign(new Error("Rate limited"), { status: 429 }))
+                .mockResolvedValueOnce(ok);
+            const result = await extractPaperFindings(paper);
+            expect(result.usedFallback).toBe(false);
+            expect(createPrivateChatCompletion).toHaveBeenCalledTimes(2);
+            expect(createPrivateChatCompletion.mock.calls[1][2].timeoutMs).toBeLessThan(EXTRACT_BUDGET_MS);
+        });
+
+        it("gives up after one retry", async () => {
+            createPrivateChatCompletion.mockRejectedValue(
+                Object.assign(new Error("Service unavailable"), { status: 503 }),
+            );
+            const result = await extractPaperFindings(paper);
+            expect(result.failure?.reason).toBe("provider_error");
+            expect(createPrivateChatCompletion).toHaveBeenCalledTimes(2);
+        });
+
+        it("doesn't retry a timeout or a bad request", async () => {
+            const timeout = new Error("Request timed out.");
+            timeout.name = "APIConnectionTimeoutError";
+            createPrivateChatCompletion.mockRejectedValueOnce(timeout);
+            expect((await extractPaperFindings(paper)).failure?.reason).toBe("timeout");
+            expect(createPrivateChatCompletion).toHaveBeenCalledTimes(1);
+
+            createPrivateChatCompletion.mockReset();
+            createPrivateChatCompletion.mockRejectedValueOnce(
+                Object.assign(new Error("Bad request"), { status: 400 }),
+            );
+            expect((await extractPaperFindings(paper)).failure?.reason).toBe("provider_error");
+            expect(createPrivateChatCompletion).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("says why a paper fell back", () => {
         const reply = (content: string | null, finish_reason = "stop") => ({
             choices: [{ message: { content }, finish_reason }],
