@@ -117,16 +117,64 @@ export function parsePaperExtraction(
     };
 }
 
+/** Why a paper's extraction fell back to a plain excerpt. */
+export type ExtractionFailureReason =
+    | "timeout"
+    | "provider_error"
+    | "empty_reply"
+    | "unreadable_reply"
+    | "no_findings";
+
+export type ExtractionFailure = {
+    reason: ExtractionFailureReason;
+    /** The model stopped at max_tokens, so its reply was cut off. */
+    cutOff: boolean;
+};
+
+function isTimeoutError(error: unknown) {
+    const value = error as { name?: string; message?: string; code?: string } | null;
+    return Boolean(
+        value &&
+            (/timeout/i.test(value.name ?? "") ||
+                /timed? ?out/i.test(value.message ?? "") ||
+                value.code === "ETIMEDOUT"),
+    );
+}
+
 export async function extractPaperFindings(
     paper: PaperExcerptForSynthesis,
     usageContext?: UsageContext,
-): Promise<{ extraction: PaperExtraction; usedFallback: boolean }> {
+): Promise<{
+    extraction: PaperExtraction;
+    usedFallback: boolean;
+    failure?: ExtractionFailure;
+}> {
     const excerpt = truncateAtSentence(
         paper.excerpt,
         PAPER_EXCERPT_CHAR_BUDGET,
     );
     const fallback = fallbackPaperExtraction({ ...paper, excerpt });
+    // Record why, without paper text, so failed reads can be explained.
+    const fellBack = (
+        reason: ExtractionFailureReason,
+        cutOff = false,
+        status?: number,
+    ) => {
+        console.warn("Paper extraction fell back", {
+            reason,
+            cutOff,
+            status,
+            paperIndex: paper.index,
+            source: paper.sourceLabel,
+        });
+        return {
+            extraction: fallback,
+            usedFallback: true,
+            failure: { reason, cutOff },
+        };
+    };
 
+    let completion: Awaited<ReturnType<typeof createPrivateChatCompletion>>;
     try {
         const authorLine =
             paper.authors.length > 0
@@ -165,7 +213,7 @@ evidenceType: pick the closest match.`,
             },
         ];
 
-        const completion = await createPrivateChatCompletion(
+        completion = await createPrivateChatCompletion(
             {
                 model: EXTRACT_MODEL,
                 messages,
@@ -175,16 +223,31 @@ evidenceType: pick the closest match.`,
             },
             usageContext,
         );
-
-        const content = completion.choices[0]?.message?.content;
-        const parsed = content
-            ? parsePaperExtraction(parseJsonFromLlm(content), paper)
-            : null;
-        if (!parsed) {
-            return { extraction: fallback, usedFallback: true };
-        }
-        return { extraction: parsed, usedFallback: false };
-    } catch {
-        return { extraction: fallback, usedFallback: true };
+    } catch (error) {
+        return fellBack(
+            isTimeoutError(error) ? "timeout" : "provider_error",
+            false,
+            (error as { status?: number } | null)?.status,
+        );
     }
+
+    const choice = completion.choices[0];
+    const content = choice?.message?.content;
+    const cutOff = choice?.finish_reason === "length";
+    if (!content) return fellBack("empty_reply", cutOff);
+    let raw: unknown = null;
+    try {
+        raw = parseJsonFromLlm(content);
+    } catch {
+        raw = null;
+    }
+    if (!raw || typeof raw !== "object") return fellBack("unreadable_reply", cutOff);
+    let parsed: PaperExtraction | null = null;
+    try {
+        parsed = parsePaperExtraction(raw, paper);
+    } catch {
+        parsed = null;
+    }
+    if (!parsed) return fellBack("no_findings", cutOff);
+    return { extraction: parsed, usedFallback: false };
 }

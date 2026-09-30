@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { funnelSteps, parsePulseRange, questionTopics } from "./admin-pulse";
+import {
+    describeFailedRun,
+    funnelSteps,
+    parsePulseRange,
+    questionTopics,
+} from "./admin-pulse";
 
 describe("parsePulseRange", () => {
     it("accepts 7, 30, or 90 days and defaults to 30", () => {
@@ -46,5 +51,29 @@ describe("questionTopics", () => {
 
     it("returns nothing for no questions", () => {
         expect(questionTopics([], [])).toEqual([]);
+    });
+});
+
+describe("describeFailedRun", () => {
+    it("names each failed paper and why", () => {
+        expect(
+            describeFailedRun({
+                question: "Q?",
+                meta: {
+                    extractionFailures: [
+                        { index: 4, source: "Springer Nature", reason: "unreadable_reply", cutOff: true },
+                        { index: 7, source: "NIH PubMed Central", reason: "timeout" },
+                    ],
+                },
+            }),
+        ).toBe(
+            "Q? — paper 4 (Springer Nature): the AI reply couldn't be read, reply cut off at its length limit; paper 7 (NIH PubMed Central): the AI timed out",
+        );
+    });
+
+    it("says when a run predates reason tracking", () => {
+        expect(describeFailedRun({ question: "Q?", meta: {} })).toBe(
+            "Q? (reason not recorded; this run predates reason tracking)",
+        );
     });
 });

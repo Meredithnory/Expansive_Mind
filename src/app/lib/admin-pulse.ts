@@ -113,3 +113,38 @@ export function questionTopics(
         prior: priorTerms.filter((terms) => terms.has(topic)).length,
     }));
 }
+
+const FAILURE_REASON_TEXT: Record<string, string> = {
+    timeout: "the AI timed out",
+    provider_error: "the AI provider returned an error",
+    empty_reply: "the AI sent an empty reply",
+    unreadable_reply: "the AI reply couldn't be read",
+    no_findings: "the AI found no findings in the excerpt",
+};
+
+/** "question — paper 4 (Springer Nature): the AI timed out, reply cut off". */
+export function describeFailedRun(run: {
+    question: string;
+    meta?: {
+        extractionFailures?: Array<{
+            index?: number;
+            source?: string;
+            reason?: string;
+            cutOff?: boolean;
+        }>;
+    };
+}) {
+    const failures = run.meta?.extractionFailures ?? [];
+    if (failures.length === 0) {
+        return `${run.question} (reason not recorded; this run predates reason tracking)`;
+    }
+    const reasons = failures
+        .map(
+            (failure) =>
+                `paper ${failure.index ?? "?"}${failure.source ? ` (${failure.source})` : ""}: ${
+                    FAILURE_REASON_TEXT[failure.reason ?? ""] ?? "unknown reason"
+                }${failure.cutOff ? ", reply cut off at its length limit" : ""}`,
+        )
+        .join("; ");
+    return `${run.question} — ${reasons}`;
+}
