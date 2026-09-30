@@ -12,6 +12,7 @@ import styles from "../styles/chatbox.module.scss";
 import clsx from "clsx";
 import { FormattedPaper } from "../../api/general-interfaces";
 import SafeAssistantMarkdown from "../SafeAssistantMarkdown";
+import ThinkingIndicator from "./ThinkingIndicator";
 import type {
     ChatMessage,
     FigureAnalysisRequest,
@@ -64,8 +65,6 @@ const SparkleIcon = () => (
     </svg>
 );
 
-const MARKDOWN_TICK_MS = 40;
-
 const HIGHLIGHT_DOT_CLASS: Record<PaperHighlightRecord["color"], string> = {
     pink: styles.highlightDot_pink,
     blue: styles.highlightDot_blue,
@@ -75,56 +74,10 @@ const HIGHLIGHT_DOT_CLASS: Record<PaperHighlightRecord["color"], string> = {
 const citationKey = (citation: PaperCitation) =>
     `${citation.sectionTitle}|${citation.startLine}|${citation.endLine}`;
 
-const Message = React.memo(function Message({
-    message,
-    onContentUpdate,
-    onRevealed,
-    animate,
-    isLastMessage,
-}: {
-    message: string;
-    animate: boolean;
-    isLastMessage: boolean;
-    onContentUpdate: () => void;
-    /** Called once the typed-out reveal has finished. */
-    onRevealed?: () => void;
-}) {
-    const shouldAnimate = animate && isLastMessage;
-    const [content, setContent] = useState(() =>
-        shouldAnimate ? "" : message,
-    );
-
-    useEffect(() => {
-        if (!shouldAnimate) {
-            setContent(message);
-            return;
-        }
-
-        let offset = 0;
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const chunkSize = Math.max(3, Math.ceil(message.length / 90));
-
-        setContent("");
-        const revealChunk = () => {
-            offset = Math.min(message.length, offset + chunkSize);
-            setContent(message.slice(0, offset));
-            onContentUpdate();
-            if (offset < message.length) {
-                timer = setTimeout(revealChunk, MARKDOWN_TICK_MS);
-            } else {
-                onRevealed?.();
-            }
-        };
-        timer = setTimeout(revealChunk, MARKDOWN_TICK_MS);
-
-        return () => {
-            if (timer) clearTimeout(timer);
-        };
-    }, [message, onContentUpdate, onRevealed, shouldAnimate]);
-
+const Message = React.memo(function Message({ message }: { message: string }) {
     return (
         <div className={styles.prose}>
-            <SafeAssistantMarkdown>{content}</SafeAssistantMarkdown>
+            <SafeAssistantMarkdown>{message}</SafeAssistantMarkdown>
         </div>
     );
 });
@@ -256,9 +209,8 @@ const Messages = ({
 }) => {
     const messagesRef = useRef<HTMLDivElement>(null);
     const scrollFrameRef = useRef<number | null>(null);
-    const [revealedId, setRevealedId] = useState<ChatMessage["id"] | null>(
-        null,
-    );
+    const lastAnswerRef = useRef<HTMLElement>(null);
+    const wasLoading = useRef(loading);
 
     const scrollToBottom = useCallback(() => {
         if (scrollFrameRef.current !== null) return;
@@ -269,16 +221,33 @@ const Messages = ({
         });
     }, []);
 
+    // A new answer appears whole, so scroll to where it starts rather than
+    // to its last line.
+    const scrollToAnswerStart = useCallback(() => {
+        const element = messagesRef.current;
+        const answer = lastAnswerRef.current;
+        if (!element || !answer) {
+            scrollToBottom();
+            return;
+        }
+        element.scrollTop +=
+            answer.getBoundingClientRect().top -
+            element.getBoundingClientRect().top -
+            16;
+    }, [scrollToBottom]);
+
     const lastMessage = messages[messages.length - 1];
     const lastId = lastMessage?.id;
-    const handleRevealed = useCallback(() => {
-        if (lastId !== undefined) setRevealedId(lastId);
-    }, [lastId]);
 
     useEffect(() => {
-        const timer = window.setTimeout(scrollToBottom, 120);
+        const answerArrived = wasLoading.current && !loading;
+        wasLoading.current = loading;
+        const timer = window.setTimeout(
+            answerArrived ? scrollToAnswerStart : scrollToBottom,
+            120,
+        );
         return () => window.clearTimeout(timer);
-    }, [loading, messages, revealedId, scrollToBottom]);
+    }, [loading, messages, scrollToAnswerStart, scrollToBottom]);
 
     useEffect(
         () => () => {
@@ -311,7 +280,7 @@ const Messages = ({
         return byId;
     }, [messages, paper]);
 
-    // "Ask next" follows the latest answer once it has finished typing out.
+    // "Ask next" follows the latest answer.
     const lastAnswer =
         lastMessage?.sender === "ai"
             ? parsedAssistant.get(lastMessage.id)
@@ -323,11 +292,8 @@ const Messages = ({
             : lastAnswer && !answerFailed
               ? fallbackFollowUps
               : [];
-    const stillTyping =
-        Boolean(lastMessage?.animate && lastAnswer?.question) &&
-        revealedId !== lastId;
     const showNext =
-        Boolean(onAsk) && !loading && !stillTyping && nextQuestions.length > 0;
+        Boolean(onAsk) && !loading && nextQuestions.length > 0;
 
     return (
         <div
@@ -345,6 +311,11 @@ const Messages = ({
                     return (
                         <article
                             key={msg.id}
+                            ref={
+                                index === messages.length - 1
+                                    ? lastAnswerRef
+                                    : undefined
+                            }
                             className={clsx(styles.turn, styles.turnAssistant)}
                         >
                             <div className={clsx(styles.message, styles.aiMessage)}>
@@ -366,19 +337,7 @@ const Messages = ({
                                     </div>
                                 ) : null}
                                 {parsed.question ? (
-                                    <Message
-                                        message={parsed.question}
-                                        animate={Boolean(msg.animate)}
-                                        isLastMessage={
-                                            index === messages.length - 1
-                                        }
-                                        onContentUpdate={scrollToBottom}
-                                        onRevealed={
-                                            index === messages.length - 1
-                                                ? handleRevealed
-                                                : undefined
-                                        }
-                                    />
+                                    <Message message={parsed.question} />
                                 ) : null}
                             </div>
                         </article>
@@ -441,19 +400,7 @@ const Messages = ({
                     ))}
                 </div>
             )}
-            {loading && (
-                <div
-                    className={styles.typing}
-                    role="status"
-                    aria-live="polite"
-                    aria-label="Assistant is thinking"
-                >
-                    <span className={styles.typingDot}></span>
-                    <span className={styles.typingDot}></span>
-                    <span className={styles.typingDot}></span>
-                    Reading the paper…
-                </div>
-            )}
+            {loading && <ThinkingIndicator />}
         </div>
     );
 };
@@ -783,11 +730,10 @@ const Chatbox = ({
                 throw new Error(data.error || "Failed to save conversation.");
             }
 
-            const aiResponse = {
-                ...data.aiResponse,
-                animate: true,
-            };
-            setAllMessages((prevMessages) => [...prevMessages, aiResponse]);
+            setAllMessages((prevMessages) => [
+                ...prevMessages,
+                data.aiResponse,
+            ]);
         } catch {
             console.error("Chat request failed");
             setAllMessages((prevMessages) => [
@@ -866,7 +812,7 @@ const Chatbox = ({
                 }
                 setAllMessages((messages) => [
                     ...messages,
-                    { ...data.aiResponse, animate: false },
+                    data.aiResponse,
                 ]);
             } catch (error) {
                 setAllMessages((messages) => [

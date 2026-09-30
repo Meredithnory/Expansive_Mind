@@ -6,7 +6,6 @@ export interface ChatMessage {
     sender: string;
     message: string;
     timestamp: Date | string;
-    animate?: boolean;
     imagePreview?: string;
 }
 
@@ -34,7 +33,6 @@ export const WELCOME_MESSAGE: ChatMessage = {
     sender: "ai",
     message: WELCOME_COPY,
     timestamp: new Date(),
-    animate: false,
 };
 
 export const DEFAULT_PAPER_PROMPTS = [
