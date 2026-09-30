@@ -36,6 +36,7 @@ import {
     findExcerptRange,
     selectedTextFromRange,
     selectionRectsRelativeTo,
+    snapRangeToWords,
     type PaperTool,
 } from "../../lib/region-capture";
 import {
@@ -186,7 +187,8 @@ const rectsMatch = (left: InkRect[], right: InkRect[]) =>
 const measureExcerptRects = (root: HTMLElement, excerpt: string) => {
     const range = findExcerptRange(root, excerpt);
     if (!range) return [] as InkRect[];
-    return selectionRectsRelativeTo(range, root);
+    // Older highlights may end mid-word; draw them to the word's end.
+    return selectionRectsRelativeTo(snapRangeToWords(range), root);
 };
 
 /** A figure the reader shows: it has an image, a caption, or a label. */
@@ -636,7 +638,7 @@ const Paperbox = ({
         if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
             return;
         }
-        const range = selection.getRangeAt(0);
+        const range = snapRangeToWords(selection.getRangeAt(0).cloneRange());
         if (!paperRef.current.contains(range.commonAncestorContainer)) return;
         const text = selectedTextFromRange(range);
         if (!text) return;
