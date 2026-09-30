@@ -120,6 +120,10 @@ a.title:focus-visible,
     color: #fff;
 }
 
+.title .hit {
+    color: inherit;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;

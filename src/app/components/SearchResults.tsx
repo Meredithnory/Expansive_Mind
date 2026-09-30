@@ -4,7 +4,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import styles from "./styles/searchresults.module.scss";
 import { buildPaperPath, resolveSourceFromSearch } from "../lib/paper-sources";
-import { HighlightSearchAbstract } from "../lib/highlight-search";
+import { HighlightSearchAbstract, HighlightSearchText } from "../lib/highlight-search";
 import type { ContentAccessPolicy } from "../lib/content-access-policy";
 import type { CitationSource } from "../lib/paper-impact";
 import { resolveScholarCitesId } from "../lib/citing-works";
@@ -91,6 +91,13 @@ const SearchResults = ({ searchResults, searchValue, inlineAside }: SearchResult
                 const authors = shortAuthors(paper.authors);
                 const snippet = normalizeAbstract(paper.abstract);
                 const sourceLink = resultSourceLink(paper);
+                const title = (
+                    <HighlightSearchText
+                        text={paper.title}
+                        searchValue={searchValue}
+                        highlightClass={styles.hit}
+                    />
+                );
                 return (
                     <Fragment key={`${paper.source}-${paper.sourceId}-${index}`}>
                         <li className={styles.row}>
@@ -110,10 +117,10 @@ const SearchResults = ({ searchResults, searchValue, inlineAside }: SearchResult
                             </div>
                             {href ? (
                                 <Link href={href} className={styles.title}>
-                                    {paper.title}
+                                    {title}
                                 </Link>
                             ) : (
-                                <span className={styles.title}>{paper.title}</span>
+                                <span className={styles.title}>{title}</span>
                             )}
                             {authors ? <span className={styles.authors}>{authors}</span> : null}
                             {snippet ? (
