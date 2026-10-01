@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styles from "../styles/paperbox.module.scss";
 import clsx from "clsx";
+import { REPLAY_MASK } from "../../lib/replay-privacy";
 import {
     FormattedPaper,
     PaperFigure,
@@ -1145,7 +1146,7 @@ const Paperbox = ({
             {!paper.access.canDisplayFullText &&
                 !paper.bodyLoadedInBrowser &&
                 paper.abstract && (
-                    <div className={styles.paper}>
+                    <div className={clsx(styles.paper, REPLAY_MASK)}>
                         <div className={styles.section}>
                             <h4>Abstract</h4>
                             <p>{paper.abstract}</p>
@@ -1153,7 +1154,7 @@ const Paperbox = ({
                     </div>
                 )}
             {(paper.access.canDisplayFullText || paper.bodyLoadedInBrowser) && (
-                <div className={styles.paper} data-paper-body="">
+                <div className={clsx(styles.paper, REPLAY_MASK)} data-paper-body="">
                     {paper.paper.map((section, index) => (
                         <Section
                             section={section}

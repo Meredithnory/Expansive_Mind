@@ -6,6 +6,7 @@ import type { HighlightNotesPaper } from "../lib/highlight-notes";
 import type { HighlightColor } from "../lib/paper-highlights";
 import { buildPaperFocusHref } from "../lib/paper-sources";
 import { CopyIcon, GroupIcon, TrashIcon } from "../components/LibraryIcons";
+import { REPLAY_MASK } from "../lib/replay-privacy";
 import { matchesLibraryQuery } from "./library-view";
 import ShareToGroup from "./ShareToGroup";
 import styles from "./savedpage.module.scss";
@@ -180,7 +181,7 @@ export default function HighlightsTab({
                         <ol className={styles.noteList} aria-label={`Highlights from ${paper.title}`}>
                             {paper.highlights.map((highlight) => (
                                 <li key={highlight.id} className={styles.note}>
-                                    <blockquote>
+                                    <blockquote className={REPLAY_MASK}>
                                         <Link
                                             href={passageHref(paper.href, highlight.excerpt)}
                                             aria-label="Open this highlight in the paper"

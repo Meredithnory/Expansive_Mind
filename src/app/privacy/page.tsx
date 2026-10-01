@@ -135,8 +135,10 @@ export default function PrivacyPage() {
                                 </li>
                                 <li>
                                     <strong>PostHog</strong> for product
-                                    analytics, linked to your account ID and
-                                    plan.
+                                    analytics, including recordings of how you
+                                    click and scroll through the site, linked to
+                                    your account ID and plan. Recordings hide
+                                    what you type and the text of papers.
                                 </li>
                                 <li>
                                     <strong>Resend</strong> to deliver emails.

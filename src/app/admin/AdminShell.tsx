@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useSession } from "../lib/use-session";
+import { REPLAY_BLOCK } from "../lib/replay-privacy";
 import styles from "./admin-portal.module.scss";
 
 type NavItem = { href: string; label: string; icon: ReactNode };
@@ -167,7 +168,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     );
 
     return (
-        <div className={styles.shell} data-admin-portal>
+        <div className={clsx(styles.shell, REPLAY_BLOCK)} data-admin-portal>
             <aside className={styles.sidebar} aria-label="Admin">
                 <Brand />
                 <nav aria-label="Admin pages">

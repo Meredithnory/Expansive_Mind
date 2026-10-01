@@ -66,6 +66,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `rating.ts` | both | "How is Expansive Mind doing?" Bad / Fine / Good: scores, surfaces, 3-day cooldown, input cleanup, and `askForRating` for pages |
 | `region-capture.ts` | client | Selection → excerpt |
 | `request-ip.ts` | server | Client IP from headers |
+| `replay-privacy.ts` | both | PostHog recording class names: `REPLAY_MASK` on paper text (body, abstract, quotes, highlights, chats), `REPLAY_BLOCK` on the admin portal |
 | `request-security.ts` | server | Origin check + limited JSON body |
 | `saved-paper-utils.ts` | server | Find / migrate saved papers |
 | `scroll-to-range.ts` | client | Scroll a focused passage to the reading line by its own position |
