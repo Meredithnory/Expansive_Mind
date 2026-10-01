@@ -5,6 +5,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | File | Side | One line |
 | --- | --- | --- |
 | `abstract-text.ts` | both | Flatten abstract fields to text |
+| `activity.ts` | both | `/admin/live`: page views + discover/search steps (validate, feed wording), who is on the site now, and a fire-and-forget `logActivity` for `/api/activity` |
 | `admin-email.ts` | both | Parse and render an `/admin/email` message; group sends carry an unsubscribe link |
 | `admin-pulse.ts` | both | `/admin` pulse helpers: range, question-to-brief funnel, question topics |
 | `admin.ts` | server | `withAdmin` + `isAdminUser` |
@@ -12,6 +13,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `admin-identity.ts` | both | Parse `ADMIN_EMAILS` |
 | `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
 | `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
+| `audience-visitor.ts` | server | The anonymous `em_audience` visit cookie and its scrambled key, shared by `/api/audience`, `/api/activity`, `/api/ratings` |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
 | `brief-view.ts` | both | Shared topic brief view model: summary chips that open the cited sentence, gaps, papers, counts |
 | `browser-paper.ts` | client | Load an unlicensed PMC body in the reader's browser from NIH / Europe PMC. Read-only figures |
@@ -61,6 +63,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `quota-identity.ts` | server | Hash quota identity |
 | `quota-period.ts` | both | Lifetime, UTC day, or UTC month for a quota feature |
 | `rate-limit.ts` | server | Sliding window limiter |
+| `rating.ts` | both | "How is Expansive Mind doing?" Bad / Fine / Good: scores, surfaces, 3-day cooldown, input cleanup, and `askForRating` for pages |
 | `region-capture.ts` | client | Selection → excerpt |
 | `request-ip.ts` | server | Client IP from headers |
 | `request-security.ts` | server | Origin check + limited JSON body |

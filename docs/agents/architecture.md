@@ -16,7 +16,7 @@ App Router lives under `src/app/`. Alias: `@/*` → `src/*`. Styles: SCSS module
 | `/pricing` | public | Researcher Pro |
 | `/login`, `/signup` | public; redirect if logged in | Auth |
 | `/about`, `/get-started`, `/contact` | public | Marketing / contact |
-| `/admin` (pulse), `/admin/people`, `/admin/email`, `/admin/feedback`, `/admin/usage`, `/admin/billing`, `/admin/reports`, `/admin/audit` | **admin_session** (API also requires `ADMIN_EMAILS`) | Owner portal, framed by `AdminShell` in `(protected)/layout.tsx` |
+| `/admin` (pulse), `/admin/live`, `/admin/people`, `/admin/email`, `/admin/feedback`, `/admin/usage`, `/admin/billing`, `/admin/reports`, `/admin/audit` | **admin_session** (API also requires `ADMIN_EMAILS`) | Owner portal, framed by `AdminShell` in `(protected)/layout.tsx` |
 
 Middleware (`src/middleware.ts`) only matches `/savedpapers`, `/projects`, `/admin`, `/login`, `/signup`. API routes enforce auth themselves via `withAuth` / `withOptionalAuth` / `withAdmin`.
 
@@ -56,10 +56,11 @@ Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [cl
 - `consumeQuota` / `refundQuota` in `src/app/lib/entitlements.ts`. Periods, guest caps, and defaults: [quotas.md](quotas.md).
 - Stripe: checkout + portal + webhook. Only the webhook writes `plan`. See [billing.md](billing.md).
 - Usage events: `usage-meter.ts` → `UsageEvent` (admin cost view).
+- Live activity: `AudienceTracker` pings `/api/audience` every 15 s (time + presence on `PageEngagement`) and logs page views to `/api/activity`; Discover and Search log their steps there too. `RatingPrompt` (root layout) posts to `/api/ratings`. `/admin/live` and `/admin/feedback` read them.
 
 ## Models (`src/app/models/`)
 
-User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog, ContactMessage (feedback inbox), AdminEmail (sent admin email), ProductSignal (daily counts for the pulse).
+User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog, ContactMessage (feedback inbox), AdminEmail (sent admin email), ProductSignal (daily counts for the pulse), ActivityEvent (page views and steps for `/admin/live`, 30-day TTL), Rating (answers to the in-app rating prompt).
 
 ## Key server helpers
 

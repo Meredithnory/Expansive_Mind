@@ -28,6 +28,7 @@ import {
     type PaperHighlightRecord,
 } from "../../lib/paper-highlights";
 import { FIGURE_RIGHTS_ATTESTATION_VERSION } from "../../lib/figure-capture";
+import { askForRating } from "../../lib/rating";
 import { MAX_CAPTURE_BYTES } from "../../lib/canvas-image";
 import { formatExcerptQuestion } from "../../lib/region-capture";
 import {
@@ -740,6 +741,7 @@ const Chatbox = ({
                 ...prevMessages,
                 data.aiResponse,
             ]);
+            askForRating("paper_chat", wholePaper.title || wholePaper.paperId);
         } catch {
             console.error("Chat request failed");
             setAllMessages((prevMessages) => [

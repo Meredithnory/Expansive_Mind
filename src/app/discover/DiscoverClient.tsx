@@ -18,6 +18,8 @@ import DiscoveryCountdown from "./DiscoveryCountdown";
 import styles from "./discover.module.scss";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
+import { logActivity } from "../lib/activity";
+import { askForRating } from "../lib/rating";
 import {
     parseGuestDiscoveryResult,
     parseGuestOpportunityReport,
@@ -1053,6 +1055,8 @@ function DiscoverClient({
                     papers_used: data.meta?.papersUsed,
                     cache_hit: Boolean(data.cacheHit),
                 });
+                logActivity({ kind: "discover", detail: trimmed });
+                askForRating("discover", trimmed);
             } catch (err) {
                 if (
                     discoveryCancelledRef.current ||

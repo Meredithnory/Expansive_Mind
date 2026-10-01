@@ -8,12 +8,17 @@ const pageEngagementSchema = new mongoose.Schema(
         day: { type: String, required: true },
         secondsByPage: { type: mongoose.Schema.Types.Mixed, default: {} },
         moves: { type: mongoose.Schema.Types.Mixed, default: {} },
+        // Presence for /admin/live: the latest report from this visitor's tab.
+        lastSeenAt: { type: Date },
+        lastPage: { type: String },
+        away: { type: Boolean },
         expiresAt: { type: Date, required: true },
     },
     { versionKey: false, timestamps: true },
 );
 
 pageEngagementSchema.index({ day: 1 });
+pageEngagementSchema.index({ lastSeenAt: -1 });
 pageEngagementSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const PageEngagement =

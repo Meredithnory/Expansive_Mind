@@ -20,6 +20,7 @@ import clsx from "clsx";
 import { useSession } from "../lib/use-session";
 import Link from "next/link";
 import posthog from "posthog-js";
+import { logActivity } from "../lib/activity";
 import {
     DATE_FILTERS,
     dateFilterLabel,
@@ -371,6 +372,7 @@ const SearchPaperClient = ({
                 result_count: results.length,
                 cache_hit: Boolean(data.cacheHit),
             });
+            logActivity({ kind: "search", detail: query });
         },
         [finishSearchTransition, refresh],
     );
