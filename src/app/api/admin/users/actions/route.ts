@@ -14,7 +14,11 @@ import {
 } from "../../../../lib/password-reset";
 import { sendPasswordResetEmail } from "../../../../lib/password-reset-mail";
 import { getStripe } from "../../../../lib/stripe";
-import type { QuotaFeature } from "../../../../lib/plan-config";
+import { getPlanConfig, type QuotaFeature } from "../../../../lib/plan-config";
+import { DEVELOPER_EMAIL } from "../../../../lib/contact";
+import { proAccessEmail } from "../../../../lib/pro-access-mail";
+import { sendEmail } from "../../../../lib/send-email";
+import AdminEmail from "../../../../models/AdminEmail";
 import Block from "../../../../models/Block";
 import Follow from "../../../../models/Follow";
 import ForumComment from "../../../../models/ForumComment";
@@ -114,6 +118,34 @@ export const POST = withAdmin(async (request: NextRequest) => {
         const accessOverride = action === "grant_pro" ? "pro" : null;
         await User.updateOne({ _id: user._id }, { $set: { accessOverride } });
         result = { accessOverride };
+        // Paid plans are hidden, so nothing on the site says what Pro
+        // includes: a new grant emails them (unless the admin unticks it).
+        if (
+            action === "grant_pro" &&
+            before.accessOverride !== "pro" &&
+            body?.notify !== false &&
+            user.email
+        ) {
+            const mail = proAccessEmail({
+                origin: trustedApplicationOrigin(request),
+                firstName: user.firstName,
+                email: user.email,
+                allowance: (await getPlanConfig()).entitlements.pro,
+            });
+            const sent = await sendEmail({ to: user.email, replyTo: DEVELOPER_EMAIL, ...mail });
+            await AdminEmail.create({
+                subject: mail.subject,
+                body: mail.text,
+                audience: "one",
+                userID: user._id,
+                onlyOptedIn: false,
+                recipients: 1,
+                sent: sent.accepted ? 1 : 0,
+                failed: sent.accepted ? 0 : 1,
+                sentBy: request.user.email,
+            }).catch(() => console.error("Pro email log failed"));
+            result = { ...result, emailed: sent.accepted };
+        }
     }
 
     if (action === "reset_usage") {

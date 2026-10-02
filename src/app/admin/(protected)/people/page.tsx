@@ -105,6 +105,8 @@ export default function AdminPeoplePage() {
     const [history, setHistory] = useState<AuditEntry[]>([]);
     const [pending, setPending] = useState<Action | null>(null);
     const [typed, setTyped] = useState("");
+    // Grant Pro: email them what it includes (on by default).
+    const [notifyGrant, setNotifyGrant] = useState(true);
     const [busy, setBusy] = useState(false);
     const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
@@ -149,12 +151,25 @@ export default function AdminPeoplePage() {
         setBusy(true);
         setNotice(null);
         try {
-            await adminApi("/api/admin/users/actions", postJson("POST", {
-                userId: selected._id,
-                action,
-                confirm: action,
-            }));
-            setNotice({ kind: "ok", text: ACTION_COPY[action].done(selected) });
+            const data = await adminApi<{ result?: { emailed?: boolean } }>(
+                "/api/admin/users/actions",
+                postJson("POST", {
+                    userId: selected._id,
+                    action,
+                    confirm: action,
+                    ...(action === "grant_pro" ? { notify: notifyGrant } : {}),
+                }),
+            );
+            const emailed = data.result?.emailed;
+            setNotice({
+                kind: emailed === false ? "error" : "ok",
+                text:
+                    emailed === true
+                        ? `${ACTION_COPY[action].done(selected)} We emailed ${selected.email} what it includes.`
+                        : emailed === false
+                          ? `${ACTION_COPY[action].done(selected)} The email to ${selected.email} didn't go out; you can write to them from Email.`
+                          : ACTION_COPY[action].done(selected),
+            });
             setPending(null);
             setTyped("");
             if (action === "remove_user") {
@@ -184,6 +199,7 @@ export default function AdminPeoplePage() {
             onClick={() => {
                 setNotice(null);
                 setTyped("");
+                setNotifyGrant(true);
                 setPending(pending === action ? null : action);
             }}
         >
@@ -204,6 +220,16 @@ export default function AdminPeoplePage() {
                         placeholder={selected.email}
                         autoComplete="off"
                     />
+                ) : null}
+                {action === "grant_pro" ? (
+                    <label className={styles.confirmCheck}>
+                        <input
+                            type="checkbox"
+                            checked={notifyGrant}
+                            onChange={(event) => setNotifyGrant(event.target.checked)}
+                        />
+                        Email {selected.firstName || "them"} what Pro includes
+                    </label>
                 ) : null}
                 <div className={styles.confirmActions}>
                     <button

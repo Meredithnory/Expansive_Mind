@@ -29,6 +29,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `paper-scope.ts` | both | `narrowerScope`: note a paper only when it studied a narrower group (livestock, mice, cell lines) than the question |
 | `payments.ts` | both | `PAYMENTS_VISIBLE` (false since 2026-10-01): hides pricing, upgrade prompts, Pro labels, checkout |
 | `plan-messages.ts` | both | Limit wording: "You've used your 5 discoveries for this month. You get more on November 1."; contact link while paid plans are hidden |
+| `pro-access-mail.ts` | both | "You have Researcher Pro" email sent when an admin grants complimentary Pro (allowance from live plan settings) |
 | `product-signals.ts` | both | Allowed product signal keys and a fire-and-forget sender for `/api/signals` |
 | `send-email.ts` | server | Sends one email through Resend; never throws |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |

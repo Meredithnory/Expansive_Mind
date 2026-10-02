@@ -1023,6 +1023,25 @@
     animation: confirm-in 180ms ease both;
 }
 
+.confirmCheck {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: #e6eef8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    input {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: #ff0084;
+    }
+}
+
 .confirmActions {
     display: flex;
     flex-wrap: wrap;
@@ -1430,6 +1449,61 @@ a.feedPath:hover {
     font-size: 12px;
     line-height: 1.5;
     overflow-wrap: anywhere;
+}
+
+/* Most active people (pulse) */
+.activeRow {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    &:first-child {
+        border-top: 0;
+    }
+
+    .personButton {
+        text-decoration: none;
+    }
+}
+
+.activeRank {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #15151c;
+    color: #9aa3b2;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.activeWho {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.activeTime {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    white-space: nowrap;
+
+    strong {
+        color: #fff;
+        font-size: 15px;
+    }
+
+    small {
+        color: #7c8594;
+        font-size: 12px;
+    }
 }
 
 /* Hit a limit (pulse) */

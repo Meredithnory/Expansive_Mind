@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { withAdmin } from "../../../lib/admin";
 import connectDB from "../../../db/connectDB";
 import PageEngagement from "../../../models/PageEngagement";
+import UsageCounter from "../../../models/UsageCounter";
+import { monthKey } from "../../../lib/quota-period";
 import User from "../../../models/User";
 import { summarizeAudience, type AudienceRecord } from "../../../lib/audience";
 
@@ -67,7 +69,32 @@ export const GET = withAdmin(async () => {
             moves: row.moves,
         };
     });
-    return NextResponse.json(summarizeAudience(records, 30, end), {
+    const summary = summarizeAudience(records, 30, end);
+
+    // What each account used this month, for "Most active people".
+    const counters = userIds.length
+        ? await UsageCounter.find({
+              userID: { $in: userIds },
+              period: monthKey(end),
+              feature: { $in: ["discover", "search", "chat"] },
+          })
+              .select("userID feature count")
+              .lean<Array<{ userID: unknown; feature: "discover" | "search" | "chat"; count: number }>>()
+        : [];
+    const usageByUser = new Map<string, Partial<Record<"discover" | "search" | "chat", number>>>();
+    for (const counter of counters) {
+        const id = String(counter.userID);
+        const usage = usageByUser.get(id) ?? {};
+        usage[counter.feature] = (usage[counter.feature] ?? 0) + Number(counter.count || 0);
+        usageByUser.set(id, usage);
+    }
+    summary.people = summary.people.map((person) =>
+        person.id.startsWith("user:")
+            ? { ...person, usage: usageByUser.get(person.id.slice(5)) ?? {} }
+            : person,
+    );
+
+    return NextResponse.json(summary, {
         headers: { "Cache-Control": "private, no-store" },
     });
 });

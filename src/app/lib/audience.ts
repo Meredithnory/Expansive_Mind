@@ -77,6 +77,8 @@ export type AudiencePerson = {
     seconds: number;
     lastDay: string;
     pages: Array<{ page: string; label: string; seconds: number }>;
+    /** For accounts: what they used this month (from the usage counters). */
+    usage?: Partial<Record<"discover" | "search" | "chat", number>>;
 };
 
 export type AudienceDaily = {
@@ -245,6 +247,22 @@ export function audiencePeople(records: AudienceRecord[]): AudiencePerson[] {
             if (left.lastDay !== right.lastDay) return right.lastDay.localeCompare(left.lastDay);
             return right.seconds - left.seconds;
         });
+}
+
+/** Who spends the most time on the site: longest first, then most days. */
+export function mostActivePeople(
+    people: AudiencePerson[],
+    { includeGuests = false }: { includeGuests?: boolean } = {},
+) {
+    return people
+        .filter((person) => includeGuests || !person.guest)
+        .slice()
+        .sort(
+            (left, right) =>
+                right.seconds - left.seconds ||
+                right.days.length - left.days.length ||
+                right.lastDay.localeCompare(left.lastDay),
+        );
 }
 
 export function formatDuration(seconds: number) {
