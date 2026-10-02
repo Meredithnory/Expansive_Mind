@@ -14,6 +14,8 @@ type AlertRow = {
     used: number;
     blocked?: boolean;
     emailed?: boolean;
+    requestedAt?: Date;
+    requestNote?: string;
     firstAt: Date;
     lastAt: Date;
 };
@@ -53,6 +55,8 @@ export const GET = withAdmin(async () => {
             plan: string;
             lastAt: string;
             features: Array<{ feature: string; label: string; used: number; limit: number; blocked: boolean }>;
+            /** "Ask for more" from the limit pop-up: when, and their note. */
+            requests: Array<{ label: string; at: string; note: string }>;
         }
     >();
     for (const alert of alerts) {
@@ -67,6 +71,7 @@ export const GET = withAdmin(async () => {
             plan: resolvePlan({ ...account, accessOverride: account.accessOverride ?? undefined }),
             lastAt: new Date(alert.lastAt).toISOString(),
             features: [],
+            requests: [],
         };
         person.features.push({
             feature: alert.feature,
@@ -75,6 +80,13 @@ export const GET = withAdmin(async () => {
             limit: alert.limit,
             blocked: Boolean(alert.blocked),
         });
+        if (alert.requestedAt) {
+            person.requests.push({
+                label: LIMIT_FEATURE_LABEL[alert.feature],
+                at: new Date(alert.requestedAt).toISOString(),
+                note: alert.requestNote || "",
+            });
+        }
         people.set(userId, person);
     }
 

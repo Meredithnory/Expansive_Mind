@@ -44,6 +44,7 @@ type LimitPerson = {
     plan: string;
     lastAt: string;
     features: Array<{ feature: string; label: string; used: number; limit: number; blocked: boolean }>;
+    requests: Array<{ label: string; at: string; note: string }>;
 };
 
 const TOP_PEOPLE = 10;
@@ -187,6 +188,9 @@ function HitLimitCard() {
                             </div>
                             <span className={styles.footnote}>{person.email}</span>
                             <div className={styles.chips}>
+                                {person.requests.length > 0 ? (
+                                    <span className={clsx(styles.chip, styles.askedChip)}>Asked for more</span>
+                                ) : null}
                                 {person.features.map((item) => (
                                     <span key={item.feature} className={styles.chip}>
                                         {item.label}: {item.used} of {item.limit}
@@ -194,6 +198,13 @@ function HitLimitCard() {
                                     </span>
                                 ))}
                             </div>
+                            {person.requests
+                                .filter((ask) => ask.note)
+                                .map((ask) => (
+                                    <p key={`${ask.label}-${ask.at}`} className={styles.askedNote}>
+                                        <span>{ask.label}:</span> “{ask.note}”
+                                    </p>
+                                ))}
                         </li>
                     ))}
                 </ul>
