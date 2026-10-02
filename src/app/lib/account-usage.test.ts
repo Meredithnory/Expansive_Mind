@@ -6,10 +6,12 @@ import { quotaPeriod } from "./quota-period";
 const now = new Date("2026-09-22T12:00:00.000Z");
 
 describe("account quota reporting", () => {
-    it("keeps free Discovery on a lifetime counter and Pro on the current month", () => {
-        expect(quotaPeriod("free", "discover", now)).toBe("lifetime");
+    it("starts free Discovery over each month and keeps free projects for life", () => {
+        expect(quotaPeriod("free", "discover", now)).toBe("2026-09");
         expect(quotaPeriod("pro", "discover", now)).toBe("2026-09");
         expect(quotaPeriod("free", "search", now)).toBe("2026-09");
+        expect(quotaPeriod("free", "projects", now)).toBe("lifetime");
+        expect(quotaPeriod("guest", "discover", now)).toBe("lifetime");
     });
 
     it("shows this period against the plan limit and ignores older months", () => {

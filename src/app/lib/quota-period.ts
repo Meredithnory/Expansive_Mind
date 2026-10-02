@@ -27,7 +27,8 @@ export function quotaPeriod(plan: Plan, feature: QuotaFeature, now: Date) {
     if (plan === "guest") {
         return `${monthKey(now)}-${String(now.getUTCDate()).padStart(2, "0")}`;
     }
-    if (plan === "free" && (feature === "discover" || feature === "projects")) {
+    // Free Discovery starts over each month (2026-10-01); projects don't.
+    if (plan === "free" && feature === "projects") {
         return "lifetime";
     }
     return monthKey(now);

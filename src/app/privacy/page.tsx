@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            updated="September 29, 2026"
+            updated="September 30, 2026"
             intro={
                 <p>
                     Expansive Mind (expansivemind.ai) is a research tool run by{" "}
@@ -54,9 +54,17 @@ export default function PrivacyPage() {
                             </li>
                             <li>
                                 <strong>Usage:</strong> which pages you visit,
-                                how long you stay, and how many searches you
+                                how long you stay, the searches and research
+                                questions you run, and how many searches you
                                 use, so we can enforce plan limits and improve
-                                the product.
+                                the product. If you are signed in, this is
+                                linked to your account.
+                            </li>
+                            <li>
+                                <strong>Ratings:</strong> if you answer
+                                &ldquo;How is Expansive Mind doing?&rdquo;, your
+                                rating, any comment you add, and the question
+                                or paper it was about.
                             </li>
                             <li>
                                 <strong>Messages:</strong> anything you send
@@ -127,8 +135,10 @@ export default function PrivacyPage() {
                                 </li>
                                 <li>
                                     <strong>PostHog</strong> for product
-                                    analytics, linked to your account ID and
-                                    plan.
+                                    analytics, including recordings of how you
+                                    click and scroll through the site, linked to
+                                    your account ID and plan. Recordings hide
+                                    what you type and the text of papers.
                                 </li>
                                 <li>
                                     <strong>Resend</strong> to deliver emails.
@@ -179,10 +189,12 @@ export default function PrivacyPage() {
                     body: (
                         <p>
                             We use cookies to keep you signed in, to complete
-                            Google sign-in safely, and to count visits without
-                            knowing who you are. The visit counter is stored as
-                            a scrambled key and deleted after 120 days. We do
-                            not use advertising cookies.
+                            Google sign-in safely, and to count visits. If you
+                            are not signed in, the visit counter is a scrambled
+                            key, not your name or email, and it is deleted
+                            after 120 days. Your browser also remembers when
+                            it last asked you for a rating, so we don&apos;t
+                            ask too often. We do not use advertising cookies.
                         </p>
                     ),
                 },
@@ -191,7 +203,10 @@ export default function PrivacyPage() {
                     body: (
                         <p>
                             We keep your account and research while your
-                            account is open. If you ask us to delete your
+                            account is open. Our step-by-step log of the pages
+                            you open and the searches and questions you run is
+                            deleted after 30 days, and daily visit totals after
+                            120 days. If you ask us to delete your
                             account, we delete your account data, except
                             records we must keep for billing or legal reasons.
                         </p>

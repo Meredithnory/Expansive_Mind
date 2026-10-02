@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { REPLAY_MASK } from "../../../lib/replay-privacy";
 import styles from "./shared-paper.module.scss";
 
 interface SharedPaper {
@@ -181,7 +182,7 @@ export default function SharedPaperPage() {
                                     <span>Open in paper →</span>
                                 </Link>
                                 {highlight.excerpt ? (
-                                    <blockquote>{highlight.excerpt}</blockquote>
+                                    <blockquote className={REPLAY_MASK}>{highlight.excerpt}</blockquote>
                                 ) : (
                                     <p className={styles.hiddenQuote}>
                                         This paper&apos;s license doesn&apos;t

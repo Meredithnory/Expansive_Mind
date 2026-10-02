@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
+import { REPLAY_MASK } from "../lib/replay-privacy";
 import type {
     ClaimLedger,
     ClaimLedgerKind,
@@ -169,7 +170,7 @@ function Source({
         <li className={clsx(styles.sourceItem, { [styles.sourceActive]: active })}>
             <figure className={styles.sourceFigure}>
                 {quoted && shown ? (
-                    <blockquote className={styles.quote}>{shown.quote}</blockquote>
+                    <blockquote className={clsx(styles.quote, REPLAY_MASK)}>{shown.quote}</blockquote>
                 ) : null}
                 <figcaption className={styles.sourceMeta}>
                     {pill}

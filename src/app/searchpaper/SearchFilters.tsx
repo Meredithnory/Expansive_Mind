@@ -6,6 +6,7 @@ import React, { useEffect, useId, useRef, useState, type RefObject } from "react
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import styles from "./search-results.module.scss";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
 import {
     DATE_FILTERS,
     SOURCE_FILTERS,
@@ -14,6 +15,13 @@ import {
     type DateFilter,
     type SourceFilter,
 } from "../lib/search-filters";
+
+/** While paid plans are hidden, Scholar is only offered to people who can use it. */
+function visibleSources(scholarLocked: boolean) {
+    return PAYMENTS_VISIBLE || !scholarLocked
+        ? SOURCE_FILTERS
+        : SOURCE_FILTERS.filter((filter) => !filter.pro);
+}
 
 type FiltersProps = {
     source: SourceFilter;
@@ -102,7 +110,7 @@ export function SearchFilterBar({ source, date, onChange, scholarLocked }: Filte
                 <span className={styles.eyebrow} aria-hidden="true">
                     Source
                 </span>
-                {SOURCE_FILTERS.map((filter) => {
+                {visibleSources(scholarLocked).map((filter) => {
                     const on = source === filter.value;
                     return (
                         <button
@@ -329,7 +337,7 @@ function FilterSheet({
                 <fieldset className={styles.sheetGroup}>
                     <legend className={styles.sheetLegend}>Source</legend>
                     <div className={styles.sheetSources}>
-                        {SOURCE_FILTERS.map((filter) => (
+                        {visibleSources(scholarLocked).map((filter) => (
                             <label
                                 key={filter.value}
                                 className={clsx(styles.sheetSource, draftSource === filter.value && styles.sheetSourceOn)}

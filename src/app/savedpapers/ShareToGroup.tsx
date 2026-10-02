@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import type { HighlightNotesPaper } from "../lib/highlight-notes";
+import { REPLAY_MASK } from "../lib/replay-privacy";
 import styles from "./savedpage.module.scss";
 
 type GroupOption = { id: string; name: string };
@@ -151,7 +152,7 @@ export default function ShareToGroup({
                                     checked={picked.has(highlight.id)}
                                     onChange={() => toggle(highlight.id)}
                                 />
-                                <span>{highlight.excerpt}</span>
+                                <span className={REPLAY_MASK}>{highlight.excerpt}</span>
                             </label>
                         ))}
                     </fieldset>

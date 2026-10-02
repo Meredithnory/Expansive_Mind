@@ -3,6 +3,7 @@ import {
     audiencePage,
     clampAudienceSeconds,
     formatDuration,
+    mostActivePeople,
     summarizeAudience,
 } from "./audience";
 
@@ -113,5 +114,31 @@ describe("formatDuration", () => {
         expect(formatDuration(45)).toBe("45s");
         expect(formatDuration(180)).toBe("3m");
         expect(formatDuration(3900)).toBe("1h 5m");
+    });
+});
+
+describe("mostActivePeople", () => {
+    const person = (id: string, seconds: number, days: string[], guest = false) => ({
+        id,
+        name: guest ? "Guest" : id,
+        email: guest ? null : `${id}@lab.edu`,
+        plan: guest ? null : "free",
+        guest,
+        days,
+        seconds,
+        lastDay: days.at(-1) ?? "",
+        pages: [],
+    });
+
+    it("ranks accounts by time, then by days, and leaves guests out unless asked", () => {
+        const people = [
+            person("short", 120, ["2026-10-01"]),
+            person("guest-a", 9_000, ["2026-10-01"], true),
+            person("long", 3_600, ["2026-10-01"]),
+            person("steady", 120, ["2026-09-29", "2026-10-01"]),
+        ];
+        expect(mostActivePeople(people).map((p) => p.id)).toEqual(["long", "steady", "short"]);
+        expect(mostActivePeople(people, { includeGuests: true })[0].id).toBe("guest-a");
+        expect(people[0].id).toBe("short");
     });
 });

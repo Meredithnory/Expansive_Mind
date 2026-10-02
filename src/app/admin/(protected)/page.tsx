@@ -5,7 +5,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { adminApi } from "../admin-api";
 import { percentChange } from "../../lib/admin-overview";
-import { formatDuration, type AudienceSummary } from "../../lib/audience";
+import { formatDuration, mostActivePeople, type AudienceSummary } from "../../lib/audience";
+import { guestName } from "../../lib/activity";
 import type { FunnelStep, QuestionTopic } from "../../lib/admin-pulse";
 import styles from "../admin-portal.module.scss";
 
@@ -35,6 +36,174 @@ type Pulse = {
 type Message = { _id: string; name: string; topic: string; message: string; createdAt: string };
 
 const RANGES = [7, 30, 90];
+
+type LimitPerson = {
+    userId: string;
+    name: string;
+    email: string;
+    plan: string;
+    lastAt: string;
+    features: Array<{ feature: string; label: string; used: number; limit: number; blocked: boolean }>;
+};
+
+const TOP_PEOPLE = 10;
+
+function usageLine(usage: NonNullable<AudienceSummary["people"][number]["usage"]>) {
+    const parts = [
+        usage.discover ? `${usage.discover} ${usage.discover === 1 ? "discovery" : "discoveries"}` : "",
+        usage.search ? `${usage.search} ${usage.search === 1 ? "search" : "searches"}` : "",
+        usage.chat ? `${usage.chat} AI ${usage.chat === 1 ? "question" : "questions"}` : "",
+    ].filter(Boolean);
+    return parts.length ? `${parts.join(" · ")} this month` : "Nothing used yet this month";
+}
+
+/** Who spends the most time on the site, and what accounts used this month. */
+function MostActiveCard({ audience }: { audience: AudienceSummary | null }) {
+    const [everyone, setEveryone] = useState(false);
+    const [showAll, setShowAll] = useState(false);
+    const ranked = audience ? mostActivePeople(audience.people, { includeGuests: everyone }) : [];
+    const shown = showAll ? ranked : ranked.slice(0, TOP_PEOPLE);
+
+    return (
+        <section className={styles.card} aria-labelledby="active-h">
+            <div className={styles.cardHead}>
+                <div>
+                    <h2 id="active-h">Most active people</h2>
+                    <p className={styles.muted}>
+                        Time on the site in the last 30 days. Accounts also show what they used this month.
+                    </p>
+                </div>
+                <div role="radiogroup" aria-label="Show" className={clsx(styles.segmented, styles.segmentedSmall)}>
+                    <button type="button" role="radio" aria-checked={!everyone} onClick={() => setEveryone(false)}>
+                        Accounts
+                    </button>
+                    <button type="button" role="radio" aria-checked={everyone} onClick={() => setEveryone(true)}>
+                        Everyone
+                    </button>
+                </div>
+            </div>
+            {!audience ? (
+                <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+            ) : ranked.length === 0 ? (
+                <p className={styles.muted}>{everyone ? "No visits recorded yet." : "No signed-in visits yet."}</p>
+            ) : (
+                <ol className={styles.plainList}>
+                    {shown.map((person, index) => (
+                        <li key={person.id} className={styles.activeRow}>
+                            <span className={styles.activeRank}>{index + 1}</span>
+                            <span className={styles.activeWho}>
+                                <span className={styles.messageHead}>
+                                    {person.email ? (
+                                        <Link
+                                            href={`/admin/people?q=${encodeURIComponent(person.email)}`}
+                                            className={styles.personButton}
+                                        >
+                                            {person.name}
+                                        </Link>
+                                    ) : (
+                                        <strong>{person.guest ? guestName(person.id) : person.name}</strong>
+                                    )}
+                                    <span className={clsx(styles.planChip, { [styles.planChipPro]: person.plan === "pro" })}>
+                                        {person.guest ? "guest" : person.plan || "free"}
+                                    </span>
+                                </span>
+                                <span className={styles.footnote}>
+                                    {person.pages.length
+                                        ? `Mostly ${person.pages.slice(0, 2).map((page) => page.label).join(" and ")}`
+                                        : ""}
+                                    {person.usage ? `${person.pages.length ? " · " : ""}${usageLine(person.usage)}` : ""}
+                                </span>
+                            </span>
+                            <span className={styles.activeTime}>
+                                <strong>{formatDuration(person.seconds)}</strong>
+                                <small>
+                                    {person.days.length} {person.days.length === 1 ? "day" : "days"}
+                                </small>
+                            </span>
+                        </li>
+                    ))}
+                </ol>
+            )}
+            {ranked.length > TOP_PEOPLE ? (
+                <button type="button" className={styles.textButton} onClick={() => setShowAll((value) => !value)}>
+                    {showAll ? `Show the top ${TOP_PEOPLE}` : `Show all ${ranked.length}`}
+                </button>
+            ) : null}
+        </section>
+    );
+}
+
+/** Who used up a monthly allowance; each also emailed Meredith the first time. */
+function HitLimitCard() {
+    const [data, setData] = useState<{ month: string; people: LimitPerson[] } | null>(null);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        adminApi<{ month: string; people: LimitPerson[] }>("/api/admin/limits")
+            .then(setData)
+            .catch((err) => setError(err instanceof Error ? err.message : "Unable to load limits."));
+    }, []);
+
+    return (
+        <section className={styles.card} aria-labelledby="limits-h">
+            <div className={styles.cardHead}>
+                <div>
+                    <h2 id="limits-h">
+                        Hit a limit this month{" "}
+                        {data && data.people.length > 0 ? (
+                            <span className={styles.liveCount}>{data.people.length}</span>
+                        ) : null}
+                    </h2>
+                    <p className={styles.muted}>
+                        People who used all their discoveries, paper searches, or AI paper questions
+                        {data ? ` in ${data.month}` : " this month"}. You also get an email the first time.
+                    </p>
+                </div>
+                <Link href="/admin/people" className={styles.textLink}>
+                    People &amp; support
+                </Link>
+            </div>
+            {error ? (
+                <p className={styles.error}>{error}</p>
+            ) : !data ? (
+                <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+            ) : data.people.length === 0 ? (
+                <p className={styles.muted}>Nobody has hit a limit this month.</p>
+            ) : (
+                <ul className={styles.plainList}>
+                    {data.people.map((person) => (
+                        <li key={person.userId} className={styles.limitRow}>
+                            <div className={styles.messageHead}>
+                                <Link
+                                    href={`/admin/people?q=${encodeURIComponent(person.email)}`}
+                                    className={styles.personButton}
+                                >
+                                    {person.name}
+                                </Link>
+                                <span className={clsx(styles.planChip, { [styles.planChipPro]: person.plan === "pro" })}>
+                                    {person.plan}
+                                </span>
+                                <span className={styles.when}>{ago(person.lastAt)}</span>
+                            </div>
+                            <span className={styles.footnote}>{person.email}</span>
+                            <div className={styles.chips}>
+                                {person.features.map((item) => (
+                                    <span key={item.feature} className={styles.chip}>
+                                        {item.label}: {item.used} of {item.limit}
+                                        {item.blocked ? " · tried again" : ""}
+                                    </span>
+                                ))}
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <p className={styles.footnote}>
+                To give someone more, open them in People &amp; support and reset their usage.
+            </p>
+        </section>
+    );
+}
 
 function ago(date: string) {
     const minutes = Math.round((Date.now() - new Date(date).getTime()) / 60_000);
@@ -144,6 +313,8 @@ export default function AdminPulsePage() {
                 </section>
             ) : null}
 
+            <HitLimitCard />
+
             <section className={clsx(styles.card, styles.funnelCard)} aria-labelledby="funnel-h">
                 <div className={styles.cardHead}>
                     <div>
@@ -205,6 +376,8 @@ export default function AdminPulsePage() {
                     <span className={styles.kpiNote}>Paying Pro accounts × monthly price</span>
                 </div>
             </div>
+
+            <MostActiveCard audience={audience} />
 
             <div className={styles.twoUp}>
                 <section className={styles.card} aria-labelledby="asking-h">

@@ -2,6 +2,8 @@
 
 Checkout does not grant Pro.
 
+**Paid plans are hidden** (Meredith, 2026-10-01): `PAYMENTS_VISIBLE = false` in `src/app/lib/payments.ts`. While false, `/pricing` redirects home (`src/app/pricing/layout.tsx`), checkout returns 404, and nav, footer, profile, upgrade prompts, and "Pro" labels are hidden or reworded (limit wording: `src/app/lib/plan-messages.ts`). Pro already granted keeps working. Flipping it back is Meredith's call.
+
 `POST` `src/app/api/billing/checkout/route.ts` opens Stripe Checkout for the `PlanConfig` price id (`month` or `year`) and stores `userID` on the customer and the subscription metadata. The success URL is `/pricing?checkout=success`.
 
 `POST` `src/app/api/billing/portal/route.ts` opens the billing portal. It does not change `plan`.

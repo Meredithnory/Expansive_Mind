@@ -273,7 +273,9 @@ describe("discover route gates", () => {
         const free = await POST(
             post({ question: "Why did events fall?" }, { _id: userId }),
         );
-        expect((await free.json()).error).toContain("two free Discovery runs");
+        expect((await free.json()).error).toMatch(
+            /^You've used your 1 discovery for this month\. You get more on [A-Z][a-z]+ 1\.$/,
+        );
         expect(mocks.runDiscoverAgent).not.toHaveBeenCalled();
     });
 

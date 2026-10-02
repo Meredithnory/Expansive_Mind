@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { monthlyLimitMessage } from "../../../../lib/plan-messages";
 import mongoose from "mongoose";
 import { withAuth } from "../../../authMiddleware";
 import { hasValidMutationOrigin } from "../../../../lib/request-security";
@@ -83,10 +84,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             if (!quota.allowed) {
                 return NextResponse.json(
                     {
-                        error:
-                            plan === "free"
-                                ? "Free AI question limit reached. Upgrade to Researcher Pro to continue."
-                                : "Monthly AI question limit reached.",
+                        error: monthlyLimitMessage("chat", quota.limit, { upgrade: plan === "free" }),
                         code: "QUOTA_EXCEEDED",
                         quota,
                     },

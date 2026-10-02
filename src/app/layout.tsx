@@ -4,6 +4,7 @@ import "./globals.scss";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
 import AudienceTracker from "./components/AudienceTracker";
+import RatingPrompt from "./components/RatingPrompt";
 import ScrollTheme from "./components/ScrollTheme";
 import KeyboardInset from "./components/KeyboardInset";
 import { SessionProvider } from "./lib/use-session";
@@ -48,6 +49,7 @@ export default function RootLayout({
                     <NavBar />
                     <div className="main-content">{children}</div>
                     <Footer />
+                    <RatingPrompt />
                 </SessionProvider>
             </body>
         </html>

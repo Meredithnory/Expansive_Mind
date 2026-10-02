@@ -8,6 +8,7 @@ import ProfileMark from "../components/ProfileMark";
 import ReportButton from "./ReportButton";
 import { type ForumPost, when } from "./forum-client";
 import { badgeTagLine } from "../lib/lab-badge";
+import { REPLAY_MASK } from "../lib/replay-privacy";
 import styles from "./forum.module.scss";
 
 export default function ForumPostCard({
@@ -92,7 +93,7 @@ export default function ForumPostCard({
             {shown.map((highlight) => (
                 <div key={highlight.id} className={styles.highlight} data-color={highlight.color}>
                     {highlight.excerpt ? (
-                        <blockquote>{highlight.excerpt}</blockquote>
+                        <blockquote className={REPLAY_MASK}>{highlight.excerpt}</blockquote>
                     ) : (
                         <p className={styles.hiddenQuote}>
                             Highlight in {highlight.sectionTitle}. This paper&apos;s license

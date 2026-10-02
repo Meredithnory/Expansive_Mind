@@ -4,6 +4,7 @@ import { FormEvent, use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProfileMark from "../../components/ProfileMark";
+import { REPLAY_MASK } from "../../lib/replay-privacy";
 import styles from "../groups.module.scss";
 
 type Person = {
@@ -303,7 +304,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                             {post.highlights.map((highlight) => (
                                 <div key={highlight.id} className={styles.highlight} data-color={highlight.color}>
                                     {highlight.excerpt ? (
-                                        <blockquote>{highlight.excerpt}</blockquote>
+                                        <blockquote className={REPLAY_MASK}>{highlight.excerpt}</blockquote>
                                     ) : (
                                         <p className={styles.hiddenQuote}>
                                             Highlight in {highlight.sectionTitle}. This paper&apos;s

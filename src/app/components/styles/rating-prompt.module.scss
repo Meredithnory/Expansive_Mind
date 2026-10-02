@@ -1,0 +1,193 @@
+@use "../../variables" as *;
+
+// "How is Expansive Mind doing?" A small card in the corner; the page stays usable.
+.prompt {
+    position: fixed;
+    right: max(20px, env(safe-area-inset-right));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    z-index: 90;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(340px, calc(100vw - 32px));
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: #0d0d13;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    color: #e6eef8;
+    animation: rating-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.title {
+    margin: 4px 0 0;
+    color: #e6eef8;
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.optional {
+    color: #7c8594;
+    font-weight: 600;
+}
+
+.close {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #9aa3b2;
+    cursor: pointer;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+.scores {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.score {
+    min-height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #e6eef8;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: rgba(255, 0, 132, 0.6);
+        background: rgba(255, 0, 132, 0.12);
+        color: #fff;
+    }
+}
+
+.follow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.comment {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 76px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    background: #0a0a0f;
+    color: #e6eef8;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.45;
+    resize: vertical;
+
+    &:focus {
+        border-color: rgba(255, 0, 132, 0.6);
+        outline: none;
+    }
+
+    &::placeholder {
+        color: #6b7280;
+    }
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.skip,
+.send {
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.skip {
+    border: 0;
+    background: transparent;
+    color: #9aa3b2;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+.send {
+    border: 1px solid $main-pink;
+    background: $main-pink;
+    color: #fff;
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+}
+
+.error {
+    margin: 0;
+    color: #ffb4b4;
+    font-size: 13px;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+@keyframes rating-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .prompt {
+        right: 12px;
+        left: 12px;
+        bottom: calc(12px + var(--mobile-bottom-nav-clearance));
+        width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prompt {
+        animation: none;
+    }
+}

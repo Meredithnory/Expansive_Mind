@@ -28,6 +28,9 @@ import {
     type PaperHighlightRecord,
 } from "../../lib/paper-highlights";
 import { FIGURE_RIGHTS_ATTESTATION_VERSION } from "../../lib/figure-capture";
+import { askForRating } from "../../lib/rating";
+import { REPLAY_MASK } from "../../lib/replay-privacy";
+import { notOnPlanMessage } from "../../lib/plan-messages";
 import { MAX_CAPTURE_BYTES } from "../../lib/canvas-image";
 import { formatExcerptQuestion } from "../../lib/region-capture";
 import {
@@ -300,7 +303,7 @@ const Messages = ({
 
     return (
         <div
-            className={styles.messages}
+            className={clsx(styles.messages, REPLAY_MASK)}
             ref={messagesRef}
             hidden={hidden}
             {...panelProps}
@@ -515,8 +518,7 @@ const Input = ({
                     )}
                     {attachment?.image && !canAttachImages && (
                         <p className={styles.screenshotHint}>
-                            Screenshot analysis is available with Researcher
-                            Pro.
+                            {notOnPlanMessage("Screenshot analysis")}
                         </p>
                     )}
                     <textarea
@@ -733,21 +735,29 @@ const Chatbox = ({
             void refresh();
 
             if (!res.ok || !data.aiResponse) {
-                throw new Error(data.error || "Failed to save conversation.");
+                // A used-up allowance says so; anything else stays generic.
+                throw new Error(
+                    data.code === "QUOTA_EXCEEDED" && typeof data.error === "string"
+                        ? data.error
+                        : "",
+                );
             }
 
             setAllMessages((prevMessages) => [
                 ...prevMessages,
                 data.aiResponse,
             ]);
-        } catch {
+            askForRating("paper_chat", wholePaper.title || wholePaper.paperId);
+        } catch (error) {
             console.error("Chat request failed");
+            const limitMessage = error instanceof Error ? error.message : "";
             setAllMessages((prevMessages) => [
                 ...prevMessages,
                 {
                     id: `local-error-${Date.now()}`,
                     sender: "ai",
                     message:
+                        limitMessage ||
                         "I couldn't save that message. Please try again in a moment.",
                     timestamp: new Date(),
                 },
@@ -858,9 +868,7 @@ const Chatbox = ({
             return;
         }
         if (!canAnalyzeFigures) {
-            setComposerError(
-                "Screenshot analysis is available with Researcher Pro.",
-            );
+            setComposerError(notOnPlanMessage("Screenshot analysis"));
             return;
         }
         setComposerError("");

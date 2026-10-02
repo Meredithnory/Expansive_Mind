@@ -24,6 +24,9 @@ const mocks = vi.hoisted(() => {
         engagementUpdateMany: updated(6),
         recordAdminAction: vi.fn().mockResolvedValue(undefined),
         stripeCancel: vi.fn(),
+        userUpdateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+        sendEmail: vi.fn().mockResolvedValue({ accepted: true, status: 200, id: "e1" }),
+        adminEmailCreate: vi.fn().mockResolvedValue({}),
     };
 });
 
@@ -38,7 +41,13 @@ vi.mock("../../../../lib/stripe", () => ({
     getStripe: () => ({ subscriptions: { cancel: mocks.stripeCancel } }),
 }));
 vi.mock("../../../../models/User", () => ({
-    default: { findById: mocks.userFindById, deleteOne: mocks.userDeleteOne },
+    default: { findById: mocks.userFindById, deleteOne: mocks.userDeleteOne, updateOne: mocks.userUpdateOne },
+}));
+vi.mock("../../../../lib/send-email", () => ({ sendEmail: mocks.sendEmail }));
+vi.mock("../../../../models/AdminEmail", () => ({ default: { create: mocks.adminEmailCreate } }));
+vi.mock("../../../../lib/plan-config", () => ({
+    getPlanConfig: () =>
+        Promise.resolve({ entitlements: { pro: { discover: 20, search: 300, scholar_search: 25, chat: 100, projects: 50 } } }),
 }));
 vi.mock("../../../../models/SavedPaper", () => ({
     default: {
@@ -195,5 +204,49 @@ describe("POST /api/admin/users/actions remove_user", () => {
         expect(mocks.recordAdminAction).toHaveBeenCalledWith(
             expect.objectContaining({ action: "user.remove_user" }),
         );
+    });
+});
+
+describe("POST /api/admin/users/actions grant_pro", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mocks.userFindById.mockResolvedValue({
+            _id: USER_ID,
+            firstName: "Ada",
+            email: "ada@lab.edu",
+            accessOverride: null,
+        });
+        mocks.sendEmail.mockResolvedValue({ accepted: true, status: 200, id: "e1" });
+    });
+
+    it("grants Pro and emails what it includes, logged in Admin email history", async () => {
+        const response = await POST(request({ action: "grant_pro", confirm: "grant_pro", userId: USER_ID }));
+        expect((await response.json()).result).toEqual({ accessOverride: "pro", emailed: true });
+        expect(mocks.userUpdateOne).toHaveBeenCalledWith({ _id: USER_ID }, { $set: { accessOverride: "pro" } });
+        const mail = mocks.sendEmail.mock.calls[0][0];
+        expect(mail).toMatchObject({ to: "ada@lab.edu", subject: "You have Researcher Pro on Expansive Mind, at no cost" });
+        expect(mail.text).toContain("20 discoveries");
+        expect(mocks.adminEmailCreate).toHaveBeenCalledWith(
+            expect.objectContaining({ audience: "one", userID: USER_ID, recipients: 1, sent: 1, sentBy: "admin@example.test" }),
+        );
+    });
+
+    it("sends nothing when the box is unticked or they already had Pro", async () => {
+        await POST(request({ action: "grant_pro", confirm: "grant_pro", userId: USER_ID, notify: false }));
+        mocks.userFindById.mockResolvedValue({ _id: USER_ID, firstName: "Ada", email: "ada@lab.edu", accessOverride: "pro" });
+        await POST(request({ action: "grant_pro", confirm: "grant_pro", userId: USER_ID }));
+        expect(mocks.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("says so when the email didn't go out", async () => {
+        mocks.sendEmail.mockResolvedValue({ accepted: false, status: null, id: null });
+        const response = await POST(request({ action: "grant_pro", confirm: "grant_pro", userId: USER_ID }));
+        expect((await response.json()).result.emailed).toBe(false);
+    });
+
+    it("never emails when Pro is removed", async () => {
+        mocks.userFindById.mockResolvedValue({ _id: USER_ID, firstName: "Ada", email: "ada@lab.edu", accessOverride: "pro" });
+        await POST(request({ action: "revoke_pro", confirm: "revoke_pro", userId: USER_ID }));
+        expect(mocks.sendEmail).not.toHaveBeenCalled();
     });
 });

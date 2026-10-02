@@ -10,6 +10,7 @@ import { coatColor } from "../lib/profile-colors";
 import { useSession } from "../lib/use-session";
 import BadgeStage, { tagName } from "./BadgeStage";
 import ProductEmailToggle from "./ProductEmailToggle";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
 import styles from "./profile.module.scss";
 
 type Stats = { posts: number; followers: number; following: number };
@@ -146,9 +147,11 @@ export default function ProfilePage() {
                         </div>
                         {NEWSLETTER_OPT_IN_VISIBLE && <ProductEmailToggle />}
                         <nav className={styles.accountLinks} aria-label="Account">
-                            <Link href="/pricing">
-                                Plan and billing <span aria-hidden="true">›</span>
-                            </Link>
+                            {PAYMENTS_VISIBLE ? (
+                                <Link href="/pricing">
+                                    Plan and billing <span aria-hidden="true">›</span>
+                                </Link>
+                            ) : null}
                             <Link href="/forgot-password">
                                 Reset password <span aria-hidden="true">›</span>
                             </Link>

@@ -203,7 +203,8 @@ describe("paper brief route", () => {
 
         expect(response.status).toBe(429);
         expect(body.code).toBe("QUOTA_EXCEEDED");
-        expect(body.error).toContain("Upgrade to Researcher Pro");
+        expect(body.error).toContain("You've used your 20 paper assistant questions for this month.");
+        expect(body.error).not.toContain("Researcher Pro");
         expect(mocks.loadCachedPaperBySource).not.toHaveBeenCalled();
     });
 

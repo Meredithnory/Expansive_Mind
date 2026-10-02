@@ -5,6 +5,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | File | Side | One line |
 | --- | --- | --- |
 | `abstract-text.ts` | both | Flatten abstract fields to text |
+| `activity.ts` | both | `/admin/live`: page views + discover/search steps (validate, feed wording), who is on the site now, and a fire-and-forget `logActivity` for `/api/activity` |
 | `admin-email.ts` | both | Parse and render an `/admin/email` message; group sends carry an unsubscribe link |
 | `admin-pulse.ts` | both | `/admin` pulse helpers: range, question-to-brief funnel, question topics |
 | `admin.ts` | server | `withAdmin` + `isAdminUser` |
@@ -12,6 +13,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `admin-identity.ts` | both | Parse `ADMIN_EMAILS` |
 | `admin-session.ts` | both | Admin session, MFA challenge, and auth cookie issuers |
 | `admin-totp.ts` | server | Encrypt, QR, and verify admin TOTP |
+| `audience-visitor.ts` | server | The anonymous `em_audience` visit cookie and its scrambled key, shared by `/api/audience`, `/api/activity`, `/api/ratings` |
 | `billing-subscription.ts` | server | Map Stripe subscription → User fields |
 | `brief-view.ts` | both | Shared topic brief view model: summary chips that open the cited sentence, gaps, papers, counts |
 | `browser-paper.ts` | client | Load an unlicensed PMC body in the reader's browser from NIH / Europe PMC. Read-only figures |
@@ -25,6 +27,9 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `email-layout.ts` | both | Branded HTML email shell (light inline default; dark through `prefers-color-scheme` and `EMAIL_CLASS` hooks), escaping, and the default sender (`support@expansivemind.ai`) |
 | `email-unsubscribe.ts` | server | Signed unsubscribe tokens and links for product email |
 | `paper-scope.ts` | both | `narrowerScope`: note a paper only when it studied a narrower group (livestock, mice, cell lines) than the question |
+| `payments.ts` | both | `PAYMENTS_VISIBLE` (false since 2026-10-01): hides pricing, upgrade prompts, Pro labels, checkout |
+| `plan-messages.ts` | both | Limit wording: "You've used your 5 discoveries for this month. You get more on November 1."; contact link while paid plans are hidden |
+| `pro-access-mail.ts` | both | "You have Researcher Pro" email sent when an admin grants complimentary Pro (allowance from live plan settings) |
 | `product-signals.ts` | both | Allowed product signal keys and a fire-and-forget sender for `/api/signals` |
 | `send-email.ts` | server | Sends one email through Resend; never throws |
 | `content-access-policy.ts` | both | License normalize + AI/display flags (CC0 / BY / BY-SA / BY-ND) |
@@ -61,8 +66,12 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `quota-identity.ts` | server | Hash quota identity |
 | `quota-period.ts` | both | Lifetime, UTC day, or UTC month for a quota feature |
 | `rate-limit.ts` | server | Sliding window limiter |
+| `limit-alerts.ts` | server | When someone uses up a monthly allowance: one `LimitAlert` row per person/feature/month, first one emails Meredith |
+| `limit-alert-mail.ts` | both | The limit alert email and the alerted features |
+| `rating.ts` | both | "How is Expansive Mind doing?" Bad / Fine / Good: scores, surfaces, 3-day cooldown, input cleanup, and `askForRating` for pages |
 | `region-capture.ts` | client | Selection → excerpt |
 | `request-ip.ts` | server | Client IP from headers |
+| `replay-privacy.ts` | both | PostHog recording class names: `REPLAY_MASK` on paper text (body, abstract, quotes, highlights, chats), `REPLAY_BLOCK` on the admin portal |
 | `request-security.ts` | server | Origin check + limited JSON body |
 | `saved-paper-utils.ts` | server | Find / migrate saved papers |
 | `scroll-to-range.ts` | client | Scroll a focused passage to the reading line by its own position |

@@ -1,10 +1,14 @@
-import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { withOptionalAuth } from "../authMiddleware";
 import connectDB from "../../db/connectDB";
 import PageEngagement from "../../models/PageEngagement";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
 import { hashQuotaIdentity } from "../../lib/quota-identity";
+import {
+    audienceVisitor,
+    audienceVisitorKey,
+    withAudienceCookie,
+} from "../../lib/audience-visitor";
 import {
     hasValidMutationOrigin,
     readLimitedJsonBody,
@@ -16,35 +20,12 @@ import {
     moveKey,
 } from "../../lib/audience";
 
-const COOKIE = "em_audience";
-
-function visitorToken(request: NextRequest) {
-    const existing = request.cookies.get(COOKIE)?.value;
-    if (existing && /^[a-f0-9]{32}$/.test(existing)) {
-        return { token: existing, fresh: false };
-    }
-    return { token: randomBytes(16).toString("hex"), fresh: true };
-}
-
-function withVisitorCookie(response: NextResponse, token: string, fresh: boolean) {
-    if (!fresh) return response;
-    response.cookies.set(COOKIE, token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 120,
-    });
-    return response;
-}
-
 export const POST = withOptionalAuth(async (req: NextRequest) => {
-    const visitor = visitorToken(req);
+    const visitor = audienceVisitor(req);
     if (!hasValidMutationOrigin(req)) {
-        return withVisitorCookie(
+        return withAudienceCookie(
             NextResponse.json({ error: "Invalid origin." }, { status: 403 }),
-            visitor.token,
-            visitor.fresh,
+            visitor,
         );
     }
 
@@ -57,16 +38,15 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             windowMs: 60_000,
         });
         if (!rateLimit.allowed) {
-            return withVisitorCookie(
+            return withAudienceCookie(
                 NextResponse.json({ ok: false }, { status: 429 }),
-                visitor.token,
-                visitor.fresh,
+                visitor,
             );
         }
 
         const parsedBody = await readLimitedJsonBody(req, 2_048);
         if (!parsedBody.ok) {
-            return withVisitorCookie(
+            return withAudienceCookie(
                 NextResponse.json(
                     {
                         error:
@@ -76,18 +56,16 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
                     },
                     { status: parsedBody.status },
                 ),
-                visitor.token,
-                visitor.fresh,
+                visitor,
             );
         }
         const data = parsedBody.value as Record<string, unknown>;
         const page = typeof data.page === "string" ? data.page : "";
         const next = typeof data.next === "string" ? data.next : "";
         if (!(page in AUDIENCE_PAGES)) {
-            return withVisitorCookie(
+            return withAudienceCookie(
                 NextResponse.json({ error: "Unknown page." }, { status: 400 }),
-                visitor.token,
-                visitor.fresh,
+                visitor,
             );
         }
         const seconds = clampAudienceSeconds(data.seconds);
@@ -95,36 +73,49 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             next in AUDIENCE_PAGES && next !== page
                 ? (next as AudiencePage)
                 : null;
-        if (!seconds && !destination) {
-            return withVisitorCookie(
+        const away = data.away === true;
+        if (!seconds && !destination && !away) {
+            return withAudienceCookie(
                 NextResponse.json({ ok: true }),
-                visitor.token,
-                visitor.fresh,
+                visitor,
             );
         }
 
-        const day = new Date().toISOString().slice(0, 10);
-        const visitorKey = hashQuotaIdentity(`audience:${visitor.token}`);
+        const now = new Date();
+        const day = now.toISOString().slice(0, 10);
+        const visitorKey = audienceVisitorKey(visitor.token);
         const expiresAt = new Date();
         expiresAt.setUTCDate(expiresAt.getUTCDate() + 120);
         const increment: Record<string, number> = {};
         if (seconds) increment[`secondsByPage.${page}`] = seconds;
         if (destination) increment[`moves.${moveKey(page as AudiencePage, destination)}`] = 1;
+        const presence = {
+            lastSeenAt: now,
+            lastPage: destination ?? page,
+            away,
+            ...(req.user?._id ? { userID: req.user._id } : {}),
+        };
 
         await connectDB();
-        await PageEngagement.updateOne(
-            { _id: hashQuotaIdentity(`${visitorKey}:${day}`) },
-            {
-                $setOnInsert: {
-                    visitorKey,
-                    day,
-                    expiresAt,
+        const _id = hashQuotaIdentity(`${visitorKey}:${day}`);
+        if (Object.keys(increment).length) {
+            await PageEngagement.updateOne(
+                { _id },
+                {
+                    $setOnInsert: {
+                        visitorKey,
+                        day,
+                        expiresAt,
+                    },
+                    $set: presence,
+                    $inc: increment,
                 },
-                ...(req.user?._id ? { $set: { userID: req.user._id } } : {}),
-                $inc: increment,
-            },
-            { upsert: true },
-        );
+                { upsert: true },
+            );
+        } else {
+            // "Away" with no time to add: mark it without counting a visit.
+            await PageEngagement.updateOne({ _id }, { $set: presence });
+        }
         if (req.user?._id) {
             await PageEngagement.updateMany(
                 { visitorKey, userID: { $exists: false } },
@@ -132,17 +123,15 @@ export const POST = withOptionalAuth(async (req: NextRequest) => {
             );
         }
 
-        return withVisitorCookie(
+        return withAudienceCookie(
             NextResponse.json({ ok: true }),
-            visitor.token,
-            visitor.fresh,
+            visitor,
         );
     } catch {
         console.error("Audience update failed");
-        return withVisitorCookie(
+        return withAudienceCookie(
             NextResponse.json({ error: "Audience update failed." }, { status: 500 }),
-            visitor.token,
-            visitor.fresh,
+            visitor,
         );
     }
 });

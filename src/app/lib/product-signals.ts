@@ -5,6 +5,8 @@ export const PRODUCT_SIGNALS = [
     "citation_closest_match",
     /** A citation opened with no recorded sentence and no clear match in the paper. */
     "citation_no_match",
+    /** "How is Expansive Mind doing?" appeared; ratings over this is the answer rate. */
+    "rating_prompt_shown",
 ] as const;
 
 export type ProductSignal = (typeof PRODUCT_SIGNALS)[number];

@@ -20,6 +20,9 @@ import clsx from "clsx";
 import { useSession } from "../lib/use-session";
 import Link from "next/link";
 import posthog from "posthog-js";
+import { logActivity } from "../lib/activity";
+import { PAYMENTS_VISIBLE, SCHOLAR_SOURCE_LABEL } from "../lib/payments";
+import { NEED_MORE_HREF, NEED_MORE_LABEL } from "../lib/plan-messages";
 import {
     DATE_FILTERS,
     dateFilterLabel,
@@ -37,14 +40,14 @@ import { SearchFilterBar, SearchFilterBox } from "./SearchFilters";
 
 export type { SourceFilter };
 
-/** The landing's source chips; Scholar is marked Pro. */
+/** The landing's source chips; Scholar is marked Pro (hidden from non-Pro while paid plans are). */
 const LANDING_SOURCES: { value: SourceFilter; label: string }[] = [
     { value: "all", label: "All" },
     { value: "nih", label: "NIH PMC" },
     { value: "springer", label: "Springer Nature" },
     { value: "europe-pmc", label: "Europe PMC" },
     { value: "crossref", label: "Crossref" },
-    { value: "scholar", label: "Scholar · Pro" },
+    { value: "scholar", label: PAYMENTS_VISIBLE ? "Scholar · Pro" : "Scholar" },
 ];
 
 const SEARCH_EXAMPLES = [
@@ -59,7 +62,7 @@ const SEARCHES_FROM = [
     { label: "Springer Nature", color: "#ff5aa9" },
     { label: "Europe PMC", color: "#22a06b" },
     { label: "Crossref", color: "#f5a524" },
-    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+    { label: SCHOLAR_SOURCE_LABEL, color: "#8b5cf6" },
 ];
 
 function searchParamsFor(
@@ -128,7 +131,7 @@ const SearchPaperClient = ({
     const sourceParam = parseSourceFilter(initialSource);
     const dateParam = parseDateFilter(initialDate);
     const router = useRouter();
-    const { isLoggedIn, refresh } = useSession();
+    const { isLoggedIn, refresh, user } = useSession();
 
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searchValue, setSearchValue] = useState(qParam ?? "");
@@ -371,6 +374,7 @@ const SearchPaperClient = ({
                 result_count: results.length,
                 cache_hit: Boolean(data.cacheHit),
             });
+            logActivity({ kind: "search", detail: query });
         },
         [finishSearchTransition, refresh],
     );
@@ -470,11 +474,13 @@ const SearchPaperClient = ({
         : sourcesDownNotice(downSources, searchResults.length > 0);
     const hasMore =
         !error && searchResults.length > 0 && currentPage < totalPages - 1;
+    const scholarOpen =
+        resultPlan === "pro" || user?.plan === "pro" || Boolean(user?.isAdmin);
     const filterProps = {
         source: activeSource,
         date: activeDate,
         onChange: handleFiltersChange,
-        scholarLocked: resultPlan !== "pro",
+        scholarLocked: !scholarOpen,
     };
 
     return (
@@ -534,7 +540,8 @@ const SearchPaperClient = ({
                         <h1 className={styles.findTitle}>Find a paper</h1>
                         <p className={styles.findLead}>
                             Search NIH PMC, Springer Nature, Europe PMC, and
-                            Crossref at once. Google Scholar comes with Pro.
+                            Crossref at once.
+                            {PAYMENTS_VISIBLE ? " Google Scholar comes with Pro." : ""}
                         </p>
                     </div>
                 ) : null}
@@ -556,7 +563,12 @@ const SearchPaperClient = ({
                                 <span className={styles.findFilterLabel}>
                                     Sources
                                 </span>
-                                {LANDING_SOURCES.map((source) => (
+                                {LANDING_SOURCES.filter(
+                                    (source) =>
+                                        source.value !== "scholar" ||
+                                        PAYMENTS_VISIBLE ||
+                                        scholarOpen,
+                                ).map((source) => (
                                     <button
                                         key={source.value}
                                         type="button"
@@ -625,7 +637,12 @@ const SearchPaperClient = ({
                         ) : null}
                         <p className={styles.findSources}>
                             <span className={styles.findSourcesLabel}>Searches</span>
-                            {SEARCHES_FROM.map((source) => (
+                            {SEARCHES_FROM.filter(
+                                (source) =>
+                                    source.label !== SCHOLAR_SOURCE_LABEL ||
+                                    PAYMENTS_VISIBLE ||
+                                    scholarOpen,
+                            ).map((source) => (
                                 <span key={source.label} className={styles.findSourceItem}>
                                     <span
                                         className={styles.findSourceDot}
@@ -698,9 +715,19 @@ const SearchPaperClient = ({
                                         {errorCode && LIMIT_CODES.has(errorCode) ? (
                                             <Link
                                                 className={resultStyles.noticeCta}
-                                                href={isLoggedIn ? "/pricing" : "/signup"}
+                                                href={
+                                                    !isLoggedIn
+                                                        ? "/signup"
+                                                        : PAYMENTS_VISIBLE
+                                                          ? "/pricing"
+                                                          : NEED_MORE_HREF
+                                                }
                                             >
-                                                {isLoggedIn ? "View plan options" : "Create a free account"}
+                                                {!isLoggedIn
+                                                    ? "Create a free account"
+                                                    : PAYMENTS_VISIBLE
+                                                      ? "View plan options"
+                                                      : NEED_MORE_LABEL}
                                             </Link>
                                         ) : null}
                                     </div>

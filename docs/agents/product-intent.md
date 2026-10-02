@@ -25,8 +25,10 @@ Home tagline in code: “Evidence, made actionable.”
 | Plan | search | discover | chat | scholar_search | projects |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | guest | 3 | 1 (lifetime) | 0 | 0 | 0 |
-| free | 20 | 2 (lifetime) | 5 | 0 | 3 |
+| free | 20 | 5 (per month) | 30 | 0 | 3 |
 | pro | 300 | 20 | 100 | 25 | 50 |
+
+Free limits set by Meredith on 2026-10-01, when she hid paid plans (`PAYMENTS_VISIBLE` in `src/app/lib/payments.ts`) because payment was a deterrent. Monthly limits start over on the 1st (UTC). The first time a signed-in person uses up Discovery, searches, or AI questions in a month, Meredith gets an email and the person is listed on `/admin` ("Hit a limit this month"); at the limit people see when it renews and a link to Contact.
 
 Admin can override amounts in `/admin`. Researcher Pro list prices in code defaults: **$12 / month**, **$99 / year**. Stripe webhook — not the browser redirect — grants Pro.
 

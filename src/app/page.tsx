@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "./lib/use-session";
 import { SITE_STATUS } from "./components/site-status";
+import { SCHOLAR_SOURCE_LABEL } from "./lib/payments";
 
 const EXAMPLES = [
     "What limits CAR-T cell persistence and efficacy in solid tumors?",
@@ -18,7 +19,7 @@ const SOURCES = [
     { label: "Springer Nature", color: "#ff5aa9" },
     { label: "Europe PMC", color: "#22a06b" },
     { label: "Crossref", color: "#f5a524" },
-    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+    { label: SCHOLAR_SOURCE_LABEL, color: "#8b5cf6" },
 ];
 
 /** A public brief made with Discovery, so visitors see the output first. */

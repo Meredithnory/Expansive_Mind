@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { audiencePage, type AudiencePage } from "../lib/audience";
+import { logActivity } from "../lib/activity";
 
 const PING_MS = 15_000;
 
@@ -10,14 +11,16 @@ function sendVisit(
     page: AudiencePage,
     seconds: number,
     next?: AudiencePage | null,
-    preferBeacon = false,
+    away = false,
 ) {
     const body = JSON.stringify({
         page,
         seconds,
         ...(next ? { next } : {}),
+        // Hidden or closed tab: /admin/live stops showing this visitor.
+        ...(away ? { away: true } : {}),
     });
-    if (preferBeacon && navigator.sendBeacon) {
+    if (away && navigator.sendBeacon) {
         const queued = navigator.sendBeacon(
             "/api/audience",
             new Blob([body], { type: "application/json" }),
@@ -36,6 +39,7 @@ export default function AudienceTracker() {
     const pathname = usePathname();
     const pageRef = useRef<AudiencePage | null>(null);
     const startedRef = useRef(0);
+    const loggedPathRef = useRef<string | null>(null);
 
     useEffect(() => {
         const next = audiencePage(pathname || "/");
@@ -48,14 +52,22 @@ export default function AudienceTracker() {
         }
         pageRef.current = next;
         startedRef.current = next ? Date.now() : 0;
-        if (!next) return;
+        if (!next) {
+            loggedPathRef.current = null;
+            return;
+        }
+        // The ref skips React's dev-mode double effect, not a real revisit.
+        if (pathname && loggedPathRef.current !== pathname) {
+            loggedPathRef.current = pathname;
+            logActivity({ kind: "page_view", path: pathname });
+        }
 
-        const flush = (preferBeacon = false) => {
+        const flush = (away = false) => {
             const page = pageRef.current;
             if (!page || !startedRef.current) return;
             const seconds = Math.round((Date.now() - startedRef.current) / 1000);
             startedRef.current = Date.now();
-            if (seconds > 0) sendVisit(page, seconds, null, preferBeacon);
+            if (seconds > 0 || away) sendVisit(page, seconds, null, away);
         };
         const onVisibility = () => {
             if (document.visibilityState === "hidden") flush(true);

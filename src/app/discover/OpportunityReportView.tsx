@@ -21,6 +21,8 @@ import {
     type CiteContext,
 } from "../lib/paper-evidence";
 import { useSession } from "../lib/use-session";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
+import { NEED_MORE_HREF, NEED_MORE_LABEL } from "../lib/plan-messages";
 import { splitCitedText, splitParagraphs } from "./report-text";
 import {
     CONFIDENCE_GUIDE,
@@ -440,7 +442,9 @@ export default function OpportunityReportView({
                             : response.status === 403
                               ? "You don't have access to start a project."
                               : response.status === 429
-                                ? "Project limit reached. Upgrade your plan to continue."
+                                ? PAYMENTS_VISIBLE
+                                    ? "Project limit reached. Upgrade your plan to continue."
+                                    : "Project limit reached."
                                 : "Unable to start this project.";
                     throw Object.assign(
                         new Error(
@@ -582,10 +586,14 @@ export default function OpportunityReportView({
                     {action.errorStatus === 401 && (
                         <Link href="/login?next=%2Fdiscover">Sign in</Link>
                     )}
-                    {(action.errorStatus === 403 ||
-                        action.errorStatus === 429) && (
-                        <Link href="/pricing">View plan options</Link>
-                    )}
+                    {PAYMENTS_VISIBLE
+                        ? (action.errorStatus === 403 ||
+                              action.errorStatus === 429) && (
+                              <Link href="/pricing">View plan options</Link>
+                          )
+                        : action.errorStatus === 429 && (
+                              <Link href={NEED_MORE_HREF}>{NEED_MORE_LABEL}</Link>
+                          )}
                 </div>
             )}
 
