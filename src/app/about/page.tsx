@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import Link from "next/link";
 import styles from "./about.module.scss";
 import { DEVELOPER_NAME } from "../lib/contact";
+import { SCHOLAR_SOURCE_LABEL } from "../lib/payments";
 import { useSession } from "../lib/use-session";
 
 const AUTO_ADVANCE_MS = 5000;
@@ -14,7 +15,7 @@ const SOURCES = [
     { label: "Springer Nature", color: "#ff5aa9" },
     { label: "Europe PMC", color: "#22a06b" },
     { label: "Crossref", color: "#f5a524" },
-    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+    { label: SCHOLAR_SOURCE_LABEL, color: "#8b5cf6" },
 ];
 
 const steps = [

@@ -60,7 +60,7 @@ Step detail: [discover-pipeline.md](discover-pipeline.md). Share and quotes: [cl
 
 ## Models (`src/app/models/`)
 
-User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog, ContactMessage (feedback inbox), AdminEmail (sent admin email), ProductSignal (daily counts for the pulse), ActivityEvent (page views and steps for `/admin/live`, 30-day TTL), Rating (answers to the in-app rating prompt).
+User, SavedPaper, SavedDiscovery, Message, Project, PaperHighlight, PaperBrief, PlanConfig, UsageCounter, UsageEvent, RateLimit, ProviderCache, BillingEvent, AdminAuditLog, ContactMessage (feedback inbox), AdminEmail (sent admin email), ProductSignal (daily counts for the pulse), ActivityEvent (page views and steps for `/admin/live`, 30-day TTL), Rating (answers to the in-app rating prompt), LimitAlert (who used up a monthly allowance).
 
 ## Key server helpers
 

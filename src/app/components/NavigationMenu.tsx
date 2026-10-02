@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import styles from "./styles/navigationmenu.module.scss";
 import Link from "next/link";
 import { RESEARCH_PATH } from "../lib/research-mode";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
 import ProfileMark from "./ProfileMark";
 
 interface NavMenuProps {
@@ -85,7 +86,7 @@ const NavigationMenu = ({
         ...(isLoggedIn && isAdmin ? ["/admin"] : []),
         "/about",
         "/contact",
-        "/pricing",
+        ...(PAYMENTS_VISIBLE ? ["/pricing"] : []),
     ];
     const moreActive = moreHrefs.some((href) => isActive(pathname, href));
 
@@ -194,13 +195,15 @@ const NavigationMenu = ({
                             >
                                 Contact
                             </Link>
-                            <Link
-                                href="/pricing"
-                                className={linkClass("/pricing")}
-                                onClick={navigate}
-                            >
-                                Pricing
-                            </Link>
+                            {PAYMENTS_VISIBLE ? (
+                                <Link
+                                    href="/pricing"
+                                    className={linkClass("/pricing")}
+                                    onClick={navigate}
+                                >
+                                    Pricing
+                                </Link>
+                            ) : null}
                             <button
                                 type="button"
                                 className={`${styles.link} ${styles.logout}`}
@@ -240,13 +243,15 @@ const NavigationMenu = ({
                             >
                                 Contact
                             </Link>
-                            <Link
-                                href="/pricing"
-                                className={linkClass("/pricing")}
-                                onClick={navigate}
-                            >
-                                Pricing
-                            </Link>
+                            {PAYMENTS_VISIBLE ? (
+                                <Link
+                                    href="/pricing"
+                                    className={linkClass("/pricing")}
+                                    onClick={navigate}
+                                >
+                                    Pricing
+                                </Link>
+                            ) : null}
                         </>,
                     )}
                     {!sessionLoading && (

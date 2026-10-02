@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PAYMENTS_VISIBLE } from "../../lib/payments";
 import mongoose from "mongoose";
 import { withAuth } from "../authMiddleware";
 import {
@@ -283,7 +284,9 @@ export const POST = withAuth(async (request: NextRequest) => {
                 {
                     error:
                         plan === "free"
-                            ? "Your free project allowance has been used. Upgrade to Researcher Pro to start more projects."
+                            ? PAYMENTS_VISIBLE
+                                ? "Your free project allowance has been used. Upgrade to Researcher Pro to start more projects."
+                                : "You've used your free projects. Need more? Contact us."
                             : "Monthly project limit reached.",
                     code: "QUOTA_EXCEEDED",
                     quota,

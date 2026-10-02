@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { monthlyLimitMessage } from "../../lib/plan-messages";
 import { withAuth } from "../authMiddleware";
 import PaperBrief from "../../models/PaperBrief";
 import {
@@ -134,10 +135,7 @@ export const POST = withAuth(async (request: NextRequest) => {
         if (!quota.allowed) {
             return NextResponse.json(
                 {
-                    error:
-                        plan === "free"
-                            ? "Free AI question limit reached. Upgrade to Researcher Pro to continue."
-                            : "Monthly AI question limit reached.",
+                    error: monthlyLimitMessage("chat", quota.limit, { upgrade: plan === "free" }),
                     code: "QUOTA_EXCEEDED",
                     quota,
                 },

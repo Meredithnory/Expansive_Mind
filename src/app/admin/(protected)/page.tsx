@@ -36,6 +36,87 @@ type Message = { _id: string; name: string; topic: string; message: string; crea
 
 const RANGES = [7, 30, 90];
 
+type LimitPerson = {
+    userId: string;
+    name: string;
+    email: string;
+    plan: string;
+    lastAt: string;
+    features: Array<{ feature: string; label: string; used: number; limit: number; blocked: boolean }>;
+};
+
+/** Who used up a monthly allowance; each also emailed Meredith the first time. */
+function HitLimitCard() {
+    const [data, setData] = useState<{ month: string; people: LimitPerson[] } | null>(null);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        adminApi<{ month: string; people: LimitPerson[] }>("/api/admin/limits")
+            .then(setData)
+            .catch((err) => setError(err instanceof Error ? err.message : "Unable to load limits."));
+    }, []);
+
+    return (
+        <section className={styles.card} aria-labelledby="limits-h">
+            <div className={styles.cardHead}>
+                <div>
+                    <h2 id="limits-h">
+                        Hit a limit this month{" "}
+                        {data && data.people.length > 0 ? (
+                            <span className={styles.liveCount}>{data.people.length}</span>
+                        ) : null}
+                    </h2>
+                    <p className={styles.muted}>
+                        People who used all their discoveries, paper searches, or AI paper questions
+                        {data ? ` in ${data.month}` : " this month"}. You also get an email the first time.
+                    </p>
+                </div>
+                <Link href="/admin/people" className={styles.textLink}>
+                    People &amp; support
+                </Link>
+            </div>
+            {error ? (
+                <p className={styles.error}>{error}</p>
+            ) : !data ? (
+                <div className={clsx(styles.skeletonBlock, "loading-skeleton")} />
+            ) : data.people.length === 0 ? (
+                <p className={styles.muted}>Nobody has hit a limit this month.</p>
+            ) : (
+                <ul className={styles.plainList}>
+                    {data.people.map((person) => (
+                        <li key={person.userId} className={styles.limitRow}>
+                            <div className={styles.messageHead}>
+                                <Link
+                                    href={`/admin/people?q=${encodeURIComponent(person.email)}`}
+                                    className={styles.personButton}
+                                >
+                                    {person.name}
+                                </Link>
+                                <span className={clsx(styles.planChip, { [styles.planChipPro]: person.plan === "pro" })}>
+                                    {person.plan}
+                                </span>
+                                <span className={styles.when}>{ago(person.lastAt)}</span>
+                            </div>
+                            <span className={styles.footnote}>{person.email}</span>
+                            <div className={styles.chips}>
+                                {person.features.map((item) => (
+                                    <span key={item.feature} className={styles.chip}>
+                                        {item.label}: {item.used} of {item.limit}
+                                        {item.blocked ? " · tried again" : ""}
+                                    </span>
+                                ))}
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <p className={styles.footnote}>
+                To give someone more, open them in People &amp; support and reset their usage.
+            </p>
+        </section>
+    );
+}
+
 function ago(date: string) {
     const minutes = Math.round((Date.now() - new Date(date).getTime()) / 60_000);
     if (minutes < 60) return `${Math.max(1, minutes)}m ago`;
@@ -143,6 +224,8 @@ export default function AdminPulsePage() {
                     </Link>
                 </section>
             ) : null}
+
+            <HitLimitCard />
 
             <section className={clsx(styles.card, styles.funnelCard)} aria-labelledby="funnel-h">
                 <div className={styles.cardHead}>

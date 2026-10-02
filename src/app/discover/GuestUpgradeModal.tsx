@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import posthog from "posthog-js";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
 import styles from "./guest-upgrade-modal.module.scss";
 
 type PricingConfig = {
@@ -23,7 +24,7 @@ type PricingConfig = {
 const DEFAULT_PRICING: PricingConfig = {
     prices: { month: { amount: 1200, currency: "usd" } },
     entitlements: {
-        free: { discover: 2, chat: 5, search: 20 },
+        free: { discover: 5, chat: 30, search: 20 },
         pro: { discover: 20, chat: 100, search: 300, scholar_search: 25 },
     },
 };
@@ -72,7 +73,7 @@ export default function GuestUpgradeModal({
     }, [exhausted, open]);
 
     const signupHref = `/signup?next=${encodeURIComponent(
-        "/pricing?intent=monthly",
+        PAYMENTS_VISIBLE ? "/pricing?intent=monthly" : "/discover",
     )}`;
     const price = monthlyPrice(
         pricing.prices.month.amount,
@@ -95,100 +96,170 @@ export default function GuestUpgradeModal({
                 <button
                     type="button"
                     className={styles.close}
-                    aria-label="Close upgrade options"
+                    aria-label={PAYMENTS_VISIBLE ? "Close upgrade options" : "Close"}
                     onClick={onClose}
                 >
                     ×
                 </button>
 
-                <p className={styles.eyebrow}>
-                    {exhausted ? "Monthly plan" : "One free preview"}
-                </p>
-                <h2 id="guest-upgrade-title">
-                    {exhausted
-                        ? "Continue with Researcher Pro"
-                        : "Try Discovery, then go deeper with Pro"}
-                </h2>
-                <p className={styles.summary}>
-                    {exhausted
-                        ? canContinueReading
-                            ? "You can keep reading this brief. A monthly Researcher Pro plan unlocks more syntheses and paper conversations."
-                            : "You used your guest Discovery run. Researcher Pro is a monthly plan for ongoing syntheses and paper conversations."
-                        : "Your guest preview includes one cited synthesis. Upgrade when you are ready to make Discovery part of your workflow."}
-                </p>
+                {PAYMENTS_VISIBLE ? (
+                    <>
+                        <p className={styles.eyebrow}>
+                            {exhausted ? "Monthly plan" : "One free preview"}
+                        </p>
+                        <h2 id="guest-upgrade-title">
+                            {exhausted
+                                ? "Continue with Researcher Pro"
+                                : "Try Discovery, then go deeper with Pro"}
+                        </h2>
+                        <p className={styles.summary}>
+                            {exhausted
+                                ? canContinueReading
+                                    ? "You can keep reading this brief. A monthly Researcher Pro plan unlocks more syntheses and paper conversations."
+                                    : "You used your guest Discovery run. Researcher Pro is a monthly plan for ongoing syntheses and paper conversations."
+                                : "Your guest preview includes one cited synthesis. Upgrade when you are ready to make Discovery part of your workflow."}
+                        </p>
 
-                <div className={styles.offer}>
-                    <div>
-                        <span>Researcher Pro</span>
-                        <strong>
-                            {price}
-                            <small>/month</small>
-                        </strong>
-                    </div>
-                    <span className={styles.badge}>Built for weekly research</span>
-                </div>
+                        <div className={styles.offer}>
+                            <div>
+                                <span>Researcher Pro</span>
+                                <strong>
+                                    {price}
+                                    <small>/month</small>
+                                </strong>
+                            </div>
+                            <span className={styles.badge}>Built for weekly research</span>
+                        </div>
 
-                <ul className={styles.benefits}>
-                    <li>
-                        <strong>{pricing.entitlements.pro.discover}</strong>{" "}
-                        Discovery syntheses every month
-                    </li>
-                    <li>
-                        <strong>{pricing.entitlements.pro.chat}</strong> AI paper
-                        questions every month
-                    </li>
-                    <li>
-                        <strong>{pricing.entitlements.pro.search}</strong> paper
-                        searches every month
-                    </li>
-                    <li>
-                        <strong>
-                            {pricing.entitlements.pro.scholar_search}
-                        </strong>{" "}
-                        Google Scholar searches every month
-                    </li>
-                </ul>
+                        <ul className={styles.benefits}>
+                            <li>
+                                <strong>{pricing.entitlements.pro.discover}</strong>{" "}
+                                Discovery syntheses every month
+                            </li>
+                            <li>
+                                <strong>{pricing.entitlements.pro.chat}</strong> AI paper
+                                questions every month
+                            </li>
+                            <li>
+                                <strong>{pricing.entitlements.pro.search}</strong> paper
+                                searches every month
+                            </li>
+                            <li>
+                                <strong>
+                                    {pricing.entitlements.pro.scholar_search}
+                                </strong>{" "}
+                                Google Scholar searches every month
+                            </li>
+                        </ul>
 
-                <Link
-                    href={signupHref}
-                    className={styles.primaryAction}
-                    onClick={() =>
-                        posthog.capture("guest_discovery_upgrade_clicked", {
-                            interval: "month",
-                            reason: exhausted ? "quota_exhausted" : "guest_intro",
-                        })
-                    }
-                >
-                    Unlock Pro for {price}/month
-                    <span aria-hidden="true">→</span>
-                </Link>
+                        <Link
+                            href={signupHref}
+                            className={styles.primaryAction}
+                            onClick={() =>
+                                posthog.capture("guest_discovery_upgrade_clicked", {
+                                    interval: "month",
+                                    reason: exhausted ? "quota_exhausted" : "guest_intro",
+                                })
+                            }
+                        >
+                            Unlock Pro for {price}/month
+                            <span aria-hidden="true">→</span>
+                        </Link>
 
-                {canContinueReading || !exhausted ? (
-                    <button
-                        type="button"
-                        className={styles.secondaryAction}
-                        onClick={onClose}
-                    >
-                        {exhausted
-                            ? "Keep reading this brief"
-                            : "Use my free preview first"}
-                    </button>
+                        {canContinueReading || !exhausted ? (
+                            <button
+                                type="button"
+                                className={styles.secondaryAction}
+                                onClick={onClose}
+                            >
+                                {exhausted
+                                    ? "Keep reading this brief"
+                                    : "Use my free preview first"}
+                            </button>
+                        ) : (
+                            <Link
+                                href="/discover?mode=search"
+                                className={styles.secondaryAction}
+                                onClick={onClose}
+                            >
+                                Continue with basic paper search
+                            </Link>
+                        )}
+
+                        <p className={styles.freeNote}>
+                            Prefer to start free? Creating an account includes{" "}
+                            {pricing.entitlements.free.discover} Discovery runs and{" "}
+                            {pricing.entitlements.free.chat} AI paper questions every
+                            month.
+                        </p>
+                    </>
                 ) : (
-                    <Link
-                        href="/discover?mode=search"
-                        className={styles.secondaryAction}
-                        onClick={onClose}
-                    >
-                        Continue with basic paper search
-                    </Link>
-                )}
+                    <>
+                        <p className={styles.eyebrow}>
+                            {exhausted ? "Free account" : "One free preview"}
+                        </p>
+                        <h2 id="guest-upgrade-title">
+                            {exhausted
+                                ? "Create a free account to keep going"
+                                : "Try Discovery, then make a free account"}
+                        </h2>
+                        <p className={styles.summary}>
+                            {exhausted
+                                ? canContinueReading
+                                    ? "You can keep reading this brief. A free account gives you more discoveries and paper questions every month."
+                                    : "You used your guest Discovery run. A free account gives you more every month."
+                                : "Your guest preview includes one cited synthesis. A free account gives you more every month."}
+                        </p>
 
-                <p className={styles.freeNote}>
-                    Prefer to start free? Creating an account includes{" "}
-                    {pricing.entitlements.free.discover} lifetime Discovery runs
-                    and {pricing.entitlements.free.chat} AI paper questions per
-                    month.
-                </p>
+                        <ul className={styles.benefits}>
+                            <li>
+                                <strong>{pricing.entitlements.free.discover}</strong>{" "}
+                                Discovery syntheses every month
+                            </li>
+                            <li>
+                                <strong>{pricing.entitlements.free.chat}</strong> AI
+                                paper questions every month
+                            </li>
+                            <li>
+                                <strong>{pricing.entitlements.free.search}</strong>{" "}
+                                paper searches every month
+                            </li>
+                        </ul>
+
+                        <Link
+                            href={signupHref}
+                            className={styles.primaryAction}
+                            onClick={() =>
+                                posthog.capture("guest_discovery_signup_clicked", {
+                                    reason: exhausted ? "quota_exhausted" : "guest_intro",
+                                })
+                            }
+                        >
+                            Create a free account
+                            <span aria-hidden="true">→</span>
+                        </Link>
+
+                        {canContinueReading || !exhausted ? (
+                            <button
+                                type="button"
+                                className={styles.secondaryAction}
+                                onClick={onClose}
+                            >
+                                {exhausted
+                                    ? "Keep reading this brief"
+                                    : "Use my free preview first"}
+                            </button>
+                        ) : (
+                            <Link
+                                href="/login?next=%2Fdiscover"
+                                className={styles.secondaryAction}
+                                onClick={onClose}
+                            >
+                                I already have an account
+                            </Link>
+                        )}
+                    </>
+                )}
             </div>
         </dialog>
     );

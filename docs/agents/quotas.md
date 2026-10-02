@@ -5,14 +5,16 @@ Defaults: `PLAN_ENTITLEMENTS` in `src/app/lib/plan-config.ts`. Periods: `src/app
 | Plan | search | discover | chat | scholar_search | projects |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | guest | 3 | 1 | 0 | 0 | 0 |
-| free | 20 | 2 | 5 | 0 | 3 |
+| free | 20 | 5 | 30 | 0 | 3 |
 | pro | 300 | 20 | 100 | 25 | 50 |
 
-`/admin` may store overrides on `PlanConfig`. `applyStoredPlanConfig` will not lower guest `discover` under the code default, and a stored pro `discover` of 40 is rewritten to 20. Code list prices are 1200 and 9900 cents. Leave both alone.
+`/admin` may store overrides on `PlanConfig`. `applyStoredPlanConfig` will not lower guest `discover` under the code default, and a stored pro `discover` of 40 is rewritten to 20. A config saved before 2026-10-01 that still holds the old free defaults (`discover` 2, `chat` 5) reads as the new ones (5, 30); anything saved since is used as is. Code list prices are 1200 and 9900 cents. Leave both alone.
 
 `resolvePlan`: no user is `guest`. `accessOverride === "pro"` is `pro`. Otherwise `pro` requires `plan === "pro"` and status `active` or `trialing`. Any other signed-in user is `free`.
 
-Periods: guest and free `discover` and `projects` are `lifetime`. Other guest features are a UTC day. Every remaining feature is a UTC month. `unlimited: true` (admin email) skips the counter.
+Periods: guest `discover` and `projects` and free `projects` are `lifetime`. Free `discover` is a UTC month (since 2026-10-01). Other guest features are a UTC day. Every remaining feature is a UTC month.
+
+Limit alerts: `consumeQuota` calls `scheduleLimitAlert` (`src/app/lib/limit-alerts.ts`) when a signed-in person uses their last `discover`, `search`, or `chat` of the month, or is refused after running out. One `LimitAlert` row per person, feature, and month; the first emails Meredith (`DEVELOPER_EMAIL`) and `/admin` lists them via `GET /api/admin/limits`. Limit wording: `src/app/lib/plan-messages.ts`. `unlimited: true` (admin email) skips the counter.
 
 `consumeGuestDailyCap` is a separate IP rate limit. Signed-in users skip it. Limits per 24 hours: discover 1 (`src/app/api/discover/route.ts`), search 3 (`src/app/api/search/route.ts`), paper 12 (`src/app/api/paper/route.ts`). Discover also rate-limits before that cap and before `consumeQuota`: guest 2, signed-in 5, per 10 minutes.
 

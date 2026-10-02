@@ -123,7 +123,10 @@ export default function AdminPeoplePage() {
     }, []);
 
     useEffect(() => {
-        search("");
+        // "/admin/people?q=ada@lab.edu" (limit emails, Product pulse) opens that person.
+        const initial = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+        setQuery(initial);
+        search(initial);
     }, [search]);
 
     useEffect(() => {

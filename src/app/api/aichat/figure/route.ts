@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notOnPlanMessage } from "../../../lib/plan-messages";
 import { withAuth } from "../../authMiddleware";
 import { hasValidMutationOrigin } from "../../../lib/request-security";
 import { consumeRateLimit } from "../../../lib/rate-limit";
@@ -48,7 +49,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     if (plan !== "pro" && !isAdmin) {
         return NextResponse.json(
             {
-                error: "Figure analysis is available with Researcher Pro.",
+                error: notOnPlanMessage("Figure analysis"),
                 code: "PRO_REQUIRED",
             },
             { status: 403 },

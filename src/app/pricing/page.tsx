@@ -22,7 +22,7 @@ const defaults: PricingConfig = {
     },
     entitlements: {
         guest: { search: 3, discover: 1, chat: 0, scholar_search: 0, projects: 0 },
-        free: { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 },
+        free: { search: 20, discover: 5, chat: 30, scholar_search: 0, projects: 3 },
         pro: { search: 300, discover: 20, chat: 100, scholar_search: 25, projects: 50 },
     },
 };
@@ -150,7 +150,7 @@ function PricingContent() {
                     </div>
                     <ul>
                         <li>{pricing.entitlements.free.search} paper searches each month</li>
-                        <li>{pricing.entitlements.free.discover} lifetime Discovery syntheses</li>
+                        <li>{pricing.entitlements.free.discover} Discovery syntheses each month</li>
                         <li>{pricing.entitlements.free.chat} AI paper questions each month</li>
                         <li>{pricing.entitlements.free.projects} research projects</li>
                         <li>Save up to 10 papers</li>

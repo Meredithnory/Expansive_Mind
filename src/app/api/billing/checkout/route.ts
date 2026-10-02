@@ -7,8 +7,16 @@ import {
 import { getStripe } from "../../../lib/stripe";
 import User from "../../../models/User";
 import { getPlanConfig } from "../../../lib/plan-config";
+import { PAYMENTS_VISIBLE } from "../../../lib/payments";
 
 export const POST = withAuth(async (request: NextRequest) => {
+    // Paid plans are hidden: no new subscriptions, even from an old tab.
+    if (!PAYMENTS_VISIBLE) {
+        return NextResponse.json(
+            { error: "Paid plans aren't available right now." },
+            { status: 404 },
+        );
+    }
     try {
         if (!hasValidMutationOrigin(request)) {
             return NextResponse.json(

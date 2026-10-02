@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { monthlyLimitMessage, notOnPlanMessage } from "../../lib/plan-messages";
 import {
     mergeResultsByTier,
     searchEuropePmcPapers,
@@ -250,7 +251,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         ) {
             return NextResponse.json(
                 {
-                    error: "Google Scholar search is available with Researcher Pro.",
+                    error: notOnPlanMessage("Google Scholar search"),
                     code: "PRO_REQUIRED",
                 },
                 { status: 403 },
@@ -270,7 +271,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                     error:
                         plan === "guest"
                             ? "Daily guest search limit reached."
-                            : "Monthly search limit reached.",
+                            : monthlyLimitMessage("search", quota.limit, { upgrade: plan === "free" }),
                     code: "QUOTA_EXCEEDED",
                     quota,
                 },

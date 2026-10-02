@@ -1432,6 +1432,23 @@ a.feedPath:hover {
     overflow-wrap: anywhere;
 }
 
+/* Hit a limit (pulse) */
+.limitRow {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    &:first-child {
+        border-top: 0;
+    }
+
+    .personButton {
+        text-decoration: none;
+    }
+}
+
 /* In-app ratings (feedback inbox) */
 .sectionHead {
     display: flex;

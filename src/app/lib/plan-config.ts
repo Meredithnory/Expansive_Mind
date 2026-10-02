@@ -20,9 +20,38 @@ export const PLAN_ENTITLEMENTS: Record<
     Record<QuotaFeature, number>
 > = {
     guest: { search: 3, discover: 1, chat: 0, scholar_search: 0, projects: 0 },
-    free: { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 },
+    free: { search: 20, discover: 5, chat: 30, scholar_search: 0, projects: 3 },
     pro: { search: 300, discover: 20, chat: 100, scholar_search: 25, projects: 50 },
 };
+
+/**
+ * Free limits changed on this day (Meredith, with paid plans hidden):
+ * Discovery 2 for life became 5 a month, AI questions 5 became 30 a month.
+ * A config saved in /admin before then still holds the old defaults, which
+ * give way to the new ones; anything saved since is used as is.
+ */
+const FREE_LIMITS_CHANGED_AT = Date.parse("2026-10-01T00:00:00.000Z");
+const OLD_FREE_DEFAULTS: Partial<Record<QuotaFeature, number>> = {
+    discover: 2,
+    chat: 5,
+};
+
+function storedFreeEntitlements(
+    stored: Partial<Record<QuotaFeature, number>> | undefined,
+    updatedAt: Date | string | undefined,
+    fallback: Record<QuotaFeature, number>,
+) {
+    const merged = { ...fallback, ...stored };
+    const savedAt = updatedAt ? new Date(updatedAt).getTime() : NaN;
+    if (Number.isFinite(savedAt) && savedAt >= FREE_LIMITS_CHANGED_AT) {
+        return merged;
+    }
+    for (const [feature, oldDefault] of Object.entries(OLD_FREE_DEFAULTS)) {
+        const key = feature as QuotaFeature;
+        if (stored?.[key] === oldDefault) merged[key] = fallback[key];
+    }
+    return merged;
+}
 
 export type BillingInterval = "month" | "year";
 export type RuntimePlanConfig = {
@@ -92,10 +121,11 @@ export function applyStoredPlanConfig(
                     stored.entitlements?.guest?.discover ?? 0,
                 ),
             },
-            free: {
-                ...fallback.entitlements.free,
-                ...stored.entitlements?.free,
-            },
+            free: storedFreeEntitlements(
+                stored.entitlements?.free,
+                stored.updatedAt,
+                fallback.entitlements.free,
+            ),
             pro: {
                 ...fallback.entitlements.pro,
                 ...stored.entitlements?.pro,

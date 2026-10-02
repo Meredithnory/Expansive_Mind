@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { monthlyLimitMessage } from "../../lib/plan-messages";
+import { PAYMENTS_VISIBLE } from "../../lib/payments";
 import mongoose from "mongoose";
 import { withAuth, withOptionalAuth } from "../authMiddleware";
 import { consumeRateLimit, requestIp } from "../../lib/rate-limit";
@@ -197,10 +199,10 @@ export const POST = withOptionalAuth(async (request: NextRequest) => {
                 {
                     error:
                         plan === "guest"
-                            ? "Your free Discovery preview has been used. Create an account and upgrade to Researcher Pro to continue."
-                            : plan === "free"
-                              ? "Your two free Discovery runs have been used. Upgrade to Researcher Pro to continue."
-                              : "Monthly Discovery limit reached.",
+                            ? PAYMENTS_VISIBLE
+                                ? "Your free Discovery preview has been used. Create an account and upgrade to Researcher Pro to continue."
+                                : "Your free Discovery preview has been used. Create a free account to run more discoveries each month."
+                            : monthlyLimitMessage("discover", quota.limit, { upgrade: plan === "free" }),
                     code: "QUOTA_EXCEEDED",
                     quota,
                 },

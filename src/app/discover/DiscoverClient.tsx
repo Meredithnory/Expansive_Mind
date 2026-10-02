@@ -19,6 +19,8 @@ import styles from "./discover.module.scss";
 import posthog from "posthog-js";
 import { useSession } from "../lib/use-session";
 import { logActivity } from "../lib/activity";
+import { PAYMENTS_VISIBLE, SCHOLAR_SOURCE_LABEL } from "../lib/payments";
+import { NEED_MORE_HREF, NEED_MORE_LABEL, countOf, limitRenewsOn } from "../lib/plan-messages";
 import { askForRating } from "../lib/rating";
 import {
     parseGuestDiscoveryResult,
@@ -204,7 +206,7 @@ const READS_FROM = [
     { label: "Springer Nature", color: "#ff5aa9" },
     { label: "Europe PMC", color: "#22a06b" },
     { label: "Crossref", color: "#f5a524" },
-    { label: "Google Scholar (Pro)", color: "#8b5cf6" },
+    { label: SCHOLAR_SOURCE_LABEL, color: "#8b5cf6" },
 ];
 
 /** "2026-09-26T…" → "Sep 26". */
@@ -1014,6 +1016,9 @@ function DiscoverClient({
                         data.code === "QUOTA_EXCEEDED" ||
                         data.code === "UPGRADE_REQUIRED";
                     setShowPlanLink(blocked);
+                    if (isLoggedIn && blocked && data.quota) {
+                        setDiscoveryQuota(data.quota);
+                    }
                     if (!isLoggedIn && blocked) {
                         setDiscoveryQuota(data.quota ?? discoveryQuota);
                         openGuestUpgrade(true);
@@ -1570,7 +1575,9 @@ function DiscoverClient({
                             className={styles.quotaUnlock}
                             onClick={() => openGuestUpgrade(true)}
                         >
-                            Unlock Researcher Pro monthly
+                            {PAYMENTS_VISIBLE
+                                ? "Unlock Researcher Pro monthly"
+                                : "Create a free account"}
                         </button>
                     </div>
                 ) : (
@@ -1579,6 +1586,32 @@ function DiscoverClient({
                     </p>
                 )
             )}
+
+            {!sessionLoading &&
+            isLoggedIn &&
+            discoveryQuota &&
+            !discoveryQuota.unlimited &&
+            discoveryQuota.limit ? (
+                discoveryQuota.remaining === 0 ? (
+                    // After a blocked run the error says the same; show one.
+                    error ? null : (
+                        <div className={styles.quotaLine} role="status">
+                            <p className={styles.quotaMessage}>
+                                {`You've used your ${countOf("discover", discoveryQuota.limit)} this month. More on ${limitRenewsOn()}.`}
+                            </p>
+                            {PAYMENTS_VISIBLE ? null : (
+                                <Link className={styles.quotaUnlock} href={NEED_MORE_HREF}>
+                                    {NEED_MORE_LABEL}
+                                </Link>
+                            )}
+                        </div>
+                    )
+                ) : (
+                    <p className={styles.quotaLine} role="status">
+                        {`${discoveryQuota.remaining ?? discoveryQuota.limit} of ${countOf("discover", discoveryQuota.limit)} left this month`}
+                    </p>
+                )
+            ) : null}
 
             {handoffPrompt && !isRunning && !result ? (
                 <div
@@ -1814,9 +1847,12 @@ function DiscoverClient({
             {error && (
                 <div className={styles.error} role="alert">
                     {error}{" "}
-                    {showPlanLink && (
-                        <Link href="/pricing">View plan options</Link>
-                    )}
+                    {showPlanLink &&
+                        (PAYMENTS_VISIBLE ? (
+                            <Link href="/pricing">View plan options</Link>
+                        ) : isLoggedIn ? (
+                            <Link href={NEED_MORE_HREF}>{NEED_MORE_LABEL}</Link>
+                        ) : null)}
                 </div>
             )}
 

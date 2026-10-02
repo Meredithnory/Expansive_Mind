@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styles from "./styles/footer.module.scss";
 import { DEVELOPER_EMAIL } from "../lib/contact";
+import { PAYMENTS_VISIBLE } from "../lib/payments";
 
 const PRODUCT_LINKS = [
     { href: "/discover", label: "Research" },
@@ -10,8 +11,8 @@ const PRODUCT_LINKS = [
 const COMPANY_LINKS = [
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
-    { href: "/pricing", label: "Pricing" },
-] as const;
+    ...(PAYMENTS_VISIBLE ? [{ href: "/pricing", label: "Pricing" }] : []),
+];
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();

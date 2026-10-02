@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import styles from "../styles/paperbox.module.scss";
 import clsx from "clsx";
 import { REPLAY_MASK } from "../../lib/replay-privacy";
+import { PAYMENTS_VISIBLE } from "../../lib/payments";
 import {
     FormattedPaper,
     PaperFigure,
@@ -249,7 +250,8 @@ const FigureList = ({
                         {title && figure.caption ? " " : null}
                         {figure.caption}
                     </span>
-                    {canAnalyze && (
+                    {/* Without paid plans, a locked button would only tease. */}
+                    {canAnalyze && (isPro || PAYMENTS_VISIBLE) && (
                         <button
                             type="button"
                             className={styles.figureAsk}

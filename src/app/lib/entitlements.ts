@@ -10,6 +10,7 @@ import {
 import { summarizeGuestCounters } from "./guest-usage";
 import { hashQuotaIdentity } from "./quota-identity";
 import { quotaPeriod } from "./quota-period";
+import { scheduleLimitAlert } from "./limit-alerts";
 
 export {
     PLAN_ENTITLEMENTS,
@@ -93,12 +94,21 @@ export async function consumeQuota(input: {
         const existing = await UsageCounter.findById(id).lean<{
             count: number;
         }>();
+        const used = existing?.count ?? limit;
+        if (input.userID) {
+            scheduleLimitAlert({ userID: input.userID, feature: input.feature, period, limit, used, blocked: true });
+        }
         return {
             allowed: false,
             limit,
-            used: existing?.count ?? limit,
+            used,
             remaining: 0,
         };
+    }
+
+    // The last one of the allowance: tell Meredith (once per person and month).
+    if (input.userID && record.count >= limit) {
+        scheduleLimitAlert({ userID: input.userID, feature: input.feature, period, limit, used: record.count, blocked: false });
     }
 
     return {

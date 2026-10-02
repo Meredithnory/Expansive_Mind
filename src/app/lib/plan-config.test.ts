@@ -37,6 +37,12 @@ describe("plan entitlements", () => {
         expect(PLAN_ENTITLEMENTS.pro.projects).toBe(50);
     });
 
+    it("gives free accounts 5 discoveries, 20 searches, and 30 AI questions a month", () => {
+        expect(PLAN_ENTITLEMENTS.free).toMatchObject({ discover: 5, search: 20, chat: 30 });
+        expect(PLAN_ENTITLEMENTS.guest.discover).toBe(1);
+        expect(PLAN_ENTITLEMENTS.guest.chat).toBe(0);
+    });
+
     it("keeps projects as a logged-in feature with a small free lifetime allowance", () => {
         expect(PLAN_ENTITLEMENTS.guest.projects).toBe(0);
         expect(PLAN_ENTITLEMENTS.free.projects).toBe(3);
@@ -120,6 +126,33 @@ describe("stored plan configuration", () => {
             fallback,
         );
         expect(merged.entitlements.pro.discover).toBe(12);
+    });
+
+    it("moves a config saved with the old free defaults to the new monthly limits", () => {
+        const oldFree = { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 };
+        const beforeChange = applyStoredPlanConfig(
+            { entitlements: { free: oldFree }, updatedAt: "2026-09-20T12:00:00.000Z" },
+            fallback,
+        );
+        expect(beforeChange.entitlements.free).toMatchObject({ discover: 5, chat: 30, search: 20 });
+
+        // Something Meredith chose herself before the change stays.
+        const custom = applyStoredPlanConfig(
+            { entitlements: { free: { ...oldFree, discover: 3, chat: 12 } }, updatedAt: "2026-09-20T12:00:00.000Z" },
+            fallback,
+        );
+        expect(custom.entitlements.free).toMatchObject({ discover: 3, chat: 12 });
+    });
+
+    it("keeps free limits saved in /admin after the change, even the old numbers", () => {
+        const merged = applyStoredPlanConfig(
+            {
+                entitlements: { free: { search: 20, discover: 2, chat: 5, scholar_search: 0, projects: 3 } },
+                updatedAt: "2026-10-02T09:00:00.000Z",
+            },
+            fallback,
+        );
+        expect(merged.entitlements.free).toMatchObject({ discover: 2, chat: 5 });
     });
 
     it("prefers Stripe IDs saved from the admin portal", () => {
