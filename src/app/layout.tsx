@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
 import AudienceTracker from "./components/AudienceTracker";
 import RatingPrompt from "./components/RatingPrompt";
+import LimitReachedModal from "./components/LimitReachedModal";
 import ScrollTheme from "./components/ScrollTheme";
 import KeyboardInset from "./components/KeyboardInset";
 import { SessionProvider } from "./lib/use-session";
@@ -50,6 +51,7 @@ export default function RootLayout({
                     <div className="main-content">{children}</div>
                     <Footer />
                     <RatingPrompt />
+                    <LimitReachedModal />
                 </SessionProvider>
             </body>
         </html>

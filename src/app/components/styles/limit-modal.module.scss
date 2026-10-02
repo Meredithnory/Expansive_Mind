@@ -1,0 +1,48 @@
+@use "../../variables" as *;
+
+// The parts of the limit pop-up the guest pop-up doesn't have: the note box.
+.noteLabel {
+    color: rgba(215, 235, 255, 0.86);
+    font-size: 0.9rem;
+    font-weight: 650;
+
+    span {
+        color: rgba(215, 235, 255, 0.5);
+        font-weight: 500;
+    }
+}
+
+.note {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 84px;
+    margin-top: -8px;
+    padding: 12px 14px;
+    border: 1px solid rgba(215, 235, 255, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #d7ebff;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.45;
+    resize: vertical;
+
+    &::placeholder {
+        color: rgba(215, 235, 255, 0.4);
+    }
+
+    &:focus {
+        border-color: rgba(255, 0, 132, 0.6);
+        outline: none;
+    }
+}
+
+.error {
+    margin: 0;
+    color: #ffb4b4;
+    font-size: 0.85rem;
+
+    a {
+        color: #ff8ec4;
+    }
+}

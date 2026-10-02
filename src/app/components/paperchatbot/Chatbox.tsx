@@ -29,6 +29,7 @@ import {
 } from "../../lib/paper-highlights";
 import { FIGURE_RIGHTS_ATTESTATION_VERSION } from "../../lib/figure-capture";
 import { askForRating } from "../../lib/rating";
+import { showLimitReached } from "../../lib/limit-reached";
 import { REPLAY_MASK } from "../../lib/replay-privacy";
 import { notOnPlanMessage } from "../../lib/plan-messages";
 import { MAX_CAPTURE_BYTES } from "../../lib/canvas-image";
@@ -735,6 +736,9 @@ const Chatbox = ({
             void refresh();
 
             if (!res.ok || !data.aiResponse) {
+                if (data.code === "QUOTA_EXCEEDED" && data.quota) {
+                    showLimitReached("chat", data.quota.limit);
+                }
                 // A used-up allowance says so; anything else stays generic.
                 throw new Error(
                     data.code === "QUOTA_EXCEEDED" && typeof data.error === "string"

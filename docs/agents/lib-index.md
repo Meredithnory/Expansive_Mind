@@ -67,6 +67,7 @@ Read this instead of listing the directory. Files marked `server-only` must not 
 | `quota-period.ts` | both | Lifetime, UTC day, or UTC month for a quota feature |
 | `rate-limit.ts` | server | Sliding window limiter |
 | `limit-alerts.ts` | server | When someone uses up a monthly allowance: one `LimitAlert` row per person/feature/month, first one emails Meredith |
+| `limit-reached.ts` | both | The signed-in "you've used your limit" pop-up: `showLimitReached` for pages, and the "Ask for more" request shape |
 | `limit-alert-mail.ts` | both | The limit alert email and the alerted features |
 | `rating.ts` | both | "How is Expansive Mind doing?" Bad / Fine / Good: scores, surfaces, 3-day cooldown, input cleanup, and `askForRating` for pages |
 | `region-capture.ts` | client | Selection → excerpt |

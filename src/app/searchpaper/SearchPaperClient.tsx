@@ -21,6 +21,7 @@ import { useSession } from "../lib/use-session";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { logActivity } from "../lib/activity";
+import { showLimitReached } from "../lib/limit-reached";
 import { PAYMENTS_VISIBLE, SCHOLAR_SOURCE_LABEL } from "../lib/payments";
 import { NEED_MORE_HREF, NEED_MORE_LABEL } from "../lib/plan-messages";
 import {
@@ -343,6 +344,8 @@ const SearchPaperClient = ({
                 setError(data.error || "Search is temporarily unavailable.");
                 setErrorCode(typeof data.code === "string" ? data.code : null);
                 setQuotaRemaining(data.quota?.remaining ?? null);
+                // Signed-in only: the pop-up ignores guests (their limit is daily).
+                if (data.code === "QUOTA_EXCEEDED") showLimitReached("search", data.quota?.limit);
                 await completeVisualTransition();
                 setLoading(false);
                 posthog.capture("search_blocked", {

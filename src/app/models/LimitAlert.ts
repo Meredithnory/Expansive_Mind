@@ -17,6 +17,9 @@ const limitAlertSchema = new mongoose.Schema(
         /** They tried again after running out. */
         blocked: { type: Boolean, default: false },
         emailed: { type: Boolean, default: false },
+        /** They asked for more from the limit pop-up. */
+        requestedAt: { type: Date },
+        requestNote: { type: String, maxlength: 600 },
         firstAt: { type: Date, required: true },
         lastAt: { type: Date, required: true },
         expiresAt: { type: Date, required: true },

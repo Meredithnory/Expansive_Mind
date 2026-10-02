@@ -22,6 +22,7 @@ import { logActivity } from "../lib/activity";
 import { PAYMENTS_VISIBLE, SCHOLAR_SOURCE_LABEL } from "../lib/payments";
 import { NEED_MORE_HREF, NEED_MORE_LABEL, countOf, limitRenewsOn } from "../lib/plan-messages";
 import { askForRating } from "../lib/rating";
+import { showLimitReached } from "../lib/limit-reached";
 import {
     parseGuestDiscoveryResult,
     parseGuestOpportunityReport,
@@ -1018,6 +1019,9 @@ function DiscoverClient({
                     setShowPlanLink(blocked);
                     if (isLoggedIn && blocked && data.quota) {
                         setDiscoveryQuota(data.quota);
+                    }
+                    if (isLoggedIn && data.code === "QUOTA_EXCEEDED") {
+                        showLimitReached("discover", data.quota?.limit);
                     }
                     if (!isLoggedIn && blocked) {
                         setDiscoveryQuota(data.quota ?? discoveryQuota);
